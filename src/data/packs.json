@@ -1,0 +1,17 @@
+[
+  { "id": "standard-normal", "name": "Standard Pack", "kind": "standard", "size": "normal", "cost": 4, "options": 3, "picks": 1, "rating": { "early": 3, "mid": 3, "late": 2 } },
+  { "id": "standard-jumbo", "name": "Jumbo Standard Pack", "kind": "standard", "size": "jumbo", "cost": 6, "options": 5, "picks": 1, "rating": { "early": 3.5, "mid": 3.5, "late": 2.5 } },
+  { "id": "standard-mega", "name": "Mega Standard Pack", "kind": "standard", "size": "mega", "cost": 8, "options": 5, "picks": 2, "rating": { "early": 4, "mid": 4, "late": 3 } },
+  { "id": "arcana-normal", "name": "Arcana Pack", "kind": "arcana", "size": "normal", "cost": 4, "options": 3, "picks": 1, "rating": { "early": 5, "mid": 5, "late": 4 } },
+  { "id": "arcana-jumbo", "name": "Jumbo Arcana Pack", "kind": "arcana", "size": "jumbo", "cost": 6, "options": 5, "picks": 1, "rating": { "early": 5.5, "mid": 5.5, "late": 4.5 } },
+  { "id": "arcana-mega", "name": "Mega Arcana Pack", "kind": "arcana", "size": "mega", "cost": 8, "options": 5, "picks": 2, "rating": { "early": 6, "mid": 6, "late": 5 } },
+  { "id": "celestial-normal", "name": "Celestial Pack", "kind": "celestial", "size": "normal", "cost": 4, "options": 3, "picks": 1, "rating": { "early": 7, "mid": 6, "late": 4 } },
+  { "id": "celestial-jumbo", "name": "Jumbo Celestial Pack", "kind": "celestial", "size": "jumbo", "cost": 6, "options": 5, "picks": 1, "rating": { "early": 7.5, "mid": 6.5, "late": 4.5 } },
+  { "id": "celestial-mega", "name": "Mega Celestial Pack", "kind": "celestial", "size": "mega", "cost": 8, "options": 5, "picks": 2, "rating": { "early": 8, "mid": 7, "late": 5 } },
+  { "id": "buffoon-normal", "name": "Buffoon Pack", "kind": "buffoon", "size": "normal", "cost": 4, "options": 2, "picks": 1, "rating": { "early": 6, "mid": 5, "late": 4 } },
+  { "id": "buffoon-jumbo", "name": "Jumbo Buffoon Pack", "kind": "buffoon", "size": "jumbo", "cost": 6, "options": 4, "picks": 1, "rating": { "early": 6.5, "mid": 5.5, "late": 4.5 } },
+  { "id": "buffoon-mega", "name": "Mega Buffoon Pack", "kind": "buffoon", "size": "mega", "cost": 8, "options": 4, "picks": 2, "rating": { "early": 7, "mid": 6, "late": 5 } },
+  { "id": "spectral-normal", "name": "Spectral Pack", "kind": "spectral", "size": "normal", "cost": 4, "options": 2, "picks": 1, "rating": { "early": 6, "mid": 6, "late": 5 } },
+  { "id": "spectral-jumbo", "name": "Jumbo Spectral Pack", "kind": "spectral", "size": "jumbo", "cost": 6, "options": 4, "picks": 1, "rating": { "early": 6.5, "mid": 6.5, "late": 5.5 } },
+  { "id": "spectral-mega", "name": "Mega Spectral Pack", "kind": "spectral", "size": "mega", "cost": 8, "options": 4, "picks": 2, "rating": { "early": 7, "mid": 7, "late": 6 } }
+]
