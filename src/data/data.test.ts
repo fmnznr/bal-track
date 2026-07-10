@@ -15,6 +15,9 @@ describe('vouchers.json', () => {
     expect(upgrades).toHaveLength(16);
     for (const u of upgrades) expect(ids.has(u.requires as string)).toBe(true);
   });
+  it('prices every voucher at $10', () => {
+    expect(vouchers.every(v => v.cost === 10)).toBe(true);
+  });
 });
 
 describe('consumables.json', () => {
@@ -28,6 +31,12 @@ describe('consumables.json', () => {
       expect(p.hand, p.id).toBeTruthy();
     }
   });
+  it('has unique consumable ids', () => {
+    expect(new Set(consumables.map(c => c.id)).size).toBe(consumables.length);
+  });
+  it('has a numeric cost on every consumable', () => {
+    for (const c of consumables) expect(typeof c.cost, c.id).toBe('number');
+  });
 });
 
 describe('packs.json', () => {
@@ -37,11 +46,21 @@ describe('packs.json', () => {
       expect(packs.filter(p => p.kind === kind)).toHaveLength(3);
     }
   });
+  it('has unique pack ids', () => {
+    expect(new Set(packs.map(p => p.id)).size).toBe(packs.length);
+  });
+  it('never allows more picks than options', () => {
+    for (const p of packs) expect(p.options, p.id).toBeGreaterThanOrEqual(p.picks);
+  });
 });
 
 describe('meta.json', () => {
   it('lists 15 decks and 8 stakes', () => {
     expect(meta.decks).toHaveLength(15);
     expect(meta.stakes).toHaveLength(8);
+  });
+  it('has no duplicate deck or stake names', () => {
+    expect(new Set(meta.decks).size).toBe(meta.decks.length);
+    expect(new Set(meta.stakes).size).toBe(meta.stakes.length);
   });
 });
