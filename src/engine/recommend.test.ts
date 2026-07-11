@@ -74,6 +74,19 @@ describe('recommend — full joker slots', () => {
     expect(recs[0].action).toMatch(/^Sell Joker, buy Blueprint/);
     expect(recs[0].reasons.join(' ')).toMatch(/Slots full/);
   });
+
+  it('computes the interest note on the net cost when selling covers part of the buy', () => {
+    const recs = recommend(
+      run({
+        money: 24,
+        ante: 4,
+        jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
+      }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    const composite = recs.find(r => r.kind === 'sell-and-buy');
+    expect(composite?.reasons.join(' ')).toMatch(/\$24 → \$15/);
+  });
 });
 
 describe('recommend — vouchers and packs', () => {

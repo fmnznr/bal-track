@@ -96,16 +96,16 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   }
 
   const synMatches = def.tags.filter(t => profile.dominant.includes(t));
-  let score = def.rating[phase] + Math.min(3, synMatches.length * 1.2) + EDITION_SCORE_BONUS[slot.edition];
-  const reasons: string[] = [`${def.rarity} joker rated ${def.rating[phase]}/10 at this stage`];
-  if (synMatches.length > 0) reasons.push(`Fits your build: ${synMatches.join(', ')}`);
-  if (slot.edition !== 'base') reasons.push(`${slot.edition} edition is a bonus`);
+  const rawScore = def.rating[phase] + Math.min(3, synMatches.length * 1.2) + EDITION_SCORE_BONUS[slot.edition];
+  const baseReasons: string[] = [`${def.rarity} joker rated ${def.rating[phase]}/10 at this stage`];
+  if (synMatches.length > 0) baseReasons.push(`Fits your build: ${synMatches.join(', ')}`);
+  if (slot.edition !== 'base') baseReasons.push(`${slot.edition} edition is a bonus`);
   const econ = economyNotes(run, slot.price, 0.8);
-  score -= econ.penalty;
-  reasons.push(...econ.notes);
 
   const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';
-  if (!slotsFull) return rec('buy-joker', action, score, reasons, def.id);
+  if (!slotsFull) {
+    return rec('buy-joker', action, rawScore - econ.penalty, [...baseReasons, ...econ.notes], def.id);
+  }
 
   // Slots full: compare against the weakest owned joker.
   let weakestIndex = -1;
@@ -120,21 +120,29 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   });
   const weakest = run.jokers[weakestIndex];
   const weakestDef = weakest ? getJoker(weakest.jokerId) : undefined;
-  if (weakestDef && score > weakestValue + 1) {
-    return rec(
-      'sell-and-buy',
-      `Sell ${weakestDef.name}, buy ${def.name} ($${slot.price})`,
-      score - weakestValue * 0.4,
-      [
-        ...reasons,
-        `Slots full — ${weakestDef.name} is your weakest (${weakestValue.toFixed(1)} vs ${score.toFixed(1)})`,
-        `Selling refunds $${sellValue(weakestDef.cost, weakest.edition)}`,
-      ],
-      def.id,
-    );
+  if (weakestDef) {
+    // The sell refund offsets part of the price, so economy impact is on the NET cost.
+    const refund = sellValue(weakestDef.cost, weakest.edition);
+    const netEcon = economyNotes(run, slot.price - refund, 0.8);
+    const netScore = rawScore - netEcon.penalty;
+    if (netScore > weakestValue + 1) {
+      return rec(
+        'sell-and-buy',
+        `Sell ${weakestDef.name}, buy ${def.name} ($${slot.price})`,
+        netScore - weakestValue * 0.4,
+        [
+          ...baseReasons,
+          ...netEcon.notes,
+          `Slots full — ${weakestDef.name} is your weakest (${weakestValue.toFixed(1)} vs ${netScore.toFixed(1)})`,
+          `Selling refunds $${refund}`,
+        ],
+        def.id,
+      );
+    }
   }
-  return rec('buy-joker', action, Math.min(score, 2), [
-    ...reasons,
+  return rec('buy-joker', action, Math.min(rawScore - econ.penalty, 2), [
+    ...baseReasons,
+    ...econ.notes,
     'Joker slots are full and nothing is clearly worth selling for this',
   ], def.id);
 }
