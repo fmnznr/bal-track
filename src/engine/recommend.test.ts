@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { newRunState } from '../run/runStore';
-import { recommend } from './recommend';
+import { recommend, recommendPackPick } from './recommend';
 import type { RunState, ShopState } from '../types';
 
 function run(overrides: Partial<RunState> = {}): RunState {
@@ -114,5 +114,24 @@ describe('recommend — reroll and skip', () => {
     const recs = recommend(run({ money: 25 }), shop());
     const skip = recs.find(r => r.kind === 'skip');
     expect(skip?.reasons.join(' ')).toMatch(/\$5 interest/);
+  });
+});
+
+describe('recommendPackPick', () => {
+  it('prefers the planet that matches the build', () => {
+    const flushRun = run({ jokers: owned('droll-joker', 'crafty-joker') });
+    const picks = recommendPackPick(flushRun, ['mercury', 'jupiter']);
+    expect(picks[0].action).toBe('Take Jupiter');
+    expect(picks[0].reasons.join(' ')).toMatch(/matches your build/);
+  });
+
+  it('always ranks The Soul on top', () => {
+    const picks = recommendPackPick(run(), ['jupiter', 'the-soul']);
+    expect(picks[0].action).toBe('Take The Soul');
+  });
+
+  it('ranks buffoon-pack jokers with synergy', () => {
+    const picks = recommendPackPick(run(), ['joker', 'blueprint']);
+    expect(picks[0].action).toBe('Take Blueprint');
   });
 });
