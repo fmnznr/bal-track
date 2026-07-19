@@ -1,0 +1,8 @@
+[
+  { "id": "flush", "name": "Flush", "description": "Focus one suit and play flushes every hand", "coreTags": ["flush-support", "suit-hearts", "suit-diamonds", "suit-spades", "suit-clubs"], "keyJokers": ["droll-joker", "crafty-joker", "smeared-joker", "four-fingers", "the-tribe", "bloodstone"], "hands": ["Flush"] },
+  { "id": "straight", "name": "Straight", "description": "Chain connected ranks into straights", "coreTags": ["straight-support"], "keyJokers": ["crazy-joker", "devious-joker", "four-fingers", "shortcut", "runner", "the-order"], "hands": ["Straight"] },
+  { "id": "pairs", "name": "Pairs & Quads", "description": "Stack multiples of a rank, from pairs to four of a kind", "coreTags": ["pair-support"], "keyJokers": ["jolly-joker", "sly-joker", "zany-joker", "spare-trousers", "the-duo", "the-family"], "hands": ["Pair", "Two Pair", "Full House", "Four of a Kind"] },
+  { "id": "face-cards", "name": "Face Cards", "description": "Kings, queens and jacks carry the scoring", "coreTags": ["face-cards"], "keyJokers": ["photograph", "baron", "scary-face", "smiley-face", "sock-and-buskin", "midas-mask"], "hands": [] },
+  { "id": "scaling", "name": "Scaling Engine", "description": "Grow permanent value every round and outscale the antes", "coreTags": ["scaling", "xmult"], "keyJokers": ["ride-the-bus", "green-joker", "constellation", "hologram", "obelisk", "campfire"], "hands": [] },
+  { "id": "economy", "name": "Economy Start", "description": "Bank money early, convert interest into power later", "coreTags": ["economy"], "keyJokers": ["golden-joker", "bull", "rocket", "cloud-9", "to-the-moon", "egg"], "hands": [] }
+]

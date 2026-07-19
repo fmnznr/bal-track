@@ -1,0 +1,17 @@
+[
+  { "deck": "Red", "boosts": {}, "excluded": [] },
+  { "deck": "Blue", "boosts": {}, "excluded": [] },
+  { "deck": "Yellow", "boosts": { "economy": 1 }, "excluded": [], "note": "extra starting money makes an interest start easy" },
+  { "deck": "Green", "boosts": {}, "excluded": [], "note": "no interest on this deck — prefer flat money jokers over interest payoffs" },
+  { "deck": "Black", "boosts": { "scaling": 1 }, "excluded": [], "note": "the extra joker slot supports engine builds" },
+  { "deck": "Magic", "boosts": {}, "excluded": [] },
+  { "deck": "Nebula", "boosts": {}, "excluded": [], "note": "Telescope start — celestial packs level your most played hand" },
+  { "deck": "Ghost", "boosts": {}, "excluded": [] },
+  { "deck": "Abandoned", "boosts": { "pairs": 1, "straight": 1 }, "excluded": ["face-cards"], "note": "no face cards in the deck; 40 cards mean denser ranks" },
+  { "deck": "Checkered", "boosts": { "flush": 3 }, "excluded": [], "note": "only spades and hearts — flushes come naturally" },
+  { "deck": "Zodiac", "boosts": {}, "excluded": [], "note": "merchant vouchers give early planet and tarot access" },
+  { "deck": "Painted", "boosts": { "flush": 1, "straight": 1 }, "excluded": [], "note": "+2 hand size helps you draw into big hands" },
+  { "deck": "Anaglyph", "boosts": {}, "excluded": [] },
+  { "deck": "Plasma", "boosts": { "scaling": 1 }, "excluded": [], "note": "balanced chipsxmult scoring rewards one big engine" },
+  { "deck": "Erratic", "boosts": {}, "excluded": [], "note": "random deck — check your actual suit and rank distribution first" }
+]

@@ -105,3 +105,35 @@ export interface Recommendation {
 export function phaseForAnte(ante: number): Phase {
   return ante <= 2 ? 'early' : ante <= 5 ? 'mid' : 'late';
 }
+
+export interface ArchetypeDef {
+  id: string;
+  name: string;
+  description: string;
+  coreTags: SynergyTag[];
+  keyJokers: string[]; // joker ids worth watching for
+  hands: HandType[]; // hands to level for this build
+}
+
+export interface DeckStrategyDef {
+  deck: string;
+  boosts: Record<string, number>; // archetype id -> score modifier
+  excluded: string[]; // archetype ids unplayable on this deck
+  note?: string;
+}
+
+export type Commitment = 'open' | 'lean' | 'commit';
+
+export interface StrategyCandidate {
+  archetypeId: string;
+  name: string;
+  score: number;
+  reasons: string[];
+  watchlist: string[]; // names of key jokers not yet owned
+  hands: HandType[];
+}
+
+export interface StrategyAdvice {
+  commitment: Commitment;
+  candidates: StrategyCandidate[]; // top 3, best first
+}
