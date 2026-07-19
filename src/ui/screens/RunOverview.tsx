@@ -5,6 +5,7 @@ import { HAND_TYPES } from '../../types';
 import type { Edition } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
 import NumberField from '../components/NumberField';
+import StrategyPanel from '../components/StrategyPanel';
 
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 
@@ -19,6 +20,8 @@ export default function RunOverview() {
           Undo
         </button>
       </header>
+
+      <StrategyPanel />
 
       <div className="row">
         <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
