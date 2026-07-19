@@ -135,3 +135,25 @@ describe('recommendPackPick', () => {
     expect(picks[0].action).toBe('Take Blueprint');
   });
 });
+
+describe('recommend — strategy feedback', () => {
+  it('boosts a watchlist joker when a plan is recommended', () => {
+    const flushRun = { ...run({ money: 20, jokers: owned('droll-joker') }), deck: 'Checkered' };
+    const recs = recommend(flushRun, shop({ cards: [{ kind: 'joker', jokerId: 'smeared-joker', edition: 'base', price: 7 }] }));
+    const buy = recs.find(r => r.kind === 'buy-joker');
+    expect(buy?.reasons.join(' ')).toMatch(/watchlist for your recommended Flush plan/);
+  });
+
+  it('adds no strategy reasons while the advisor is open', () => {
+    const recs = recommend(run({ money: 20 }), shop({ cards: [{ kind: 'joker', jokerId: 'crafty-joker', edition: 'base', price: 4 }] }));
+    const buy = recs.find(r => r.kind === 'buy-joker');
+    expect(buy?.reasons.join(' ')).not.toMatch(/recommended/);
+  });
+
+  it('boosts plan planets in pack picks', () => {
+    const flushRun = { ...run({ jokers: owned('droll-joker') }), deck: 'Checkered' };
+    const picks = recommendPackPick(flushRun, ['mercury', 'jupiter']);
+    expect(picks[0].action).toBe('Take Jupiter');
+    expect(picks[0].reasons.join(' ')).toMatch(/for your recommended Flush plan/);
+  });
+});

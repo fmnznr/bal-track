@@ -6,6 +6,8 @@ import type {
 import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
 import { interest, interestCapFor, interestLost, sellValue } from './economy';
+import { adviseStrategy, getArchetype } from './strategy';
+import type { ArchetypeDef, StrategyCandidate } from '../types';
 
 export const EDITION_SCORE_BONUS: Record<Edition, number> = {
   base: 0,
@@ -65,7 +67,33 @@ function planetBonus(run: RunState, profile: ArchetypeProfile, consumableId: str
   return { bonus, notes };
 }
 
-function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: ArchetypeProfile): Recommendation {
+function activePlan(run: RunState): StrategyCandidate | null {
+  const advice = adviseStrategy(run);
+  if (advice.commitment === 'open') return null;
+  return advice.candidates[0] ?? null;
+}
+
+function planJokerBonus(defId: string, tags: readonly string[], plan: StrategyCandidate | null): { bonus: number; notes: string[] } {
+  if (!plan) return { bonus: 0, notes: [] };
+  const arch: ArchetypeDef | undefined = getArchetype(plan.archetypeId);
+  if (!arch) return { bonus: 0, notes: [] };
+  if (arch.keyJokers.includes(defId)) {
+    return { bonus: 1.2, notes: [`On the watchlist for your recommended ${plan.name} plan`] };
+  }
+  if (tags.some(t => (arch.coreTags as readonly string[]).includes(t))) {
+    return { bonus: 0.8, notes: [`Fits your recommended ${plan.name} plan`] };
+  }
+  return { bonus: 0, notes: [] };
+}
+
+function planPlanetBonus(consumableId: string, plan: StrategyCandidate | null): { bonus: number; notes: string[] } {
+  if (!plan) return { bonus: 0, notes: [] };
+  const def = getConsumable(consumableId);
+  if (def?.kind !== 'planet' || !def.hand || !plan.hands.includes(def.hand)) return { bonus: 0, notes: [] };
+  return { bonus: 1.5, notes: [`Levels ${def.hand} for your recommended ${plan.name} plan`] };
+}
+
+function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: ArchetypeProfile, plan: StrategyCandidate | null): Recommendation {
   if (slot.kind === 'consumable') {
     const def = getConsumable(slot.consumableId);
     if (!def) return rec('buy-consumable', 'Buy unknown card', 0, ['Unknown catalog id']);
@@ -78,6 +106,9 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
     const planet = planetBonus(run, profile, def.id);
     score += planet.bonus;
     reasons.push(...planet.notes);
+    const planPlanet = planPlanetBonus(def.id, plan);
+    score += planPlanet.bonus;
+    reasons.push(...planPlanet.notes);
     if (run.consumables.length >= run.consumableSlots) {
       score -= 1;
       reasons.push('Your consumable slots are full');
@@ -96,10 +127,13 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   }
 
   const synMatches = def.tags.filter(t => profile.dominant.includes(t));
-  const rawScore = def.rating[phase] + Math.min(3, synMatches.length * 1.2) + EDITION_SCORE_BONUS[slot.edition];
+  let rawScore = def.rating[phase] + Math.min(3, synMatches.length * 1.2) + EDITION_SCORE_BONUS[slot.edition];
   const baseReasons: string[] = [`${def.rarity} joker rated ${def.rating[phase]}/10 at this stage`];
   if (synMatches.length > 0) baseReasons.push(`Fits your build: ${synMatches.join(', ')}`);
   if (slot.edition !== 'base') baseReasons.push(`${slot.edition} edition is a bonus`);
+  const planB = planJokerBonus(def.id, def.tags, plan);
+  rawScore += planB.bonus;
+  baseReasons.push(...planB.notes);
   const econ = economyNotes(run, slot.price, 0.8);
 
   const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';
@@ -216,8 +250,9 @@ function evalSkip(run: RunState, bestBuy: number): Recommendation {
 export function recommend(run: RunState, shop: ShopState): Recommendation[] {
   const phase = phaseForAnte(run.ante);
   const profile = detectArchetype(run);
+  const plan = activePlan(run);
   const buys: Recommendation[] = [];
-  for (const slot of shop.cards) buys.push(evalShopCard(run, slot, phase, profile));
+  for (const slot of shop.cards) buys.push(evalShopCard(run, slot, phase, profile, plan));
   if (shop.voucherId) buys.push(evalVoucher(run, shop.voucherId, phase));
   for (const packId of shop.packIds) buys.push(evalPack(run, packId, phase));
   const bestBuy = buys.reduce((max, r) => Math.max(max, r.score), 0);
@@ -231,14 +266,18 @@ export function recommend(run: RunState, shop: ShopState): Recommendation[] {
 export function recommendPackPick(run: RunState, optionIds: string[]): Recommendation[] {
   const phase = phaseForAnte(run.ante);
   const profile = detectArchetype(run);
+  const plan = activePlan(run);
   const recs = optionIds.map(id => {
     const joker = getJoker(id);
     if (joker) {
       const synMatches = joker.tags.filter(t => profile.dominant.includes(t));
-      const score = joker.rating[phase] + Math.min(3, synMatches.length * 1.2);
+      let score = joker.rating[phase] + Math.min(3, synMatches.length * 1.2);
       const reasons: string[] = [`Rated ${joker.rating[phase]}/10 at this stage`];
       if (synMatches.length > 0) reasons.push(`Fits your build: ${synMatches.join(', ')}`);
       if (usedJokerSlots(run) >= run.jokerSlots) reasons.push('Careful: your joker slots are full');
+      const planB = planJokerBonus(joker.id, joker.tags, plan);
+      score += planB.bonus;
+      reasons.push(...planB.notes);
       return rec('pick', `Take ${joker.name}`, score, reasons, id);
     }
     const c = getConsumable(id);
@@ -248,6 +287,9 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
     const planet = planetBonus(run, profile, c.id);
     score += planet.bonus;
     reasons.push(...planet.notes);
+    const planPlanet = planPlanetBonus(c.id, plan);
+    score += planPlanet.bonus;
+    reasons.push(...planPlanet.notes);
     return rec('pick', `Take ${c.name}`, score, reasons, id);
   });
   return finalize(recs);
