@@ -5,6 +5,9 @@ platforms without mod or save-file access (mobile, Switch, Xbox). You enter
 your run state and each shop's contents manually (fast autocomplete over the
 full card catalog); the app returns ranked, explained recommendations for
 every shop decision — buy/sell/reroll/skip, vouchers, packs, and pack picks.
+A strategy advisor on the run screen reads your jokers and deck, names the
+build worth committing to (or honestly says "stay flexible"), and feeds the
+recommended plan back into shop advice.
 
 Recommendations are heuristic: phase-dependent card ratings, synergy tags
 matched against your detected build, and interest-aware economy rules. Every
