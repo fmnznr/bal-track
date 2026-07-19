@@ -12,6 +12,6 @@
   { "deck": "Zodiac", "boosts": {}, "excluded": [], "note": "merchant vouchers give early planet and tarot access" },
   { "deck": "Painted", "boosts": { "flush": 1, "straight": 1 }, "excluded": [], "note": "+2 hand size helps you draw into big hands" },
   { "deck": "Anaglyph", "boosts": {}, "excluded": [] },
-  { "deck": "Plasma", "boosts": { "scaling": 1 }, "excluded": [], "note": "balanced chipsxmult scoring rewards one big engine" },
+  { "deck": "Plasma", "boosts": { "scaling": 1 }, "excluded": [], "note": "balanced chips x mult scoring rewards one big engine" },
   { "deck": "Erratic", "boosts": {}, "excluded": [], "note": "random deck — check your actual suit and rank distribution first" }
 ]
