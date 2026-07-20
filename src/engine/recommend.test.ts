@@ -157,3 +157,40 @@ describe('recommend — strategy feedback', () => {
     expect(picks[0].reasons.join(' ')).toMatch(/for your recommended Flush plan/);
   });
 });
+
+describe('recommend — skip calibration', () => {
+  it('prefers banking over a mediocre buy early in the run', () => {
+    const recs = recommend(
+      run({ money: 13 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'droll-joker', edition: 'base', price: 6 }] }),
+    );
+    expect(recs[0].kind).toBe('skip');
+    expect(recs[0].reasons.join(' ')).toMatch(/interest/i);
+  });
+
+  it('still buys a strong joker instead of banking', () => {
+    const recs = recommend(
+      run({ money: 13 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    expect(recs[0].kind).toBe('buy-joker');
+  });
+
+  it('names the exact amount missing to the next interest tier', () => {
+    const recs = recommend(
+      run({ money: 23 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
+    );
+    const skip = recs.find(r => r.kind === 'skip');
+    expect(skip?.reasons.join(' ')).toMatch(/Save \$2 more/);
+  });
+
+  it('boosts banking under an Economy plan', () => {
+    const recs = recommend(
+      run({ money: 20, jokers: owned('golden-joker', 'bull') }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
+    );
+    const skip = recs.find(r => r.kind === 'skip');
+    expect(skip?.reasons.join(' ')).toMatch(/Economy Start plan/);
+  });
+});

@@ -233,11 +233,25 @@ function evalReroll(run: RunState, shop: ShopState, bestBuy: number): Recommenda
   return rec('reroll', action, score, reasons);
 }
 
-function evalSkip(run: RunState, bestBuy: number): Recommendation {
+function evalSkip(run: RunState, bestBuy: number, phase: Phase, plan: StrategyCandidate | null): Recommendation {
   const cap = interestCapFor(run.vouchers);
   const earned = interest(run.money, cap);
   let score = 3 + Math.min(1, earned * 0.15);
   const reasons: string[] = [`Banking $${run.money} earns $${earned} interest per round`];
+  const growthRoom = earned < cap;
+  if (growthRoom && phase !== 'late') {
+    score += phase === 'early' ? 1 : 0.5;
+    reasons.push('Growing your interest pays off every remaining round');
+  }
+  const toNextTier = run.money >= 0 ? (5 - (run.money % 5)) % 5 : 0;
+  if (growthRoom && toNextTier > 0 && toNextTier <= 2) {
+    score += 0.5;
+    reasons.push(`Save $${toNextTier} more to reach the next interest tier`);
+  }
+  if (plan?.archetypeId === 'economy') {
+    score += 1;
+    reasons.push(`Banking fits your recommended ${plan.name} plan`);
+  }
   if (bestBuy >= 7) {
     score -= 1.5;
     reasons.push('But there is a strong buy available');
@@ -256,7 +270,7 @@ export function recommend(run: RunState, shop: ShopState): Recommendation[] {
   if (shop.voucherId) buys.push(evalVoucher(run, shop.voucherId, phase));
   for (const packId of shop.packIds) buys.push(evalPack(run, packId, phase));
   const bestBuy = buys.reduce((max, r) => Math.max(max, r.score), 0);
-  return finalize([...buys, evalReroll(run, shop, bestBuy), evalSkip(run, bestBuy)]);
+  return finalize([...buys, evalReroll(run, shop, bestBuy), evalSkip(run, bestBuy, phase, plan)]);
 }
 
 /**
