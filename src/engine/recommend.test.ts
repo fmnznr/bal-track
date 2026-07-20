@@ -193,4 +193,22 @@ describe('recommend — skip calibration', () => {
     const skip = recs.find(r => r.kind === 'skip');
     expect(skip?.reasons.join(' ')).toMatch(/Economy Start plan/);
   });
+
+  it('still buys a strong joker even under an Economy plan', () => {
+    const recs = recommend(
+      run({ money: 18, jokers: owned('golden-joker') }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    expect(recs[0].kind).toBe('buy-joker');
+  });
+
+  it('keeps skip modest late in the run', () => {
+    const recs = recommend(
+      run({ money: 23, ante: 7 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
+    );
+    const skip = recs.find(r => r.kind === 'skip');
+    const reroll = recs.find(r => r.kind === 'reroll');
+    expect(reroll!.score).toBeGreaterThan(skip!.score);
+  });
 });

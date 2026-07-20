@@ -244,7 +244,7 @@ function evalSkip(run: RunState, bestBuy: number, phase: Phase, plan: StrategyCa
     reasons.push('Growing your interest pays off every remaining round');
   }
   const toNextTier = run.money >= 0 ? (5 - (run.money % 5)) % 5 : 0;
-  if (growthRoom && toNextTier > 0 && toNextTier <= 2) {
+  if (growthRoom && phase !== 'late' && toNextTier > 0 && toNextTier <= 2) {
     score += 0.5;
     reasons.push(`Save $${toNextTier} more to reach the next interest tier`);
   }
@@ -252,7 +252,7 @@ function evalSkip(run: RunState, bestBuy: number, phase: Phase, plan: StrategyCa
     score += 1;
     reasons.push(`Banking fits your recommended ${plan.name} plan`);
   }
-  if (bestBuy >= 7) {
+  if (bestBuy >= 5) {
     score -= 1.5;
     reasons.push('But there is a strong buy available');
   } else if (bestBuy < 4) {

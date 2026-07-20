@@ -18,12 +18,14 @@ bekommt drei additive Boni:
    spät +0. Begründung: "Growing your interest pays off every remaining
    round".
 2. **Schwellen-Hinweis:** Fehlen 1–2 $ zur nächsten 5-$-Stufe (und Zins
-   nicht am Cap): +0,5 mit "Save $X more to reach the next interest tier".
+   nicht am Cap, nicht in der Spätphase): +0,5 mit "Save $X more to reach
+   the next interest tier".
 3. **Economy-Plan:** Ist der empfohlene Archetyp `economy`: +1 mit
    "Banking fits your recommended Economy Start plan".
 
 Unverändert: Basis 3 + Zins-Bonus, der −1,5-Dämpfer bei starkem Kauf
-(bestBuy ≥ 7) — starke Joker gewinnen weiterhin gegen Skip.
+(jetzt ab Netto-Score ≥ 5, damit er auch nach Zins-Malus greift) — starke
+Joker gewinnen weiterhin gegen Skip.
 
 ## Kalibrier-Nachweis (handgerechnet)
 
