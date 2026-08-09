@@ -28,6 +28,8 @@ export default function PackScreen() {
   const kind = draft.kind;
   const options = draft.options;
   const setKind = (next: PackKind) => dispatch({ type: 'SET_PACK_DRAFT', draft: { kind: next, options: [] } });
+  // Resolves against the render-time draft, not live reducer state: at most
+  // one setKind/setOptions call per event handler, or later calls see stale data.
   const setOptions = (update: string[] | ((o: string[]) => string[])) =>
     dispatch({
       type: 'SET_PACK_DRAFT',

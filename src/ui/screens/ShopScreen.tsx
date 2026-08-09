@@ -13,6 +13,8 @@ export default function ShopScreen() {
   const { store, dispatch } = useRun();
   const run = store.current!;
   const shop = store.shopDraft ?? emptyShop;
+  // Resolves against the render-time `shop`, not live reducer state: at most
+  // one setShop call per event handler, or later calls see stale data.
   const setShop = (update: ShopState | ((s: ShopState) => ShopState)) =>
     dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
