@@ -1,7 +1,7 @@
 import { getConsumable, getJoker } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { HAND_TYPES } from '../types';
-import type { Edition, HandType, PackKind, RunState, ShopState } from '../types';
+import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
+import type { DeckProfile, Edition, EnhancementType, HandType, PackKind, RunState, ShopState, Suit } from '../types';
 
 export interface FinishedRun {
   deck: string;
@@ -41,10 +41,25 @@ export type RunAction =
   | { type: 'END_RUN'; result: 'won' | 'lost' }
   | { type: 'UNDO' }
   | { type: 'SET_SHOP_DRAFT'; draft: ShopState | null }
-  | { type: 'SET_PACK_DRAFT'; draft: PackDraft | null };
+  | { type: 'SET_PACK_DRAFT'; draft: PackDraft | null }
+  | { type: 'SET_PROFILE_SUIT'; suit: Suit; value: number }
+  | { type: 'SET_PROFILE_FACE'; value: number }
+  | { type: 'SET_PROFILE_SIZE'; value: number }
+  | { type: 'SET_PROFILE_ENHANCED'; enhancement: EnhancementType; value: number };
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
+
+export function initialDeckProfile(deck: string): DeckProfile {
+  const enhanced = Object.fromEntries(ENHANCEMENT_TYPES.map(t => [t, 0])) as Record<EnhancementType, number>;
+  if (deck === 'Checkered') {
+    return { suits: { hearts: 26, diamonds: 0, spades: 26, clubs: 0 }, faceCards: 12, deckSize: 52, enhanced };
+  }
+  if (deck === 'Abandoned') {
+    return { suits: { hearts: 10, diamonds: 10, spades: 10, clubs: 10 }, faceCards: 0, deckSize: 40, enhanced };
+  }
+  return { suits: { hearts: 13, diamonds: 13, spades: 13, clubs: 13 }, faceCards: 12, deckSize: 52, enhanced };
+}
 
 export function newRunState(deck: string, stake: string): RunState {
   const handLevels = Object.fromEntries(HAND_TYPES.map(h => [h, 1])) as Record<HandType, number>;
@@ -59,6 +74,7 @@ export function newRunState(deck: string, stake: string): RunState {
     vouchers: [],
     consumables: [],
     handLevels,
+    deckProfile: initialDeckProfile(deck),
     status: 'active',
   };
 }
@@ -160,6 +176,23 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     }
     case 'SET_HAND_LEVEL':
       return push({ ...run, handLevels: { ...run.handLevels, [action.hand]: Math.max(1, action.level) } });
+    case 'SET_PROFILE_SUIT':
+      return push({
+        ...run,
+        deckProfile: { ...run.deckProfile, suits: { ...run.deckProfile.suits, [action.suit]: Math.max(0, action.value) } },
+      });
+    case 'SET_PROFILE_FACE':
+      return push({ ...run, deckProfile: { ...run.deckProfile, faceCards: Math.max(0, action.value) } });
+    case 'SET_PROFILE_SIZE':
+      return push({ ...run, deckProfile: { ...run.deckProfile, deckSize: Math.max(0, action.value) } });
+    case 'SET_PROFILE_ENHANCED':
+      return push({
+        ...run,
+        deckProfile: {
+          ...run.deckProfile,
+          enhanced: { ...run.deckProfile.enhanced, [action.enhancement]: Math.max(0, action.value) },
+        },
+      });
     case 'SPEND':
       return push({ ...run, money: run.money - action.amount });
     case 'END_RUN':
@@ -189,9 +222,11 @@ export function load(): StoreState | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoreState>;
+    const withProfile = (r: RunState): RunState =>
+      r.deckProfile ? r : { ...r, deckProfile: initialDeckProfile(r.deck) };
     return {
-      current: parsed.current ?? null,
-      past: parsed.past ?? [],
+      current: parsed.current ? withProfile(parsed.current) : null,
+      past: (parsed.past ?? []).map(withProfile),
       finished: parsed.finished ?? [],
       shopDraft: parsed.shopDraft ?? null,
       packDraft: parsed.packDraft ?? null,

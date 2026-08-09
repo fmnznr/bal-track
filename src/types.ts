@@ -75,6 +75,7 @@ export interface RunState {
   vouchers: string[]; // voucher ids redeemed this run
   consumables: string[]; // consumable ids currently held
   handLevels: Record<HandType, number>; // all start at 1
+  deckProfile: DeckProfile;
   status: 'active' | 'won' | 'lost';
 }
 
@@ -136,4 +137,17 @@ export interface StrategyCandidate {
 export interface StrategyAdvice {
   commitment: Commitment;
   candidates: StrategyCandidate[]; // top 3, best first
+}
+
+export const SUITS = ['hearts', 'diamonds', 'spades', 'clubs'] as const;
+export type Suit = (typeof SUITS)[number];
+
+export const ENHANCEMENT_TYPES = ['bonus', 'mult', 'wild', 'glass', 'steel', 'stone', 'gold', 'lucky'] as const;
+export type EnhancementType = (typeof ENHANCEMENT_TYPES)[number];
+
+export interface DeckProfile {
+  suits: Record<Suit, number>;
+  faceCards: number;
+  deckSize: number;
+  enhanced: Record<EnhancementType, number>;
 }

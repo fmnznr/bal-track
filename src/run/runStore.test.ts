@@ -137,3 +137,39 @@ describe('drafts', () => {
     expect(loaded?.packDraft).toBeNull();
   });
 });
+
+describe('deck profile', () => {
+  it('initializes the profile per deck', () => {
+    expect(newRunState('Red', 'White').deckProfile).toEqual({
+      suits: { hearts: 13, diamonds: 13, spades: 13, clubs: 13 },
+      faceCards: 12,
+      deckSize: 52,
+      enhanced: { bonus: 0, mult: 0, wild: 0, glass: 0, steel: 0, stone: 0, gold: 0, lucky: 0 },
+    });
+    expect(newRunState('Checkered', 'White').deckProfile.suits).toEqual({ hearts: 26, diamonds: 0, spades: 26, clubs: 0 });
+    const abandoned = newRunState('Abandoned', 'White').deckProfile;
+    expect(abandoned.faceCards).toBe(0);
+    expect(abandoned.deckSize).toBe(40);
+  });
+
+  it('edits profile counters with a floor of zero', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_PROFILE_SUIT', suit: 'diamonds', value: 4 });
+    s = reduce(s, { type: 'SET_PROFILE_FACE', value: -3 });
+    s = reduce(s, { type: 'SET_PROFILE_SIZE', value: 48 });
+    s = reduce(s, { type: 'SET_PROFILE_ENHANCED', enhancement: 'steel', value: 2 });
+    expect(s.current?.deckProfile.suits.diamonds).toBe(4);
+    expect(s.current?.deckProfile.faceCards).toBe(0);
+    expect(s.current?.deckProfile.deckSize).toBe(48);
+    expect(s.current?.deckProfile.enhanced.steel).toBe(2);
+  });
+
+  it('backfills the profile on old saves including undo snapshots', () => {
+    const legacyRun = { ...newRunState('Checkered', 'White') } as Record<string, unknown>;
+    delete legacyRun.deckProfile;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: legacyRun, past: [legacyRun], finished: [] }));
+    const loaded = load();
+    expect(loaded?.current?.deckProfile.suits.spades).toBe(26);
+    expect(loaded?.past[0]?.deckProfile.deckSize).toBe(52);
+  });
+});
