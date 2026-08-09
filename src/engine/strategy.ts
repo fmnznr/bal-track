@@ -47,7 +47,7 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
 
     if (arch.id === 'flush') {
       const { suit, share } = maxSuitShare(run.deckProfile);
-      if (share >= 0.4) {
+      if (share > 0.4) {
         score += 1.5;
         reasons.push(`${Math.round(share * 100)}% of your deck is ${suit}`);
       }

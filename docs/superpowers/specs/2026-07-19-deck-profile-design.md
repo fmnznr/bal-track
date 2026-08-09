@@ -70,6 +70,9 @@ Alle Zähler bleiben manuell editierbar; Untergrenze 0.
   +0,5 je Steel Card (max +3) mit Zähler-Reason; glass-joker analog zu
   Glass; drivers-license → gesamt-Enhanced ≥ 16 → +3, sonst −2 mit
   „only N/16 enhanced cards".
+- Mehrfarben-Joker (Blackboard) werden über die Summe ihrer Farben bewertet
+  (Boost erst ab 70 %); Face-Enabler (Pareidolia) sind vom Face-Signal
+  ausgenommen; bei deckSize 0 werden keine Anteils-Aussagen getroffen.
 
 ## UI
 
@@ -92,3 +95,19 @@ rendert, Zähler-Edit dispatcht, SuitPrompt-Flow).
 
 Einzelkarten-Tracking, Seals, Rang-Verteilung jenseits Face Cards,
 Boss-Blind-Effekte, Sigil/Ouija-Automatik.
+
+## Spätere Ausbaustufen
+
+Aus dem Opus-Review von Task 3 zurückgestellte Punkte:
+
+- Kontextsensitive Verkaufs-Bewertung für Enhanced-Spezialisten (Driver's
+  License früh im Run nicht als Verkaufskandidat vorschlagen, auch wenn
+  der aktuelle Enhanced-Anteil niedrig ist).
+- Kopplung deckSize ↔ Farbzähler gegen Drift (manuelle Edits können beide
+  auseinanderlaufen lassen; ein Konsistenz-Check oder Ableitung wäre
+  robuster).
+- Plan-Reasons auf gedeckelten Karten unterdrücken (wenn deckSignalForJoker
+  bereits capAt setzt, wirkt ein zusätzlicher „fits your recommended plan"-
+  Reason irreführend).
+- Fast-16-Hinweis für Driver's License (z. B. bei 12–15 Enhanced-Karten
+  einen „fast da"-Reason statt nur der pauschalen Warnung unter 16).

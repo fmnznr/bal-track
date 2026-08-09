@@ -154,6 +154,17 @@ describe('recommendPackPick — replacement hints', () => {
     const picks = recommendPackPick(fullRun, ['joker']);
     expect(picks[0].reasons.join(' ')).toMatch(/nothing is clearly worth selling/);
   });
+
+  it('does not advise selling for a pick the deck signal floors', () => {
+    const fullRun = {
+      ...run({ jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish') }),
+      deck: 'Checkered',
+      deckProfile: initialDeckProfile('Checkered'),
+    };
+    const picks = recommendPackPick(fullRun, ['rough-gem']);
+    expect(picks[0].reasons.join(' ')).not.toMatch(/to make room/);
+    expect(picks[0].reasons.join(' ')).toMatch(/nothing is clearly worth selling/);
+  });
 });
 
 describe('recommend — strategy feedback', () => {

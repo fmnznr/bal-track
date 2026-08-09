@@ -54,3 +54,37 @@ describe('maxSuitShare', () => {
     expect(share).toBeCloseTo(0.5);
   });
 });
+
+describe('deckSignalForJoker — review fixes', () => {
+  const blackboard = getJoker('blackboard')!;
+  const pareidolia = getJoker('pareidolia')!;
+
+  it('sums multi-suit tags instead of reading only the first', () => {
+    const p = initialDeckProfile('Red');
+    const monoClubs = { ...p, suits: { hearts: 0, diamonds: 0, spades: 0, clubs: 52 } };
+    const sig = deckSignalForJoker(blackboard, monoClubs);
+    expect(sig.delta).toBe(1.5);
+    expect(sig.capAt).toBeUndefined();
+    expect(sig.notes.join(' ')).toMatch(/spades\/clubs/);
+    expect(deckSignalForJoker(blackboard, initialDeckProfile('Checkered')).delta).toBe(0);
+  });
+
+  it('exempts face enablers from the face signal', () => {
+    const sig = deckSignalForJoker(pareidolia, initialDeckProfile('Abandoned'));
+    expect(sig.capAt).toBeUndefined();
+    expect(sig.delta).toBe(0);
+  });
+
+  it('does not fabricate reasons when deckSize is zero', () => {
+    const p = { ...initialDeckProfile('Red'), deckSize: 0 };
+    const sig = deckSignalForJoker(getJoker('greedy-joker')!, p);
+    expect(sig.capAt).toBeUndefined();
+    expect(sig.notes).toEqual([]);
+  });
+
+  it('uses singular wording for one steel card', () => {
+    const p = initialDeckProfile('Red');
+    const sig = deckSignalForJoker(getJoker('steel-joker')!, { ...p, enhanced: { ...p.enhanced, steel: 1 } });
+    expect(sig.notes.join(' ')).toMatch(/1 steel card in your deck/);
+  });
+});

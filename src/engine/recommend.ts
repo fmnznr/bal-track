@@ -309,6 +309,13 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
       let score = joker.rating[phase] + Math.min(3, synMatches.length * 1.2);
       const reasons: string[] = [`Rated ${joker.rating[phase]}/10 at this stage`];
       if (synMatches.length > 0) reasons.push(`Fits your build: ${synMatches.join(', ')}`);
+      const planB = planJokerBonus(joker.id, joker.tags, plan);
+      score += planB.bonus;
+      reasons.push(...planB.notes);
+      const deckSig = deckSignalForJoker(joker, run.deckProfile);
+      score += deckSig.delta;
+      if (deckSig.capAt !== undefined) score = Math.min(score, deckSig.capAt);
+      reasons.push(...deckSig.notes);
       if (usedJokerSlots(run) >= run.jokerSlots) {
         const weakest = findWeakestOwned(run, phase, profile);
         if (weakest && score > weakest.value + 1) {
@@ -317,13 +324,6 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
           reasons.push('Careful: your joker slots are full and nothing is clearly worth selling');
         }
       }
-      const planB = planJokerBonus(joker.id, joker.tags, plan);
-      score += planB.bonus;
-      reasons.push(...planB.notes);
-      const deckSig = deckSignalForJoker(joker, run.deckProfile);
-      score += deckSig.delta;
-      if (deckSig.capAt !== undefined) score = Math.min(score, deckSig.capAt);
-      reasons.push(...deckSig.notes);
       return rec('pick', `Take ${joker.name}`, score, reasons, id);
     }
     const c = getConsumable(id);
