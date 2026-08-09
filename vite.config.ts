@@ -28,9 +28,11 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
-    environmentOptions: {
-      jsdom: { url: 'http://localhost/' },
-    },
+    // Node >= 24 ships an experimental localStorage global that reads as
+    // undefined without --localstorage-file; its presence stops vitest from
+    // copying jsdom's real Storage onto the test global. Disable it so the
+    // jsdom implementation wins.
+    execArgv: ['--no-experimental-webstorage'],
     setupFiles: './src/test-setup.ts',
     exclude: [...configDefaults.exclude, '**/.claude/**'],
   },
