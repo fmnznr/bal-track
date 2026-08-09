@@ -136,6 +136,26 @@ describe('recommendPackPick', () => {
   });
 });
 
+describe('recommendPackPick — replacement hints', () => {
+  it('names the weakest owned joker when a pack pick needs a slot', () => {
+    const fullRun = run({
+      ante: 4,
+      jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
+    });
+    const picks = recommendPackPick(fullRun, ['blueprint']);
+    expect(picks[0].reasons.join(' ')).toMatch(/sell Joker .*to make room/);
+  });
+
+  it('warns without a sell target when no pack pick is worth a slot', () => {
+    const fullRun = run({
+      ante: 4,
+      jokers: owned('droll-joker', 'crafty-joker', 'photograph', 'golden-joker', 'cavendish'),
+    });
+    const picks = recommendPackPick(fullRun, ['joker']);
+    expect(picks[0].reasons.join(' ')).toMatch(/nothing is clearly worth selling/);
+  });
+});
+
 describe('recommend — strategy feedback', () => {
   it('boosts a watchlist joker when a plan is recommended', () => {
     const flushRun = { ...run({ money: 20, jokers: owned('droll-joker') }), deck: 'Checkered' };

@@ -1,7 +1,7 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { phaseForAnte } from '../types';
 import type {
-  Edition, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
+  Edition, JokerDef, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
 } from '../types';
 import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
@@ -93,6 +93,31 @@ function planPlanetBonus(consumableId: string, plan: StrategyCandidate | null): 
   return { bonus: 1.5, notes: [`Levels ${def.hand} for your recommended ${plan.name} plan`] };
 }
 
+interface WeakestOwned {
+  index: number;
+  value: number;
+  def: JokerDef;
+  edition: Edition;
+}
+
+/** Weakest non-negative owned joker by current heuristic value, or null if none. */
+function findWeakestOwned(run: RunState, phase: Phase, profile: ArchetypeProfile): WeakestOwned | null {
+  let index = -1;
+  let value = Infinity;
+  run.jokers.forEach((owned, i) => {
+    if (owned.edition === 'negative') return;
+    const v = ownedJokerValue(run, i, phase, profile);
+    if (v < value) {
+      value = v;
+      index = i;
+    }
+  });
+  const owned = run.jokers[index];
+  const def = owned ? getJoker(owned.jokerId) : undefined;
+  if (!owned || !def) return null;
+  return { index, value, def, edition: owned.edition };
+}
+
 function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: ArchetypeProfile, plan: StrategyCandidate | null): Recommendation {
   if (slot.kind === 'consumable') {
     const def = getConsumable(slot.consumableId);
@@ -142,32 +167,20 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   }
 
   // Slots full: compare against the weakest owned joker.
-  let weakestIndex = -1;
-  let weakestValue = Infinity;
-  run.jokers.forEach((o, i) => {
-    if (o.edition === 'negative') return;
-    const v = ownedJokerValue(run, i, phase, profile);
-    if (v < weakestValue) {
-      weakestValue = v;
-      weakestIndex = i;
-    }
-  });
-  const weakest = run.jokers[weakestIndex];
-  const weakestDef = weakest ? getJoker(weakest.jokerId) : undefined;
-  if (weakestDef) {
-    // The sell refund offsets part of the price, so economy impact is on the NET cost.
-    const refund = sellValue(weakestDef.cost, weakest.edition);
+  const weakest = findWeakestOwned(run, phase, profile);
+  if (weakest) {
+    const refund = sellValue(weakest.def.cost, weakest.edition);
     const netEcon = economyNotes(run, slot.price - refund, 0.8);
     const netScore = rawScore - netEcon.penalty;
-    if (netScore > weakestValue + 1) {
+    if (netScore > weakest.value + 1) {
       return rec(
         'sell-and-buy',
-        `Sell ${weakestDef.name}, buy ${def.name} ($${slot.price})`,
-        netScore - weakestValue * 0.4,
+        `Sell ${weakest.def.name}, buy ${def.name} ($${slot.price})`,
+        netScore - weakest.value * 0.4,
         [
           ...baseReasons,
           ...netEcon.notes,
-          `Slots full — ${weakestDef.name} is your weakest (${weakestValue.toFixed(1)} vs ${netScore.toFixed(1)})`,
+          `Slots full — ${weakest.def.name} is your weakest (${weakest.value.toFixed(1)} vs ${netScore.toFixed(1)})`,
           `Selling refunds $${refund}`,
         ],
         def.id,
@@ -288,7 +301,14 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
       let score = joker.rating[phase] + Math.min(3, synMatches.length * 1.2);
       const reasons: string[] = [`Rated ${joker.rating[phase]}/10 at this stage`];
       if (synMatches.length > 0) reasons.push(`Fits your build: ${synMatches.join(', ')}`);
-      if (usedJokerSlots(run) >= run.jokerSlots) reasons.push('Careful: your joker slots are full');
+      if (usedJokerSlots(run) >= run.jokerSlots) {
+        const weakest = findWeakestOwned(run, phase, profile);
+        if (weakest && score > weakest.value + 1) {
+          reasons.push(`Slots full — sell ${weakest.def.name} (worth ${weakest.value.toFixed(1)}) to make room`);
+        } else {
+          reasons.push('Careful: your joker slots are full and nothing is clearly worth selling');
+        }
+      }
       const planB = planJokerBonus(joker.id, joker.tags, plan);
       score += planB.bonus;
       reasons.push(...planB.notes);
