@@ -173,3 +173,22 @@ describe('deck profile', () => {
     expect(loaded?.past[0]?.deckProfile.deckSize).toBe(52);
   });
 });
+
+describe('profile automation', () => {
+  it('books effects when a consumable is used from inventory', () => {
+    let s = started();
+    s = reduce(s, { type: 'ADD_CONSUMABLE', consumableId: 'the-chariot' });
+    s = reduce(s, { type: 'USE_CONSUMABLE', index: 0 });
+    expect(s.current?.deckProfile.enhanced.steel).toBe(1);
+  });
+
+  it('books effects for pack-taken consumables via APPLY_CONSUMABLE', () => {
+    const s = reduce(started(), { type: 'APPLY_CONSUMABLE', consumableId: 'justice' });
+    expect(s.current?.deckProfile.enhanced.glass).toBe(1);
+  });
+
+  it('converts suits atomically', () => {
+    const s = reduce(started(), { type: 'CONVERT_SUITS', to: 'hearts', from: { diamonds: 2, clubs: 1 } });
+    expect(s.current?.deckProfile.suits).toEqual({ hearts: 16, diamonds: 11, spades: 13, clubs: 12 });
+  });
+});

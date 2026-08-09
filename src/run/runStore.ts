@@ -1,5 +1,6 @@
 import { getConsumable, getJoker } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
+import { applyProfileEffects } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type { DeckProfile, Edition, EnhancementType, HandType, PackKind, RunState, ShopState, Suit } from '../types';
 
@@ -45,7 +46,9 @@ export type RunAction =
   | { type: 'SET_PROFILE_SUIT'; suit: Suit; value: number }
   | { type: 'SET_PROFILE_FACE'; value: number }
   | { type: 'SET_PROFILE_SIZE'; value: number }
-  | { type: 'SET_PROFILE_ENHANCED'; enhancement: EnhancementType; value: number };
+  | { type: 'SET_PROFILE_ENHANCED'; enhancement: EnhancementType; value: number }
+  | { type: 'APPLY_CONSUMABLE'; consumableId: string }
+  | { type: 'CONVERT_SUITS'; to: Suit; from: Partial<Record<Suit, number>> };
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
@@ -166,6 +169,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       return push({
         ...run,
         handLevels,
+        deckProfile: applyProfileEffects(run.deckProfile, id),
         consumables: run.consumables.filter((_, i) => i !== action.index),
       });
     }
@@ -193,6 +197,19 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
           enhanced: { ...run.deckProfile.enhanced, [action.enhancement]: Math.max(0, action.value) },
         },
       });
+    case 'APPLY_CONSUMABLE':
+      return push({ ...run, deckProfile: applyProfileEffects(run.deckProfile, action.consumableId) });
+    case 'CONVERT_SUITS': {
+      const suits = { ...run.deckProfile.suits };
+      let moved = 0;
+      for (const [suit, count] of Object.entries(action.from)) {
+        const take = Math.min(suits[suit as Suit], count ?? 0);
+        suits[suit as Suit] -= take;
+        moved += take;
+      }
+      suits[action.to] += moved;
+      return push({ ...run, deckProfile: { ...run.deckProfile, suits } });
+    }
     case 'SPEND':
       return push({ ...run, money: run.money - action.amount });
     case 'END_RUN':
