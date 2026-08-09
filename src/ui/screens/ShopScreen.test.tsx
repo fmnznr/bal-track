@@ -20,3 +20,13 @@ it('recommends a shop joker after entering it', async () => {
   await userEvent.click(await screen.findByRole('button', { name: /Blueprint/ }));
   expect(screen.getByText(/Buy Blueprint/)).toBeInTheDocument();
 });
+
+it('keeps shop entries when switching tabs', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  await userEvent.type(screen.getByPlaceholderText('Add shop card…'), 'blueprint');
+  await userEvent.click(await screen.findByRole('button', { name: /Blueprint/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  expect(screen.getByText(/Buy Blueprint/)).toBeInTheDocument();
+});

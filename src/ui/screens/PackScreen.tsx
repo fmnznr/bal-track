@@ -24,8 +24,15 @@ function optionName(id: string): string {
 export default function PackScreen() {
   const { store, dispatch } = useRun();
   const run = store.current!;
-  const [kind, setKind] = useState<PackKind>('arcana');
-  const [options, setOptions] = useState<string[]>([]);
+  const draft = store.packDraft ?? { kind: 'arcana' as PackKind, options: [] };
+  const kind = draft.kind;
+  const options = draft.options;
+  const setKind = (next: PackKind) => dispatch({ type: 'SET_PACK_DRAFT', draft: { kind: next, options: [] } });
+  const setOptions = (update: string[] | ((o: string[]) => string[])) =>
+    dispatch({
+      type: 'SET_PACK_DRAFT',
+      draft: { kind, options: typeof update === 'function' ? update(options) : update },
+    });
   const [note, setNote] = useState<string | null>(null);
   const recs = options.length > 0 ? recommendPackPick(run, options) : [];
 
@@ -58,7 +65,6 @@ export default function PackScreen() {
             className={k === kind ? 'chip active' : 'chip'}
             onClick={() => {
               setKind(k);
-              setOptions([]);
               setNote(null);
             }}
           >

@@ -93,3 +93,47 @@ describe('persistence', () => {
     expect(load()).toBeNull();
   });
 });
+
+describe('drafts', () => {
+  const shopDraft = { cards: [], voucherId: 'telescope', packIds: [], rerollCost: 6 };
+
+  it('stores drafts without touching the undo history', () => {
+    let s = started();
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'SET_SHOP_DRAFT', draft: shopDraft });
+    s = reduce(s, { type: 'SET_PACK_DRAFT', draft: { kind: 'celestial', options: ['jupiter'] } });
+    expect(s.shopDraft?.voucherId).toBe('telescope');
+    expect(s.packDraft?.options).toEqual(['jupiter']);
+    expect(s.past.length).toBe(pastLen);
+  });
+
+  it('clears drafts when a run ends or a new one starts', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_SHOP_DRAFT', draft: shopDraft });
+    s = reduce(s, { type: 'SET_PACK_DRAFT', draft: { kind: 'celestial', options: ['jupiter'] } });
+    s = reduce(s, { type: 'END_RUN', result: 'lost' });
+    expect(s.shopDraft).toBeNull();
+    expect(s.packDraft).toBeNull();
+    s = reduce(s, { type: 'START_RUN', deck: 'Red', stake: 'White' });
+    s = reduce(s, { type: 'SET_PACK_DRAFT', draft: { kind: 'arcana', options: [] } });
+    s = reduce(s, { type: 'START_RUN', deck: 'Blue', stake: 'White' });
+    expect(s.packDraft).toBeNull();
+  });
+
+  it('persists drafts through save and load', () => {
+    let s = started();
+    s = reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+    save(s);
+    expect(load()?.shopDraft?.cards).toHaveLength(1);
+  });
+
+  it('backfills missing draft fields from old saves', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: newRunState('Red', 'White'), past: [], finished: [] }));
+    const loaded = load();
+    expect(loaded?.shopDraft).toBeNull();
+    expect(loaded?.packDraft).toBeNull();
+  });
+});

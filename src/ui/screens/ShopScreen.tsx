@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { recommend } from '../../engine/recommend';
 import { useRun } from '../../run/RunContext';
@@ -13,7 +12,9 @@ const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCo
 export default function ShopScreen() {
   const { store, dispatch } = useRun();
   const run = store.current!;
-  const [shop, setShop] = useState<ShopState>(emptyShop);
+  const shop = store.shopDraft ?? emptyShop;
+  const setShop = (update: ShopState | ((s: ShopState) => ShopState)) =>
+    dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop) : [];
 

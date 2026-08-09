@@ -23,3 +23,14 @@ it('levels a hand when a planet is taken from a celestial pack', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
   expect(screen.getByDisplayValue('2')).toBeInTheDocument(); // Flush is now level 2
 });
+
+it('keeps pack options when switching tabs', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Pack' }));
+  await userEvent.click(screen.getByRole('button', { name: 'celestial' }));
+  await userEvent.type(screen.getByPlaceholderText('Add pack option…'), 'jup');
+  await userEvent.click(await screen.findByRole('button', { name: /Jupiter/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Pack' }));
+  expect(screen.getByRole('button', { name: 'Took Jupiter' })).toBeInTheDocument();
+});

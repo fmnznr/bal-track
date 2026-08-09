@@ -1,7 +1,7 @@
 import { getConsumable, getJoker } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
 import { HAND_TYPES } from '../types';
-import type { Edition, HandType, RunState } from '../types';
+import type { Edition, HandType, PackKind, RunState, ShopState } from '../types';
 
 export interface FinishedRun {
   deck: string;
@@ -11,10 +11,17 @@ export interface FinishedRun {
   endedAt: string; // ISO date
 }
 
+export interface PackDraft {
+  kind: PackKind;
+  options: string[];
+}
+
 export interface StoreState {
   current: RunState | null;
   past: RunState[]; // undo snapshots, oldest first, max 50
   finished: FinishedRun[];
+  shopDraft: ShopState | null;
+  packDraft: PackDraft | null;
 }
 
 export type RunAction =
@@ -32,7 +39,9 @@ export type RunAction =
   | { type: 'SET_HAND_LEVEL'; hand: HandType; level: number }
   | { type: 'SPEND'; amount: number }
   | { type: 'END_RUN'; result: 'won' | 'lost' }
-  | { type: 'UNDO' };
+  | { type: 'UNDO' }
+  | { type: 'SET_SHOP_DRAFT'; draft: ShopState | null }
+  | { type: 'SET_PACK_DRAFT'; draft: PackDraft | null };
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
@@ -55,12 +64,12 @@ export function newRunState(deck: string, stake: string): RunState {
 }
 
 export function initialStore(): StoreState {
-  return { current: null, past: [], finished: [] };
+  return { current: null, past: [], finished: [], shopDraft: null, packDraft: null };
 }
 
 export function reduce(state: StoreState, action: RunAction): StoreState {
   if (action.type === 'START_RUN') {
-    return { ...state, current: newRunState(action.deck, action.stake), past: [] };
+    return { ...state, current: newRunState(action.deck, action.stake), past: [], shopDraft: null, packDraft: null };
   }
   if (action.type === 'UNDO') {
     if (state.past.length === 0) return state;
@@ -78,6 +87,10 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
   });
 
   switch (action.type) {
+    case 'SET_SHOP_DRAFT':
+      return { ...state, shopDraft: action.draft };
+    case 'SET_PACK_DRAFT':
+      return { ...state, packDraft: action.draft };
     case 'SET_MONEY':
       return push({ ...run, money: action.money });
     case 'SET_ANTE':
@@ -155,6 +168,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
           { deck: run.deck, stake: run.stake, ante: run.ante, result: action.result, endedAt: new Date().toISOString() },
           ...state.finished,
         ],
+        shopDraft: null,
+        packDraft: null,
       });
   }
 }
@@ -172,7 +187,15 @@ export function save(state: StoreState): void {
 export function load(): StoreState | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as StoreState) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoreState>;
+    return {
+      current: parsed.current ?? null,
+      past: parsed.past ?? [],
+      finished: parsed.finished ?? [],
+      shopDraft: parsed.shopDraft ?? null,
+      packDraft: parsed.packDraft ?? null,
+    };
   } catch {
     return null;
   }
