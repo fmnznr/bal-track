@@ -191,4 +191,9 @@ describe('profile automation', () => {
     const s = reduce(started(), { type: 'CONVERT_SUITS', to: 'hearts', from: { diamonds: 2, clubs: 1 } });
     expect(s.current?.deckProfile.suits).toEqual({ hearts: 16, diamonds: 11, spades: 13, clubs: 12 });
   });
+
+  it('ignores negative conversion counts', () => {
+    const s = reduce(started(), { type: 'CONVERT_SUITS', to: 'hearts', from: { diamonds: -5 } });
+    expect(s.current?.deckProfile.suits).toEqual({ hearts: 13, diamonds: 13, spades: 13, clubs: 13 });
+  });
 });

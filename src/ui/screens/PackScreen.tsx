@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { getConsumable, getJoker } from '../../catalog/catalog';
 import { recommendPackPick } from '../../engine/recommend';
+import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
-import type { PackKind } from '../../types';
+import type { PackKind, Suit } from '../../types';
 import type { SearchKind } from '../../catalog/search';
 import AutocompleteInput from '../components/AutocompleteInput';
 import RecommendationList from '../components/RecommendationList';
+import SuitPrompt from '../components/SuitPrompt';
 
 const OPTION_KINDS: Record<PackKind, SearchKind[]> = {
   arcana: ['tarot', 'spectral'], // Omen Globe can add spectrals to Arcana packs
@@ -36,6 +38,7 @@ export default function PackScreen() {
       draft: { kind, options: typeof update === 'function' ? update(options) : update },
     });
   const [note, setNote] = useState<string | null>(null);
+  const [conversion, setConversion] = useState<{ name: string; target: Suit } | null>(null);
   const recs = options.length > 0 ? recommendPackPick(run, options) : [];
 
   const take = (id: string) => {
@@ -51,7 +54,10 @@ export default function PackScreen() {
       } else if (id === 'the-soul') {
         setNote('The Soul! Add your new legendary joker on the Run tab.');
       } else if (c) {
+        dispatch({ type: 'APPLY_CONSUMABLE', consumableId: id });
         setNote(`${c.name} — deck changes are not tracked, nothing to update.`);
+        const target = CONVERSION_TARGETS[id];
+        if (target) setConversion({ name: c.name, target });
       }
     }
     setOptions(current => current.filter(o => o !== id));
@@ -106,6 +112,9 @@ export default function PackScreen() {
             </div>
           )}
           {note && <p className="note">{note}</p>}
+          {conversion && (
+            <SuitPrompt consumableName={conversion.name} target={conversion.target} onDone={() => setConversion(null)} />
+          )}
           <button className="ghost" onClick={() => { setOptions([]); setNote(null); }}>Clear</button>
         </>
       )}

@@ -203,7 +203,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const suits = { ...run.deckProfile.suits };
       let moved = 0;
       for (const [suit, count] of Object.entries(action.from)) {
-        const take = Math.min(suits[suit as Suit], count ?? 0);
+        const take = Math.min(suits[suit as Suit], Math.max(0, count ?? 0));
         suits[suit as Suit] -= take;
         moved += take;
       }

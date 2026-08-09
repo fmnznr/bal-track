@@ -34,3 +34,20 @@ it('keeps pack options when switching tabs', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Pack' }));
   expect(screen.getByRole('button', { name: 'Took Jupiter' })).toBeInTheDocument();
 });
+
+it('books a suit conversion through the prompt', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Pack' }));
+  await userEvent.click(screen.getByRole('button', { name: 'arcana' }));
+  await userEvent.type(screen.getByPlaceholderText('Add pack option…'), 'sun');
+  await userEvent.click(await screen.findByRole('button', { name: /The Sun/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Took The Sun' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from diamonds' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from diamonds' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from clubs' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Book conversion' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  await userEvent.click(screen.getByText('Deck profile'));
+  expect(screen.getByLabelText('Hearts')).toHaveDisplayValue('16');
+  expect(screen.getByLabelText('Diamonds')).toHaveDisplayValue('11');
+});

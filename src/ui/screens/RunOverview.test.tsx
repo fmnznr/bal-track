@@ -15,6 +15,14 @@ it('sells a joker and refunds the sell value', async () => {
   render(<App />);
   expect(screen.getByText('Golden Joker')).toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: /Sell \$3/ }));
-  expect(screen.getByDisplayValue('13')).toBeInTheDocument(); // 10 + 3 refund
+  expect(screen.getByLabelText('Money $')).toHaveDisplayValue('13'); // 10 + 3 refund
   expect(screen.queryByText('Golden Joker')).not.toBeInTheDocument();
+});
+
+it('edits the deck profile counters', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByText('Deck profile'));
+  expect(screen.getByLabelText('Hearts')).toHaveDisplayValue('13');
+  await userEvent.click(screen.getByRole('button', { name: 'increase Steel' }));
+  expect(screen.getByLabelText('Steel')).toHaveDisplayValue('1');
 });

@@ -1,17 +1,22 @@
+import { useState } from 'react';
 import { getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
+import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
 import { HAND_TYPES } from '../../types';
-import type { Edition } from '../../types';
+import type { Edition, Suit } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
+import DeckProfileSection from '../components/DeckProfileSection';
 import NumberField from '../components/NumberField';
 import StrategyPanel from '../components/StrategyPanel';
+import SuitPrompt from '../components/SuitPrompt';
 
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 
 export default function RunOverview() {
   const { store, dispatch } = useRun();
   const run = store.current!;
+  const [conversion, setConversion] = useState<{ name: string; target: Suit } | null>(null);
   return (
     <section className="screen">
       <header className="row spread">
@@ -78,7 +83,14 @@ export default function RunOverview() {
           return (
             <li key={i} className="row">
               <span className="grow">{def?.name ?? id}</span>
-              <button onClick={() => dispatch({ type: 'USE_CONSUMABLE', index: i })}>
+              <button
+                onClick={() => {
+                  if (def && CONVERSION_TARGETS[def.id]) {
+                    setConversion({ name: def.name, target: CONVERSION_TARGETS[def.id]! });
+                  }
+                  dispatch({ type: 'USE_CONSUMABLE', index: i });
+                }}
+              >
                 {def?.kind === 'planet' ? 'Use (+1 level)' : 'Used'}
               </button>
             </li>
@@ -90,6 +102,9 @@ export default function RunOverview() {
         kinds={['tarot', 'planet', 'spectral']}
         onPick={item => dispatch({ type: 'ADD_CONSUMABLE', consumableId: item.id })}
       />
+      {conversion && (
+        <SuitPrompt consumableName={conversion.name} target={conversion.target} onDone={() => setConversion(null)} />
+      )}
 
       <details>
         <summary>Hand levels</summary>
@@ -103,6 +118,7 @@ export default function RunOverview() {
           />
         ))}
       </details>
+      <DeckProfileSection />
 
       <div className="row">
         <button className="primary" onClick={() => confirm('End this run as WON?') && dispatch({ type: 'END_RUN', result: 'won' })}>

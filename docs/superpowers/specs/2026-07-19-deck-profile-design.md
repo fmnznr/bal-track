@@ -62,7 +62,7 @@ Alle Zähler bleiben manuell editierbar; Untergrenze 0.
 - **Farb-Joker** (Tags suit-*): Anteil 0 → Score auf 1 gedeckelt, Reason
   „No {suit} cards left in your deck"; < 15 % → −2; > 40 % → +1,5.
   Gilt in Shop-, Pack- und Besitz-Bewertung (Verkaufskandidaten!).
-- **Flush-Strategie:** max. Farbanteil ≥ 40 % → +1,5 im Strategie-Scoring
+- **Flush-Strategie:** max. Farbanteil > 40 % → +1,5 im Strategie-Scoring
   (zusätzlich zur statischen Deck-Tabelle), Reason mit Prozentangabe.
 - **Face-Joker** (Tag face-cards): faceShare 0 → Deckel 1 („no face cards
   in your deck"); < 15 % → −1,5; > 30 % → +1.
@@ -88,7 +88,7 @@ Migration (alter Save → Initialprofil), Initialprofile (Standard/
 Checkered/Abandoned), jede Auto-Buchung der Effekt-Tabelle, Konvertierer-
 Flow mit und ohne Prompt-Antwort, Engine-Fälle (Greedy bei 0 Karo →
 Deckel + Reason; Steel Joker mit 4 Steel → Bonus; Driver's License unter
-16 → Warnung; Flush-Boost ab 40 % Farbanteil), UI-Smoke (Sektion
+16 → Warnung; Flush-Boost über 40 % Farbanteil), UI-Smoke (Sektion
 rendert, Zähler-Edit dispatcht, SuitPrompt-Flow).
 
 ## Nicht-Ziele
