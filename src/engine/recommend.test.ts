@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newRunState } from '../run/runStore';
+import { initialDeckProfile, newRunState } from '../run/runStore';
 import { recommend, recommendPackPick } from './recommend';
 import type { RunState, ShopState } from '../types';
 
@@ -230,5 +230,15 @@ describe('recommend — skip calibration', () => {
     const skip = recs.find(r => r.kind === 'skip');
     const reroll = recs.find(r => r.kind === 'reroll');
     expect(reroll!.score).toBeGreaterThan(skip!.score);
+  });
+});
+
+describe('recommend — deck-profile awareness', () => {
+  it('floors a suit joker whose suit is gone and says why', () => {
+    const checkeredRun = { ...run({ money: 20 }), deck: 'Checkered', deckProfile: initialDeckProfile('Checkered') };
+    const recs = recommend(checkeredRun, shop({ cards: [{ kind: 'joker', jokerId: 'greedy-joker', edition: 'base', price: 5 }] }));
+    const buy = recs.find(r => r.kind === 'buy-joker');
+    expect(buy?.score).toBeLessThanOrEqual(1);
+    expect(buy?.reasons.join(' ')).toMatch(/No diamonds cards left/);
   });
 });

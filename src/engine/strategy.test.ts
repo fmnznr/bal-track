@@ -50,4 +50,16 @@ describe('adviseStrategy', () => {
     expect(COMMIT_THRESHOLD).toBeGreaterThan(LEAN_THRESHOLD);
     expect(LEAN_THRESHOLD).toBeGreaterThan(0);
   });
+
+  it('boosts flush when one suit dominates the live profile', () => {
+    const base = runWith('Red', ['droll-joker']);
+    const heavy = {
+      ...base,
+      deckProfile: { ...base.deckProfile, suits: { hearts: 22, diamonds: 4, spades: 13, clubs: 13 } },
+    };
+    const advice = adviseStrategy(heavy);
+    const flush = advice.candidates.find(c => c.archetypeId === 'flush');
+    expect(flush?.score).toBeGreaterThan(adviseStrategy(base).candidates.find(c => c.archetypeId === 'flush')!.score);
+    expect(flush?.reasons.join(' ')).toMatch(/% of your deck is hearts/);
+  });
 });

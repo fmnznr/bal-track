@@ -2,6 +2,7 @@ import archetypesJson from '../data/archetypes.json';
 import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
+import { maxSuitShare } from './deckSignals';
 
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
@@ -42,6 +43,14 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
     if (boost !== 0) {
       score += boost;
       reasons.push(deck?.note ? `${run.deck} Deck: ${deck.note}` : `${run.deck} Deck favors this`);
+    }
+
+    if (arch.id === 'flush') {
+      const { suit, share } = maxSuitShare(run.deckProfile);
+      if (share >= 0.4) {
+        score += 1.5;
+        reasons.push(`${Math.round(share * 100)}% of your deck is ${suit}`);
+      }
     }
 
     const leveled = arch.hands.reduce((sum, hand) => sum + Math.max(0, run.handLevels[hand] - 1), 0);

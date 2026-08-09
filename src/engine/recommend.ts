@@ -5,6 +5,7 @@ import type {
 } from '../types';
 import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
+import { deckSignalForJoker } from './deckSignals';
 import { interest, interestCapFor, interestLost, sellValue } from './economy';
 import { adviseStrategy, getArchetype } from './strategy';
 import type { ArchetypeDef, StrategyCandidate } from '../types';
@@ -47,7 +48,10 @@ function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: Ar
   const def = getJoker(owned.jokerId);
   if (!def) return 0;
   const synergy = def.tags.filter(t => profile.dominant.includes(t)).length;
-  return def.rating[phase] + Math.min(3, synergy * 1.2) + EDITION_SCORE_BONUS[owned.edition];
+  const deckSig = deckSignalForJoker(def, run.deckProfile);
+  let value = def.rating[phase] + Math.min(3, synergy * 1.2) + EDITION_SCORE_BONUS[owned.edition] + deckSig.delta;
+  if (deckSig.capAt !== undefined) value = Math.min(value, deckSig.capAt);
+  return value;
 }
 
 function planetBonus(run: RunState, profile: ArchetypeProfile, consumableId: string): { bonus: number; notes: string[] } {
@@ -159,6 +163,10 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   const planB = planJokerBonus(def.id, def.tags, plan);
   rawScore += planB.bonus;
   baseReasons.push(...planB.notes);
+  const deckSig = deckSignalForJoker(def, run.deckProfile);
+  rawScore += deckSig.delta;
+  if (deckSig.capAt !== undefined) rawScore = Math.min(rawScore, deckSig.capAt);
+  baseReasons.push(...deckSig.notes);
   const econ = economyNotes(run, slot.price, 0.8);
 
   const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';
@@ -312,6 +320,10 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
       const planB = planJokerBonus(joker.id, joker.tags, plan);
       score += planB.bonus;
       reasons.push(...planB.notes);
+      const deckSig = deckSignalForJoker(joker, run.deckProfile);
+      score += deckSig.delta;
+      if (deckSig.capAt !== undefined) score = Math.min(score, deckSig.capAt);
+      reasons.push(...deckSig.notes);
       return rec('pick', `Take ${joker.name}`, score, reasons, id);
     }
     const c = getConsumable(id);
