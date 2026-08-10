@@ -1,0 +1,14 @@
+[
+  { "hand": "High Card", "baseChips": 5, "baseMult": 1, "chipsPerLevel": 10, "multPerLevel": 1, "scoringCards": 1 },
+  { "hand": "Pair", "baseChips": 10, "baseMult": 2, "chipsPerLevel": 15, "multPerLevel": 1, "scoringCards": 2 },
+  { "hand": "Two Pair", "baseChips": 20, "baseMult": 2, "chipsPerLevel": 20, "multPerLevel": 1, "scoringCards": 4 },
+  { "hand": "Three of a Kind", "baseChips": 30, "baseMult": 3, "chipsPerLevel": 20, "multPerLevel": 2, "scoringCards": 3 },
+  { "hand": "Straight", "baseChips": 30, "baseMult": 4, "chipsPerLevel": 30, "multPerLevel": 3, "scoringCards": 5 },
+  { "hand": "Flush", "baseChips": 35, "baseMult": 4, "chipsPerLevel": 15, "multPerLevel": 2, "scoringCards": 5 },
+  { "hand": "Full House", "baseChips": 40, "baseMult": 4, "chipsPerLevel": 25, "multPerLevel": 2, "scoringCards": 5 },
+  { "hand": "Four of a Kind", "baseChips": 60, "baseMult": 7, "chipsPerLevel": 30, "multPerLevel": 3, "scoringCards": 4 },
+  { "hand": "Straight Flush", "baseChips": 100, "baseMult": 8, "chipsPerLevel": 40, "multPerLevel": 4, "scoringCards": 5 },
+  { "hand": "Five of a Kind", "baseChips": 120, "baseMult": 12, "chipsPerLevel": 35, "multPerLevel": 3, "scoringCards": 5 },
+  { "hand": "Flush House", "baseChips": 140, "baseMult": 14, "chipsPerLevel": 40, "multPerLevel": 4, "scoringCards": 5 },
+  { "hand": "Flush Five", "baseChips": 160, "baseMult": 16, "chipsPerLevel": 50, "multPerLevel": 3, "scoringCards": 5 }
+]

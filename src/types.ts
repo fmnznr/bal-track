@@ -11,6 +11,15 @@ export const HAND_TYPES = [
 ] as const;
 export type HandType = (typeof HAND_TYPES)[number];
 
+export interface HandValueDef {
+  hand: HandType;
+  baseChips: number;
+  baseMult: number;
+  chipsPerLevel: number;
+  multPerLevel: number;
+  scoringCards: number;
+}
+
 export const SYNERGY_TAGS = [
   'xmult', 'plus-mult', 'chips', 'economy', 'retrigger', 'scaling',
   'flush-support', 'straight-support', 'pair-support', 'face-cards',
@@ -18,6 +27,13 @@ export const SYNERGY_TAGS = [
   'hand-size', 'consumable', 'utility', 'high-risk',
 ] as const;
 export type SynergyTag = (typeof SYNERGY_TAGS)[number];
+
+/** Unconditional score contribution of a joker, if it has one. */
+export interface JokerScore {
+  chips?: number;
+  mult?: number;
+  xmult?: number;
+}
 
 export interface JokerDef {
   id: string;
@@ -27,6 +43,7 @@ export interface JokerDef {
   effect: string;
   rating: Record<Phase, number>; // 0..10 per phase
   tags: SynergyTag[];
+  score?: JokerScore;
 }
 
 export interface VoucherDef {
