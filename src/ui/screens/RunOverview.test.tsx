@@ -70,3 +70,13 @@ it('applies the suggested order in one tap', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Apply suggested order' }));
   expect(screen.getByText(/Joker order looks good/)).toBeInTheDocument();
 });
+
+it('edits hand plays and the per-round resource', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByText('Hands'));
+  expect(screen.getByLabelText('Hands per round')).toHaveDisplayValue('4');
+  await userEvent.click(screen.getByRole('button', { name: 'increase Discards per round' }));
+  expect(screen.getByLabelText('Discards per round')).toHaveDisplayValue('5');
+  await userEvent.click(screen.getByRole('button', { name: 'increase Flush played' }));
+  expect(screen.getByLabelText('Flush played')).toHaveDisplayValue('1');
+});

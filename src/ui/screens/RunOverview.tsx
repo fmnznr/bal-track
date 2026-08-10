@@ -126,15 +126,33 @@ export default function RunOverview() {
       )}
 
       <details>
-        <summary>Hand levels</summary>
-        {HAND_TYPES.map(hand => (
+        <summary>Hands</summary>
+        <div className="row">
           <NumberField
-            key={hand}
-            label={hand}
-            value={run.handLevels[hand]}
-            min={1}
-            onChange={level => dispatch({ type: 'SET_HAND_LEVEL', hand, level })}
+            label="Hands per round"
+            value={run.handsPerRound}
+            onChange={value => dispatch({ type: 'SET_HANDS_PER_ROUND', value })}
           />
+          <NumberField
+            label="Discards per round"
+            value={run.discardsPerRound}
+            onChange={value => dispatch({ type: 'SET_DISCARDS_PER_ROUND', value })}
+          />
+        </div>
+        {HAND_TYPES.map(hand => (
+          <div className="row" key={hand}>
+            <NumberField
+              label={`${hand} level`}
+              value={run.handLevels[hand]}
+              min={1}
+              onChange={level => dispatch({ type: 'SET_HAND_LEVEL', hand, level })}
+            />
+            <NumberField
+              label={`${hand} played`}
+              value={run.handPlays[hand]}
+              onChange={value => dispatch({ type: 'SET_HAND_PLAYS', hand, value })}
+            />
+          </div>
         ))}
       </details>
       <DeckProfileSection />
