@@ -9,7 +9,8 @@ A strategy advisor on the run screen reads your jokers and deck, names the
 build worth committing to (or honestly says "stay flexible"), and feeds the
 recommended plan back into shop advice. A semi-automatic deck profile (suit,
 face-card and enhancement counts) keeps the advice honest about what your
-deck actually contains.
+deck actually contains. It also checks your joker order — jokers trigger
+left to right — and can apply a suggested ordering in one tap.
 
 Recommendations are heuristic: phase-dependent card ratings, synergy tags
 matched against your detected build, and interest-aware economy rules. Every
