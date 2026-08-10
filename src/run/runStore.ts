@@ -66,6 +66,8 @@ const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> =
   'nacho-tong': { hands: 1 },
   wasteful: { discards: 1 },
   recyclomancy: { discards: 1 },
+  hieroglyph: { hands: -1 },
+  petroglyph: { discards: -1 },
 };
 
 export function initialDeckProfile(deck: string): DeckProfile {
@@ -168,8 +170,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
         jokerSlots,
         consumableSlots,
         ante,
-        handsPerRound: run.handsPerRound + (resource?.hands ?? 0),
-        discardsPerRound: run.discardsPerRound + (resource?.discards ?? 0),
+        handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
+        discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
         vouchers: [...run.vouchers, action.voucherId],
       });
     }

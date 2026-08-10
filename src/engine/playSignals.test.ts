@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { newRunState } from '../run/runStore';
 import { getJoker } from '../catalog/catalog';
-import { mostPlayedHand, playShare, playSignalForJoker, totalPlays } from './playSignals';
+import { mostPlayedHand, playConfidence, playShare, playSignalForJoker, totalPlays } from './playSignals';
 import type { HandType, RunState } from '../types';
 
 function runWith(plays: Partial<Record<HandType, number>> = {}, resource: Partial<RunState> = {}): RunState {
@@ -46,10 +46,16 @@ describe('playSignalForJoker', () => {
     expect(signal.notes.join(' ')).toMatch(/90%/);
   });
 
-  it('scales Green Joker up and Ice Cream down with hands played', () => {
+  it('scales an owned Green Joker up and Ice Cream down with hands played', () => {
     const run = runWith({ Flush: 10 });
-    expect(playSignalForJoker(greenJoker, run).delta).toBeCloseTo(0.8);
-    expect(playSignalForJoker(iceCream, run).delta).toBeCloseTo(-0.8);
+    expect(playSignalForJoker(greenJoker, run, 'owned').delta).toBeCloseTo(0.8);
+    expect(playSignalForJoker(iceCream, run, 'owned').delta).toBeCloseTo(-0.8);
+  });
+
+  it('leaves both alone in the shop, where a fresh copy starts over', () => {
+    const run = runWith({ Flush: 10 });
+    expect(playSignalForJoker(greenJoker, run)).toEqual({ delta: 0, notes: [] });
+    expect(playSignalForJoker(iceCream, run)).toEqual({ delta: 0, notes: [] });
   });
 
   it('scales Banner with discards per round', () => {
@@ -59,5 +65,21 @@ describe('playSignalForJoker', () => {
 
   it('ignores untouched jokers', () => {
     expect(playSignalForJoker(blueprint, runWith({ Flush: 10 }))).toEqual({ delta: 0, notes: [] });
+  });
+});
+
+describe('playSignals — review follow-ups', () => {
+  it('ramps the statistic in with sample size', () => {
+    expect(playConfidence(runWith({ Flush: 7 }))).toBe(0);
+    expect(playConfidence(runWith({ Flush: 9 }))).toBeCloseTo(0.75);
+    expect(playConfidence(runWith({ Flush: 12 }))).toBe(1);
+    expect(playConfidence(runWith({ Flush: 40 }))).toBe(1);
+  });
+
+  it('reads the Red deck s extra discard as a real advantage', () => {
+    const red = newRunState('Red', 'White');
+    const banner = getJoker('banner')!;
+    expect(red.discardsPerRound).toBe(4);
+    expect(playSignalForJoker(banner, red).delta).toBeCloseTo(0.5);
   });
 });

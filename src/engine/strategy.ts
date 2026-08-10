@@ -3,7 +3,7 @@ import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
 import { maxSuitShare } from './deckSignals';
-import { MIN_PLAYS, playShare, totalPlays } from './playSignals';
+import { playConfidence, playShare, totalPlays } from './playSignals';
 
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
@@ -54,15 +54,16 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
       }
     }
 
-    if (arch.hands.length > 0 && totalPlays(run) >= MIN_PLAYS) {
+    const confidence = playConfidence(run);
+    if (arch.hands.length > 0 && confidence > 0) {
+      const total = totalPlays(run);
       const share = playShare(run, arch.hands);
-      const played = Math.round(share * totalPlays(run));
-      if (share >= 0.5) {
-        score += 3.5;
-        reasons.push(`You played ${arch.name} in ${played} of ${totalPlays(run)} hands (${Math.round(share * 100)}%)`);
-      } else if (share >= 0.3) {
-        score += 1.5;
-        reasons.push(`You played ${arch.name} in ${played} of ${totalPlays(run)} hands (${Math.round(share * 100)}%)`);
+      const played = Math.round(share * total);
+      // Ramped by sample size: a single blind must not rewrite the plan.
+      const weight = share >= 0.5 ? 3.5 : share >= 0.3 ? 1.5 : 0;
+      if (weight > 0) {
+        score += weight * confidence;
+        reasons.push(`You played ${arch.name} in ${played} of ${total} hands (${Math.round(share * 100)}%)`);
       }
     }
 

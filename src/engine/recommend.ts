@@ -7,7 +7,7 @@ import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
 import { deckSignalForJoker } from './deckSignals';
 import { interest, interestCapFor, interestLost, sellValue } from './economy';
-import { mostPlayedHand, playSignalForJoker } from './playSignals';
+import { MIN_PLAYS, mostPlayedHand, playSignalForJoker, totalPlays } from './playSignals';
 import { adviseStrategy, getArchetype } from './strategy';
 import type { ArchetypeDef, StrategyCandidate } from '../types';
 
@@ -52,7 +52,7 @@ function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: Ar
   const deckSig = deckSignalForJoker(def, run.deckProfile);
   let value = def.rating[phase] + Math.min(3, synergy * 1.2) + EDITION_SCORE_BONUS[owned.edition] + deckSig.delta;
   if (deckSig.capAt !== undefined) value = Math.min(value, deckSig.capAt);
-  value += playSignalForJoker(def, run).delta;
+  value += playSignalForJoker(def, run, 'owned').delta;
   return value;
 }
 
@@ -70,7 +70,7 @@ function planetBonus(run: RunState, profile: ArchetypeProfile, consumableId: str
     bonus += Math.min(2, (level - 1) * 0.5);
     notes.push(`${def.hand} is already level ${level} — keep stacking it`);
   }
-  if (def.hand === mostPlayedHand(run)) {
+  if (totalPlays(run) >= MIN_PLAYS && def.hand === mostPlayedHand(run)) {
     bonus += 1.5;
     notes.push(`${def.hand} is your most played hand (${run.handPlays[def.hand]} plays)`);
   }

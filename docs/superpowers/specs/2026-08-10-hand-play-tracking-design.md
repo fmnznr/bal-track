@@ -39,11 +39,15 @@ Untergrenze 0.
 
 ### Play-Share im Strategieberater (`strategy.ts`)
 
-`totalPlays = Σ handPlays`. Ab `totalPlays ≥ 3` bekommt jeder Archetyp mit
+`totalPlays = Σ handPlays`. Ab `MIN_PLAYS = 8` bekommt jeder Archetyp mit
 Händen einen Anteil `share = Σ handPlays[seine Hände] / totalPlays`:
 
 - `share ≥ 0,5` → **+3,5**, Reason „You played Flush in 8 of 12 hands (67%)"
 - `share ≥ 0,3` → **+1,5**, gleiche Reason-Form
+
+**Rampe (nach Review):** Der Bonus wird mit `playConfidence` gewichtet —
+0 unter 8 Händen, linear bis zur vollen Wirkung ab 12 Händen (rund
+1,5 Antes). Eine einzelne Blind kann den Plan damit nicht umschreiben.
 
 Damit erreicht ein reiner Flush-Spieler ohne Joker 3,5 (→ `lean`), mit einem
 Flush-Joker und Level-3-Flush 7,0 (→ `commit`). Archetypen ohne Hände
@@ -67,8 +71,16 @@ Flush-Joker und Level-3-Flush 7,0 (→ `commit`). Archetypen ohne Hände
 | banner | `(discardsPerRound − 3) × 0,5` |
 | delayed-gratification | `(discardsPerRound − 3) × 0,5` |
 
-**Kalibrier-Garantie:** Bei Standardwerten (4/3, alle Zähler 0) liefert jede
-Regel exakt 0 — die 151 Bestandstests bleiben unverändert gültig.
+**Kontext (nach Review):** `green-joker` und `ice-cream` skalieren erst ab
+dem Moment, in dem man sie besitzt — ihre Signale gelten deshalb nur für
+eigene Joker (`context: 'owned'`), nicht für Shop-Karten. Supernova wirkt
+laut Wiki rückwirkend und zählt daher auch im Shop.
+
+**Kalibrier-Garantie:** Bei Standardwerten (3 Discards, alle Zähler 0)
+liefert jede Regel exakt 0. **Ausnahme mit Absicht:** Das Red Deck startet
+mit 4 Discards, deshalb bewerten `banner` und `delayed-gratification` dort
+schon zu Beginn +0,5 — das entspricht der Spielrealität und ist durch einen
+eigenen Test festgehalten.
 
 Eingehängt wie die Deck-Signale: Shop-Joker, Pack-Picks und
 `ownedJokerValue` (Verkaufskandidaten).
