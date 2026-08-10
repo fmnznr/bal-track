@@ -7,6 +7,7 @@ import { HAND_TYPES } from '../../types';
 import type { Edition, Suit } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
 import DeckProfileSection from '../components/DeckProfileSection';
+import JokerOrderPanel from '../components/JokerOrderPanel';
 import NumberField from '../components/NumberField';
 import StrategyPanel from '../components/StrategyPanel';
 import SuitPrompt from '../components/SuitPrompt';
@@ -41,6 +42,23 @@ export default function RunOverview() {
           if (!def) return null;
           return (
             <li key={i} className="row">
+              <span className="pos">{i + 1}</span>
+              <button
+                type="button"
+                aria-label={`move ${def.name} left`}
+                disabled={i === 0}
+                onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'left' })}
+              >
+                ◀
+              </button>
+              <button
+                type="button"
+                aria-label={`move ${def.name} right`}
+                disabled={i === run.jokers.length - 1}
+                onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'right' })}
+              >
+                ▶
+              </button>
               <span className="grow">{def.name}</span>
               <select
                 value={owned.edition}
@@ -58,6 +76,7 @@ export default function RunOverview() {
           );
         })}
       </ul>
+      <JokerOrderPanel />
       <AutocompleteInput
         placeholder="Add joker…"
         kinds={['joker']}

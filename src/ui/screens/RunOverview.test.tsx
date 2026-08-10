@@ -26,3 +26,47 @@ it('edits the deck profile counters', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'increase Steel' }));
   expect(screen.getByLabelText('Steel')).toHaveDisplayValue('1');
 });
+
+it('reorders jokers with the arrow buttons', async () => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      current: {
+        ...newRunState('Red', 'White'),
+        ante: 4,
+        jokers: [
+          { jokerId: 'cavendish', edition: 'base' },
+          { jokerId: 'joker', edition: 'base' },
+        ],
+      },
+      past: [],
+      finished: [],
+    }),
+  );
+  render(<App />);
+  expect(screen.getByText(/sits left of/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'move Cavendish right' }));
+  expect(screen.queryByText(/sits left of/)).not.toBeInTheDocument();
+  expect(screen.getByText(/Joker order looks good/)).toBeInTheDocument();
+});
+
+it('applies the suggested order in one tap', async () => {
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({
+      current: {
+        ...newRunState('Red', 'White'),
+        ante: 4,
+        jokers: [
+          { jokerId: 'cavendish', edition: 'base' },
+          { jokerId: 'joker', edition: 'base' },
+        ],
+      },
+      past: [],
+      finished: [],
+    }),
+  );
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Apply suggested order' }));
+  expect(screen.getByText(/Joker order looks good/)).toBeInTheDocument();
+});

@@ -180,3 +180,18 @@ details summary { cursor: pointer; color: var(--muted); padding: 8px 0; }
   flex-direction: column;
   gap: 8px;
 }
+
+.order-panel {
+  background: var(--panel);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--accent-2);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pos {
+  color: var(--muted);
+  font-size: 0.8rem;
+  min-width: 1.2em;
+}
