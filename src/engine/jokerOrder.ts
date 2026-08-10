@@ -70,23 +70,23 @@ export function checkJokerOrder(run: RunState): OrderIssue[] {
   const hasRealTarget = core.some(i => isScoringTarget(run, i));
 
   const offenders: number[] = [];
-  let blocked = -1;
+  const blocked: number[] = [];
   for (const i of core) {
-    if (category(run, i) !== 2) continue;
-    const later = core.find(j => j > i && category(run, j) === 1);
-    if (later !== undefined) {
-      offenders.push(i);
-      if (blocked === -1) blocked = later;
-    }
+    const cat = category(run, i);
+    if (cat === 2 && core.some(j => j > i && category(run, j) === 1)) offenders.push(i);
+    if (cat === 1 && core.some(j => j < i && category(run, j) === 2)) blocked.push(i);
   }
   if (offenders.length > 0) {
     issues.push({
       code: 'xmult-before-plus-mult',
       message: `${offenders.map(i => nameAt(run, i)).join(', ')} (xMult) ${
         offenders.length === 1 ? 'sits' : 'sit'
-      } left of ${nameAt(run, blocked)} (+Mult) — move the +Mult jokers left so Mult is added before it is multiplied`,
+      } left of ${blocked.map(i => nameAt(run, i)).join(', ')} (+Mult) — move the +Mult jokers left so Mult is added before it is multiplied`,
     });
   }
+
+  // Nothing to copy means nothing to advise about copy placement.
+  if (core.length === 0) return issues;
 
   run.jokers.forEach((owned, i) => {
     if (owned.jokerId !== BLUEPRINT) return;
@@ -137,11 +137,16 @@ export function suggestJokerOrder(run: RunState): number[] | null {
   // Brainstorm copies the leftmost joker, so position-neutral jokers move to the
   // back when one is owned — that keeps a scoring joker in slot 1 without
   // disturbing the additive-before-multiplicative order.
+  const core = coreIndices(run);
+  // Without a Mult joker to lead, a scoring position-neutral joker has to take
+  // slot 1 so Brainstorm copies something.
+  const needsScoringLead = hasBrainstorm && !core.some(i => category(run, i) > 0);
   const rank = (i: number): number => {
     const c = category(run, i);
-    return hasBrainstorm && c === 0 ? 3 : c;
+    if (!hasBrainstorm || c !== 0) return c;
+    return needsScoringLead && isScoringTarget(run, i) ? 3 : 4;
   };
-  const result = coreIndices(run).sort((a, b) => rank(a) - rank(b) || a - b);
+  const result = core.sort((a, b) => rank(a) - rank(b) || a - b);
 
   let insertAt = 0;
   for (let position = result.length - 1; position >= 0; position--) {

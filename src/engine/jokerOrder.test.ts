@@ -138,3 +138,23 @@ describe('suggestJokerOrder', () => {
     }
   });
 });
+
+describe('jokerOrder — review follow-ups', () => {
+  it('names every blocked plus-mult joker in the collapsed message', () => {
+    const issues = checkJokerOrder(runWith('cavendish', 'joker', 'baron', 'mystic-summit'));
+    const message = issues.find(i => i.code === 'xmult-before-plus-mult')!.message;
+    expect(message).toMatch(/Joker, Mystic Summit/);
+  });
+
+  it('stays silent when only copy jokers are owned', () => {
+    expect(codes(runWith('blueprint', 'blueprint'))).toEqual([]);
+    expect(codes(runWith('brainstorm', 'brainstorm'))).toEqual([]);
+  });
+
+  it('leads with a scoring joker when no Mult joker is owned', () => {
+    const run = runWith('golden-joker', 'rocket', 'brainstorm');
+    const order = suggestJokerOrder(run)!;
+    expect(order.map(i => run.jokers[i].jokerId)[0]).toBe('rocket');
+    expect(checkJokerOrder(applied(run, order))).toEqual([]);
+  });
+});
