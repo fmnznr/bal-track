@@ -38,6 +38,9 @@ export type RunAction =
   | { type: 'USE_CONSUMABLE'; index: number }
   | { type: 'PLAY_PLANET'; consumableId: string }
   | { type: 'SET_HAND_LEVEL'; hand: HandType; level: number }
+  | { type: 'SET_HAND_PLAYS'; hand: HandType; value: number }
+  | { type: 'SET_HANDS_PER_ROUND'; value: number }
+  | { type: 'SET_DISCARDS_PER_ROUND'; value: number }
   | { type: 'SPEND'; amount: number }
   | { type: 'END_RUN'; result: 'won' | 'lost' }
   | { type: 'UNDO' }
@@ -54,6 +57,16 @@ export type RunAction =
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
+const DECK_HANDS: Record<string, number> = { Blue: 5, Black: 3 };
+const DECK_DISCARDS: Record<string, number> = { Red: 4 };
+
+/** Hands/discards a voucher permanently adds to every round. */
+const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> = {
+  grabber: { hands: 1 },
+  'nacho-tong': { hands: 1 },
+  wasteful: { discards: 1 },
+  recyclomancy: { discards: 1 },
+};
 
 export function initialDeckProfile(deck: string): DeckProfile {
   const enhanced = Object.fromEntries(ENHANCEMENT_TYPES.map(t => [t, 0])) as Record<EnhancementType, number>;
@@ -79,6 +92,9 @@ export function newRunState(deck: string, stake: string): RunState {
     vouchers: [],
     consumables: [],
     handLevels,
+    handPlays: Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>,
+    handsPerRound: DECK_HANDS[deck] ?? 4,
+    discardsPerRound: DECK_DISCARDS[deck] ?? 3,
     deckProfile: initialDeckProfile(deck),
     status: 'active',
   };
@@ -145,12 +161,15 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       if (action.voucherId === 'antimatter') jokerSlots += 1;
       if (action.voucherId === 'crystal-ball') consumableSlots += 1;
       if (action.voucherId === 'hieroglyph' || action.voucherId === 'petroglyph') ante = Math.max(1, ante - 1);
+      const resource = RESOURCE_VOUCHERS[action.voucherId];
       return push({
         ...run,
         money: run.money - (action.price ?? 0),
         jokerSlots,
         consumableSlots,
         ante,
+        handsPerRound: run.handsPerRound + (resource?.hands ?? 0),
+        discardsPerRound: run.discardsPerRound + (resource?.discards ?? 0),
         vouchers: [...run.vouchers, action.voucherId],
       });
     }
@@ -182,6 +201,15 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     }
     case 'SET_HAND_LEVEL':
       return push({ ...run, handLevels: { ...run.handLevels, [action.hand]: Math.max(1, action.level) } });
+    case 'SET_HAND_PLAYS':
+      return push({
+        ...run,
+        handPlays: { ...run.handPlays, [action.hand]: Math.max(0, action.value) },
+      });
+    case 'SET_HANDS_PER_ROUND':
+      return push({ ...run, handsPerRound: Math.max(0, action.value) });
+    case 'SET_DISCARDS_PER_ROUND':
+      return push({ ...run, discardsPerRound: Math.max(0, action.value) });
     case 'SET_PROFILE_SUIT':
       return push({
         ...run,
@@ -261,11 +289,16 @@ export function load(): StoreState | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoreState>;
-    const withProfile = (r: RunState): RunState =>
-      r.deckProfile ? r : { ...r, deckProfile: initialDeckProfile(r.deck) };
+    const withDefaults = (r: RunState): RunState => ({
+      ...r,
+      deckProfile: r.deckProfile ?? initialDeckProfile(r.deck),
+      handPlays: r.handPlays ?? (Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>),
+      handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
+      discardsPerRound: r.discardsPerRound ?? DECK_DISCARDS[r.deck] ?? 3,
+    });
     return {
-      current: parsed.current ? withProfile(parsed.current) : null,
-      past: (parsed.past ?? []).map(withProfile),
+      current: parsed.current ? withDefaults(parsed.current) : null,
+      past: (parsed.past ?? []).map(withDefaults),
       finished: parsed.finished ?? [],
       shopDraft: parsed.shopDraft ?? null,
       packDraft: parsed.packDraft ?? null,

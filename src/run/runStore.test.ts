@@ -253,3 +253,47 @@ describe('joker order', () => {
     }
   });
 });
+
+describe('hand play tracking', () => {
+  it('starts with zeroed play counters and deck-specific resources', () => {
+    const red = newRunState('Red', 'White');
+    expect(red.handPlays['Flush']).toBe(0);
+    expect(red.handsPerRound).toBe(4);
+    expect(red.discardsPerRound).toBe(4);
+    expect(newRunState('Blue', 'White').handsPerRound).toBe(5);
+    expect(newRunState('Black', 'White').handsPerRound).toBe(3);
+    expect(newRunState('Magic', 'White').discardsPerRound).toBe(3);
+  });
+
+  it('edits counters with a floor of zero', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_HAND_PLAYS', hand: 'Flush', value: 7 });
+    s = reduce(s, { type: 'SET_HANDS_PER_ROUND', value: -2 });
+    s = reduce(s, { type: 'SET_DISCARDS_PER_ROUND', value: 5 });
+    expect(s.current?.handPlays['Flush']).toBe(7);
+    expect(s.current?.handsPerRound).toBe(0);
+    expect(s.current?.discardsPerRound).toBe(5);
+  });
+
+  it('books resource vouchers automatically', () => {
+    let s = started();
+    s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'grabber' });
+    s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'nacho-tong' });
+    s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'wasteful' });
+    expect(s.current?.handsPerRound).toBe(6);
+    // started() runs the Red deck, which already grants a fourth discard.
+    expect(s.current?.discardsPerRound).toBe(5);
+  });
+
+  it('backfills the new fields on old saves including snapshots', () => {
+    const legacy = { ...newRunState('Blue', 'White') } as Record<string, unknown>;
+    delete legacy.handPlays;
+    delete legacy.handsPerRound;
+    delete legacy.discardsPerRound;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: legacy, past: [legacy], finished: [] }));
+    const loaded = load();
+    expect(loaded?.current?.handPlays['Pair']).toBe(0);
+    expect(loaded?.current?.handsPerRound).toBe(5);
+    expect(loaded?.past[0]?.discardsPerRound).toBe(3);
+  });
+});

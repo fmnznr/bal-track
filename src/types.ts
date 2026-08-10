@@ -75,6 +75,9 @@ export interface RunState {
   vouchers: string[]; // voucher ids redeemed this run
   consumables: string[]; // consumable ids currently held
   handLevels: Record<HandType, number>; // all start at 1
+  handPlays: Record<HandType, number>;
+  handsPerRound: number;
+  discardsPerRound: number;
   deckProfile: DeckProfile;
   status: 'active' | 'won' | 'lost';
 }
