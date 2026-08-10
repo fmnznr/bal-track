@@ -10,7 +10,9 @@ build worth committing to (or honestly says "stay flexible"), and feeds the
 recommended plan back into shop advice. A semi-automatic deck profile (suit,
 face-card and enhancement counts) keeps the advice honest about what your
 deck actually contains. It also checks your joker order — jokers trigger
-left to right — and can apply a suggested ordering in one tap.
+left to right — and can apply a suggested ordering in one tap. Telling it
+how often you played each poker hand sharpens the plan further — a flush
+build is recognised from your actual hands, not just your jokers.
 
 Recommendations are heuristic: phase-dependent card ratings, synergy tags
 matched against your detected build, and interest-aware economy rules. Every
