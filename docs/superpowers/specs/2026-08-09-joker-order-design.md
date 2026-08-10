@@ -23,36 +23,44 @@ Drag & Drop, automatisches Sortieren ohne Nutzeraktion.
 
 ## Regeln (`src/engine/jokerOrder.ts`, pur)
 
-`checkJokerOrder(run) → OrderIssue[]`, jede Issue mit `message` und
-optionalem `from`/`to` für den Vorschlag:
+**Leitprinzip (nach Review-Überarbeitung):** Es wird nur gewarnt, wo die
+Mechanik eindeutig ist. Ein früher Entwurf verglich „Stärken" von Jokern und
+forderte den stärksten nach links — das widersprach der Mult-Regel und war
+für viele Aufstellungen unerfüllbar. Statt Stärkevergleichen gilt jetzt die
+binäre, unstrittige Frage: **Punktet der kopierte Joker überhaupt?**
 
-1. **xmult-left-of-plus-mult:** Ein `xmult`-Joker links von einem
-   `plus-mult`-Joker verschenkt Wert ((Basis+n)×m > Basis×m+n).
-   Meldung nennt beide Namen und schlägt den Tausch vor.
-2. **blueprint-rightmost:** Blueprint auf dem letzten Platz kopiert nichts.
-3. **blueprint-weak-target:** Blueprints rechter Nachbar ist nicht der
-   stärkste kopierbare Joker.
+`checkJokerOrder(run) → OrderIssue[]`:
+
+1. **xmult-before-plus-mult:** `xmult`-Joker links von einem `plus-mult`-Joker
+   verschenken Wert ((Basis+n)×m > Basis×m+n). Eine gesammelte Meldung für
+   alle Betroffenen. Editionen zählen mit: Polychrome wirkt wie `xmult`,
+   Holographic wie `plus-mult`.
+2. **blueprint-rightmost:** Jedes Blueprint auf dem letzten Platz kopiert
+   nichts (geprüft für alle Blueprints, nicht nur das erste).
+3. **blueprint-weak-target:** Blueprints rechter Nachbar punktet nicht,
+   obwohl ein punktender Nicht-Kopier-Joker existiert.
 4. **brainstorm-leftmost:** Brainstorm ganz links kopiert sich selbst.
-5. **brainstorm-weak-target:** Der linkeste Joker ist nicht der stärkste
-   (Brainstorm kopiert immer den linkesten).
+5. **brainstorm-weak-target:** Der linkeste Joker punktet nicht, obwohl ein
+   punktender Nicht-Kopier-Joker existiert.
 
-„Stärke" ist `ownedJokerValue` aus `recommend.ts` (wird dafür exportiert) —
-dieselbe Bewertung wie bei Verkaufsempfehlungen, inklusive Deck-Profil.
+Kopier-Joker gelten als gültige Ziele — Blueprint↔Brainstorm-Ketten sind
+eine echte Strategie, keine Fehlstellung.
 
 ## Vorschlags-Algorithmus (`suggestJokerOrder(run) → number[] | null`)
 
-Liefert eine Permutation der aktuellen Indizes oder `null`, wenn die
-aktuelle Reihenfolge bereits passt. Stabil: Was mechanisch egal ist, bleibt
-wo es ist.
+Permutation der aktuellen Indizes oder `null`. Stabil: Was mechanisch egal
+ist, bleibt wo es ist.
 
-1. Kopier-Joker (blueprint, brainstorm) herausnehmen.
-2. Rest nach Kategorie stabil sortieren: neutral → `plus-mult` → `xmult`
-   (ein Joker mit beiden Tags zählt als `xmult`).
-3. Ist Brainstorm im Besitz: den stärksten Rest-Joker nach vorn holen.
-4. Ist Blueprint im Besitz: Blueprint direkt links vom stärksten Rest-Joker
-   einfügen — ist dieser wegen Regel 3 auf Position 0, dann links vom
-   zweitstärksten (Position 0 bleibt Brainstorms Ziel).
-5. Ist Brainstorm im Besitz: Brainstorm ans Ende (nie ganz links).
+1. `null`, wenn `checkJokerOrder` nichts findet (kein Umsortieren ohne Anlass).
+2. Nicht-Kopier-Joker stabil nach Kategorie sortieren: `plus-mult` → `xmult`,
+   positionsneutrale Joker davor — **oder dahinter, wenn Brainstorm im Besitz
+   ist**, damit Slot 1 punktet, ohne die Mult-Reihenfolge zu brechen.
+3. Alle Blueprints zusammenhängend direkt links vom letzten punktenden
+   Joker einfügen; gibt es keinen, an den Anfang (nie ganz rechts).
+4. Alle Brainstorms ans Ende (nie ganz links).
+5. **Garantie:** Ein Vorschlag wird nur zurückgegeben, wenn er die Zahl der
+   Beanstandungen echt senkt — sonst `null`. Damit kann der Knopf nie
+   wirkungslos sein und nie oszillieren.
 
 ## Store
 
@@ -72,6 +80,16 @@ wo es ist.
 ## Tests
 
 Store (Verschieben inkl. Ränder/Undo, Permutation gültig/ungültig), jede der
-fünf Regeln einzeln, Mehrfachverstöße, sauberer Fall, Vorschlags-Stabilität, `null` bei bereits guter
-Reihenfolge, UI (Verschieben, Warnung sichtbar, Auto-Sortieren wirkt).
-Neutrale Joker müssen dabei ihre relative Reihenfolge behalten.
+fünf Regeln einzeln, Mehrfachverstöße, sauberer Fall, Kopier-Ketten,
+Editionen, doppelte Kopier-Joker, `null` bei bereits guter Reihenfolge,
+UI (Verschieben, Warnung sichtbar, Auto-Sortieren wirkt). Neutrale Joker
+behalten ihre relative Reihenfolge. Eine Invarianten-Prüfung über mehrere
+Aufstellungen sichert zu: jeder Vorschlag ist eine gültige Permutation,
+senkt die Beanstandungen echt und ist ein Fixpunkt (kein Oszillieren).
+
+## Bewusst offen (Backlog aus dem Review)
+
+- Blueprint/Brainstorm zielen nur auf „punktet ja/nein", nicht auf den
+  *besten* Ziel-Joker — ein belastbarer Kopierwert (statt der Verkaufs-
+  Heuristik) wäre dafür nötig.
+- Retrigger-Feinheiten und Joker Stencil / Baseball Card bleiben außen vor.

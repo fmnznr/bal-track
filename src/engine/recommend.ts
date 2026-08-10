@@ -43,7 +43,7 @@ function usedJokerSlots(run: RunState): number {
 }
 
 /** Heuristic value of an owned joker in the current context (used to find the weakest). */
-export function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: ArchetypeProfile): number {
+function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: ArchetypeProfile): number {
   const owned = run.jokers[index];
   const def = getJoker(owned.jokerId);
   if (!def) return 0;
