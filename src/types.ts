@@ -33,6 +33,8 @@ export interface JokerScore {
   chips?: number;
   mult?: number;
   xmult?: number;
+  /** Only contributes when the estimated hand contains this. */
+  requiresHand?: HandType;
 }
 
 export interface JokerDef {
