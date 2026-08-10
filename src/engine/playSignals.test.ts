@@ -76,7 +76,7 @@ describe('playSignals — review follow-ups', () => {
     expect(playConfidence(runWith({ Flush: 40 }))).toBe(1);
   });
 
-  it('reads the Red deck s extra discard as a real advantage', () => {
+  it('counts the Red deck extra discard as a real advantage', () => {
     const red = newRunState('Red', 'White');
     const banner = getJoker('banner')!;
     expect(red.discardsPerRound).toBe(4);

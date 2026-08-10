@@ -100,6 +100,18 @@ Effekt), Planeten-Bonus für meistgespielte Hand, jede der sechs
 Joker-Regeln inkl. Null-Wirkung bei Standardwerten, UI (Felder rendern und
 dispatchen).
 
+## Bewusst offen (Backlog aus dem Review)
+
+- Gleichstand zweier Archetypen (z. B. Flush 5 / Pair 5, oder ein Straight-
+  Flush-Spieler, der beide Archetypen gleich bedient) wird über die Reihen-
+  folge in `archetypes.json` entschieden statt über ein Kriterium.
+- `banner`/`delayed-gratification` sind nach oben ungedeckelt — absurd hohe
+  manuelle Discard-Werte schlagen ungebremst durch.
+- Der Stake wird ignoriert (ab Blue Stake −1 Discard).
+- Denselben Voucher zweimal einlösen stapelt (bestehendes Muster).
+- Obelisk ist einseitig (nur 0 oder −2) und hat eine Kante bei genau 60 %.
+- `mostPlayedHand` bricht Gleichstände zur früheren Hand hin.
+
 ## Nicht-Ziele
 
 Streak-abhängige Effekte (Ride the Bus, Obelisks exakte Kette), Discards
