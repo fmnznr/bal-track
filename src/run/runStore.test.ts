@@ -209,3 +209,47 @@ describe('profile automation — no-op guard', () => {
     expect(s.past.length).toBe(pastLen + 1);
   });
 });
+
+describe('joker order', () => {
+  function withJokers(...ids: string[]) {
+    let s = started();
+    for (const id of ids) s = reduce(s, { type: 'ADD_JOKER', jokerId: id, edition: 'base' });
+    return s;
+  }
+  const ids = (s: ReturnType<typeof started>) => s.current!.jokers.map(j => j.jokerId);
+
+  it('moves a joker left and right', () => {
+    let s = withJokers('joker', 'blueprint', 'baron');
+    s = reduce(s, { type: 'MOVE_JOKER', index: 2, direction: 'left' });
+    expect(ids(s)).toEqual(['joker', 'baron', 'blueprint']);
+    s = reduce(s, { type: 'MOVE_JOKER', index: 0, direction: 'right' });
+    expect(ids(s)).toEqual(['baron', 'joker', 'blueprint']);
+  });
+
+  it('ignores moves past the edges without an undo step', () => {
+    let s = withJokers('joker', 'baron');
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'MOVE_JOKER', index: 0, direction: 'left' });
+    s = reduce(s, { type: 'MOVE_JOKER', index: 1, direction: 'right' });
+    s = reduce(s, { type: 'MOVE_JOKER', index: 7, direction: 'left' });
+    expect(ids(s)).toEqual(['joker', 'baron']);
+    expect(s.past.length).toBe(pastLen);
+  });
+
+  it('applies a full permutation in one undo step', () => {
+    let s = withJokers('joker', 'blueprint', 'baron');
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'SET_JOKER_ORDER', order: [2, 0, 1] });
+    expect(ids(s)).toEqual(['baron', 'joker', 'blueprint']);
+    expect(s.past.length).toBe(pastLen + 1);
+    s = reduce(s, { type: 'UNDO' });
+    expect(ids(s)).toEqual(['joker', 'blueprint', 'baron']);
+  });
+
+  it('rejects anything that is not a permutation', () => {
+    const s = withJokers('joker', 'blueprint', 'baron');
+    for (const order of [[0, 1], [0, 1, 1], [0, 1, 3], [0, 1, -1]]) {
+      expect(ids(reduce(s, { type: 'SET_JOKER_ORDER', order }))).toEqual(['joker', 'blueprint', 'baron']);
+    }
+  });
+});

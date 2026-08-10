@@ -48,7 +48,9 @@ export type RunAction =
   | { type: 'SET_PROFILE_SIZE'; value: number }
   | { type: 'SET_PROFILE_ENHANCED'; enhancement: EnhancementType; value: number }
   | { type: 'APPLY_CONSUMABLE'; consumableId: string }
-  | { type: 'CONVERT_SUITS'; to: Suit; from: Partial<Record<Suit, number>> };
+  | { type: 'CONVERT_SUITS'; to: Suit; from: Partial<Record<Suit, number>> }
+  | { type: 'MOVE_JOKER'; index: number; direction: 'left' | 'right' }
+  | { type: 'SET_JOKER_ORDER'; order: number[] };
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
@@ -212,6 +214,23 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       }
       suits[action.to] += moved;
       return push({ ...run, deckProfile: { ...run.deckProfile, suits } });
+    }
+    case 'MOVE_JOKER': {
+      const target = action.direction === 'left' ? action.index - 1 : action.index + 1;
+      if (action.index < 0 || action.index >= run.jokers.length) return state;
+      if (target < 0 || target >= run.jokers.length) return state;
+      const jokers = [...run.jokers];
+      [jokers[action.index], jokers[target]] = [jokers[target], jokers[action.index]];
+      return push({ ...run, jokers });
+    }
+    case 'SET_JOKER_ORDER': {
+      const { order } = action;
+      const valid =
+        order.length === run.jokers.length &&
+        new Set(order).size === order.length &&
+        order.every(i => Number.isInteger(i) && i >= 0 && i < run.jokers.length);
+      if (!valid) return state;
+      return push({ ...run, jokers: order.map(i => run.jokers[i]) });
     }
     case 'SPEND':
       return push({ ...run, money: run.money - action.amount });
