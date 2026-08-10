@@ -3,6 +3,7 @@ import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
 import { maxSuitShare } from './deckSignals';
+import { MIN_PLAYS, playShare, totalPlays } from './playSignals';
 
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
@@ -50,6 +51,18 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
       if (share > 0.4) {
         score += 1.5;
         reasons.push(`${Math.round(share * 100)}% of your deck is ${suit}`);
+      }
+    }
+
+    if (arch.hands.length > 0 && totalPlays(run) >= MIN_PLAYS) {
+      const share = playShare(run, arch.hands);
+      const played = Math.round(share * totalPlays(run));
+      if (share >= 0.5) {
+        score += 3.5;
+        reasons.push(`You played ${arch.name} in ${played} of ${totalPlays(run)} hands (${Math.round(share * 100)}%)`);
+      } else if (share >= 0.3) {
+        score += 1.5;
+        reasons.push(`You played ${arch.name} in ${played} of ${totalPlays(run)} hands (${Math.round(share * 100)}%)`);
       }
     }
 

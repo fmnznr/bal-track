@@ -253,3 +253,13 @@ describe('recommend — deck-profile awareness', () => {
     expect(buy?.reasons.join(' ')).toMatch(/No diamonds cards left/);
   });
 });
+
+describe('recommend — play statistics', () => {
+  it('prefers the planet for the hand you actually play', () => {
+    const base = run({ money: 20 });
+    const flushPlayer = { ...base, handPlays: { ...base.handPlays, Flush: 9 } };
+    const picks = recommendPackPick(flushPlayer, ['mercury', 'jupiter']);
+    expect(picks[0].action).toBe('Take Jupiter');
+    expect(picks[0].reasons.join(' ')).toMatch(/most played hand/);
+  });
+});

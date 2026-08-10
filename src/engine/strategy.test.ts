@@ -62,4 +62,19 @@ describe('adviseStrategy', () => {
     expect(flush?.score).toBeGreaterThan(adviseStrategy(base).candidates.find(c => c.archetypeId === 'flush')!.score);
     expect(flush?.reasons.join(' ')).toMatch(/% of your deck is hearts/);
   });
+
+  it('recognises a flush build from the hands actually played', () => {
+    const base = runWith('Red');
+    const flushPlayer = { ...base, handPlays: { ...base.handPlays, Flush: 8, Pair: 4 } };
+    const advice = adviseStrategy(flushPlayer);
+    expect(advice.commitment).not.toBe('open');
+    expect(advice.candidates[0].archetypeId).toBe('flush');
+    expect(advice.candidates[0].reasons.join(' ')).toMatch(/8 of 12 hands/);
+  });
+
+  it('ignores a handful of plays as noise', () => {
+    const base = runWith('Red');
+    const barely = { ...base, handPlays: { ...base.handPlays, Flush: 2 } };
+    expect(adviseStrategy(barely).commitment).toBe('open');
+  });
 });

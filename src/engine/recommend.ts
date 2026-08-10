@@ -7,6 +7,7 @@ import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
 import { deckSignalForJoker } from './deckSignals';
 import { interest, interestCapFor, interestLost, sellValue } from './economy';
+import { mostPlayedHand, playSignalForJoker } from './playSignals';
 import { adviseStrategy, getArchetype } from './strategy';
 import type { ArchetypeDef, StrategyCandidate } from '../types';
 
@@ -51,6 +52,7 @@ function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: Ar
   const deckSig = deckSignalForJoker(def, run.deckProfile);
   let value = def.rating[phase] + Math.min(3, synergy * 1.2) + EDITION_SCORE_BONUS[owned.edition] + deckSig.delta;
   if (deckSig.capAt !== undefined) value = Math.min(value, deckSig.capAt);
+  value += playSignalForJoker(def, run).delta;
   return value;
 }
 
@@ -67,6 +69,10 @@ function planetBonus(run: RunState, profile: ArchetypeProfile, consumableId: str
   if (level > 1) {
     bonus += Math.min(2, (level - 1) * 0.5);
     notes.push(`${def.hand} is already level ${level} — keep stacking it`);
+  }
+  if (def.hand === mostPlayedHand(run)) {
+    bonus += 1.5;
+    notes.push(`${def.hand} is your most played hand (${run.handPlays[def.hand]} plays)`);
   }
   return { bonus, notes };
 }
@@ -167,6 +173,9 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   rawScore += deckSig.delta;
   if (deckSig.capAt !== undefined) rawScore = Math.min(rawScore, deckSig.capAt);
   baseReasons.push(...deckSig.notes);
+  const playSig = playSignalForJoker(def, run);
+  rawScore += playSig.delta;
+  baseReasons.push(...playSig.notes);
   const econ = economyNotes(run, slot.price, 0.8);
 
   const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';
@@ -316,6 +325,9 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
       score += deckSig.delta;
       if (deckSig.capAt !== undefined) score = Math.min(score, deckSig.capAt);
       reasons.push(...deckSig.notes);
+      const playSig = playSignalForJoker(joker, run);
+      score += playSig.delta;
+      reasons.push(...playSig.notes);
       if (usedJokerSlots(run) >= run.jokerSlots) {
         const weakest = findWeakestOwned(run, phase, profile);
         if (weakest && score > weakest.value + 1) {
