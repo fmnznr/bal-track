@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker } from '../../catalog/catalog';
 import { recommendPackPick } from '../../engine/recommend';
-import { CONVERSION_TARGETS } from '../../run/profileEffects';
+import { CONVERSION_TARGETS, hasProfileEffect } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
 import type { PackKind, Suit } from '../../types';
 import type { SearchKind } from '../../catalog/search';
@@ -55,9 +55,15 @@ export default function PackScreen() {
         setNote('The Soul! Add your new legendary joker on the Run tab.');
       } else if (c) {
         dispatch({ type: 'APPLY_CONSUMABLE', consumableId: id });
-        setNote(`${c.name} — deck changes are not tracked, nothing to update.`);
         const target = CONVERSION_TARGETS[id];
-        if (target) setConversion({ name: c.name, target });
+        if (target) {
+          setConversion({ name: c.name, target });
+          setNote(`${c.name} — tell me which suits it converted.`);
+        } else if (hasProfileEffect(id)) {
+          setNote(`${c.name} — deck profile updated.`);
+        } else {
+          setNote(`${c.name} — not tracked automatically, adjust the deck profile if needed.`);
+        }
       }
     }
     setOptions(current => current.filter(o => o !== id));

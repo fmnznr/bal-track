@@ -51,3 +51,16 @@ it('books a suit conversion through the prompt', async () => {
   expect(screen.getByLabelText('Hearts')).toHaveDisplayValue('16');
   expect(screen.getByLabelText('Diamonds')).toHaveDisplayValue('11');
 });
+
+it('reports honestly whether a taken consumable updated the profile', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Pack' }));
+  await userEvent.click(screen.getByRole('button', { name: 'arcana' }));
+  await userEvent.type(screen.getByPlaceholderText('Add pack option…'), 'chariot');
+  await userEvent.click(await screen.findByRole('button', { name: /The Chariot/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Took The Chariot' }));
+  expect(screen.getByText(/deck profile updated/i)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  await userEvent.click(screen.getByText('Deck profile'));
+  expect(screen.getByLabelText('Steel')).toHaveDisplayValue('1');
+});

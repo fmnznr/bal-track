@@ -1,6 +1,6 @@
 import { getConsumable, getJoker } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { applyProfileEffects } from './profileEffects';
+import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type { DeckProfile, Edition, EnhancementType, HandType, PackKind, RunState, ShopState, Suit } from '../types';
 
@@ -197,8 +197,11 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
           enhanced: { ...run.deckProfile.enhanced, [action.enhancement]: Math.max(0, action.value) },
         },
       });
-    case 'APPLY_CONSUMABLE':
+    case 'APPLY_CONSUMABLE': {
+      // Consumables without a known effect must not leave an undo step that undoes nothing.
+      if (!hasProfileEffect(action.consumableId)) return state;
       return push({ ...run, deckProfile: applyProfileEffects(run.deckProfile, action.consumableId) });
+    }
     case 'CONVERT_SUITS': {
       const suits = { ...run.deckProfile.suits };
       let moved = 0;

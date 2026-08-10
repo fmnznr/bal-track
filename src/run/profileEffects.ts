@@ -31,6 +31,11 @@ export const CONVERSION_TARGETS: Partial<Record<string, Suit>> = {
   'the-world': 'spades',
 };
 
+/** True when using this consumable books a profile change on its own. */
+export function hasProfileEffect(consumableId: string): boolean {
+  return consumableId in EFFECTS;
+}
+
 export function applyProfileEffects(profile: DeckProfile, consumableId: string): DeckProfile {
   const effect = EFFECTS[consumableId];
   if (!effect) return profile;

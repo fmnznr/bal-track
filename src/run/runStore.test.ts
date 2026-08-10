@@ -197,3 +197,15 @@ describe('profile automation', () => {
     expect(s.current?.deckProfile.suits).toEqual({ hearts: 13, diamonds: 13, spades: 13, clubs: 13 });
   });
 });
+
+describe('profile automation — no-op guard', () => {
+  it('leaves no undo step for consumables without a profile effect', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_MONEY', money: 12 });
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'APPLY_CONSUMABLE', consumableId: 'aura' });
+    expect(s.past.length).toBe(pastLen);
+    s = reduce(s, { type: 'APPLY_CONSUMABLE', consumableId: 'the-chariot' });
+    expect(s.past.length).toBe(pastLen + 1);
+  });
+});

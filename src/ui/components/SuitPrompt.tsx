@@ -28,7 +28,7 @@ export default function SuitPrompt({ consumableName, target, onDone }: Props) {
             disabled={total >= 3}
             onClick={() => setFrom(f => ({ ...f, [suit]: (f[suit] ?? 0) + 1 }))}
           >
-            from {suit} {from[suit] ? `(${from[suit]})` : ''}
+            {from[suit] ? `from ${suit} (${from[suit]})` : `from ${suit}`}
           </button>
         ))}
       </div>

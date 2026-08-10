@@ -7,7 +7,9 @@ full card catalog); the app returns ranked, explained recommendations for
 every shop decision — buy/sell/reroll/skip, vouchers, packs, and pack picks.
 A strategy advisor on the run screen reads your jokers and deck, names the
 build worth committing to (or honestly says "stay flexible"), and feeds the
-recommended plan back into shop advice.
+recommended plan back into shop advice. A semi-automatic deck profile (suit,
+face-card and enhancement counts) keeps the advice honest about what your
+deck actually contains.
 
 Recommendations are heuristic: phase-dependent card ratings, synergy tags
 matched against your detected build, and interest-aware economy rules. Every

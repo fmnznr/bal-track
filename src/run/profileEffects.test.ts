@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile } from './runStore';
-import { CONVERSION_TARGETS, applyProfileEffects } from './profileEffects';
+import { CONVERSION_TARGETS, applyProfileEffects, hasProfileEffect } from './profileEffects';
 
 describe('applyProfileEffects', () => {
   it('books enhancement tarots', () => {
@@ -28,5 +28,14 @@ describe('applyProfileEffects', () => {
     expect(CONVERSION_TARGETS['the-star']).toBe('diamonds');
     expect(CONVERSION_TARGETS['the-moon']).toBe('clubs');
     expect(CONVERSION_TARGETS['the-world']).toBe('spades');
+  });
+});
+
+describe('hasProfileEffect', () => {
+  it('knows which consumables book a profile change', () => {
+    expect(hasProfileEffect('the-chariot')).toBe(true);
+    expect(hasProfileEffect('familiar')).toBe(true);
+    expect(hasProfileEffect('aura')).toBe(false);
+    expect(hasProfileEffect('the-sun')).toBe(false);
   });
 });
