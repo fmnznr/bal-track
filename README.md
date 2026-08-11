@@ -12,7 +12,10 @@ face-card and enhancement counts) keeps the advice honest about what your
 deck actually contains. It also checks your joker order — jokers trigger
 left to right — and can apply a suggested ordering in one tap. Telling it
 how often you played each poker hand sharpens the plan further — a flush
-build is recognised from your actual hands, not just your jokers.
+build is recognised from your actual hands, not just your jokers. Where a
+joker's effect is unambiguous, the app also estimates what your typical hand
+scores and how far that is from the ante's blind targets — always labelled
+as an estimate, and always naming the jokers it could not count.
 
 Recommendations are heuristic: phase-dependent card ratings, synergy tags
 matched against your detected build, and interest-aware economy rules. Every
