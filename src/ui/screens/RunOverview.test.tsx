@@ -80,3 +80,9 @@ it('edits hand plays and the per-round resource', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'increase Flush played' }));
   expect(screen.getByLabelText('Flush played')).toHaveDisplayValue('1');
 });
+
+it('shows the score estimate against the ante targets', async () => {
+  render(<App />);
+  expect(screen.getByText(/Typical/)).toBeInTheDocument();
+  expect(screen.getByText(/targets/)).toBeInTheDocument();
+});

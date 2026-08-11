@@ -8,6 +8,7 @@ import type { ArchetypeProfile } from './archetype';
 import { deckSignalForJoker } from './deckSignals';
 import { interest, interestCapFor, interestLost, sellValue } from './economy';
 import { MIN_PLAYS, mostPlayedHand, playSignalForJoker, totalPlays } from './playSignals';
+import { estimateHandScore, estimateJokerDelta, referenceHand } from './score';
 import { adviseStrategy, getArchetype } from './strategy';
 import type { ArchetypeDef, StrategyCandidate } from '../types';
 
@@ -176,6 +177,14 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   const playSig = playSignalForJoker(def, run);
   rawScore += playSig.delta;
   baseReasons.push(...playSig.notes);
+  const hand = referenceHand(run);
+  const delta = estimateJokerDelta(run, hand, def.id, slot.edition);
+  if (delta > 0) {
+    const current = estimateHandScore(run, hand).score;
+    // Capped at ±2: the estimate breaks ties, it does not carry a card.
+    rawScore += Math.min(2, current > 0 ? (delta / current) * 2 : 1);
+    baseReasons.push(`+${delta.toLocaleString('en-US')} estimated on your ${hand}`);
+  }
   const econ = economyNotes(run, slot.price, 0.8);
 
   const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';

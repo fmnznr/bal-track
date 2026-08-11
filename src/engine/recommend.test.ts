@@ -263,3 +263,23 @@ describe('recommend — play statistics', () => {
     expect(picks[0].reasons.join(' ')).toMatch(/most played hand/);
   });
 });
+
+describe('recommend — score estimate', () => {
+  it('reports the estimated gain of a modeled joker', () => {
+    const recs = recommend(
+      run({ money: 20 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
+    );
+    const buy = recs.find(r => r.kind === 'buy-joker');
+    expect(buy?.reasons.join(' ')).toMatch(/estimated on your/);
+  });
+
+  it('says nothing about jokers it cannot model', () => {
+    const recs = recommend(
+      run({ money: 20 }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'green-joker', edition: 'base', price: 4 }] }),
+    );
+    const buy = recs.find(r => r.kind === 'buy-joker');
+    expect(buy?.reasons.join(' ')).not.toMatch(/estimated/);
+  });
+});

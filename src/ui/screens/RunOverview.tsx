@@ -9,6 +9,7 @@ import AutocompleteInput from '../components/AutocompleteInput';
 import DeckProfileSection from '../components/DeckProfileSection';
 import JokerOrderPanel from '../components/JokerOrderPanel';
 import NumberField from '../components/NumberField';
+import ScorePanel from '../components/ScorePanel';
 import StrategyPanel from '../components/StrategyPanel';
 import SuitPrompt from '../components/SuitPrompt';
 
@@ -28,6 +29,7 @@ export default function RunOverview() {
       </header>
 
       <StrategyPanel />
+      <ScorePanel />
 
       <div className="row">
         <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
