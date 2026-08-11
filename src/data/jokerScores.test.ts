@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import jokers from './jokers.json';
+import { HAND_TYPES } from '../types';
 
 const byId = new Map(jokers.map(j => [j.id, j as { id: string; effect: string; score?: Record<string, number | string> }]));
 
@@ -35,6 +36,17 @@ describe('joker score models', () => {
         if (key === 'requiresHand') continue; // a HandType string, not a positive number
         expect(value, `${j.id}: ${key}`).toBeGreaterThan(0);
       }
+    }
+  });
+});
+
+describe('requiresHand values', () => {
+  it('names only real poker hands', () => {
+    const handSet = new Set<string>(HAND_TYPES);
+    for (const j of jokers) {
+      const required = (j as { score?: { requiresHand?: string } }).score?.requiresHand;
+      if (required === undefined) continue;
+      expect(handSet.has(required), `${j.id}: ${required}`).toBe(true);
     }
   });
 });

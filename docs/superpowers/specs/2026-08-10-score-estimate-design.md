@@ -50,16 +50,29 @@ mit: Foil +50 Chips, Holographic +10 Mult, Polychrome ×1,5.
 ```
 estimateHandScore(run, hand) → {
   chips, mult, score,
-  modeled: string[],    // Namen der eingerechneten Joker
-  unmodeled: string[],  // Namen der nicht eingerechneten
+  modeled: string[],    // eingerechnet
+  inactive: string[],   // modelliert, feuert aber auf dieser Hand nicht
+  unmodeled: string[],  // gar nicht modelliert
 }
 ```
+
+**Enthaltensein statt Gleichheit (nach Review):** Balatros Bedingung lautet
+„if played hand **contains** a Pair" — ein Full House löst also alle
+Pair-Joker aus. Eine Tabelle `HAND_CONTAINS` bildet das ab, inklusive der
+Ausnahmen: Four of a Kind zählt nicht als Two Pair, Five of a Kind weder als
+Two Pair noch als Full House. Ein früher Entwurf verglich auf Gleichheit und
+unterschätzte Full-House-, Vierling- und Straight-Flush-Builds um das 5- bis
+100-fache — ohne jede Warnung, weil solche Joker in *keiner* der beiden
+Listen auftauchten. Daher die dritte Liste `inactive`.
 
 1. Basis: `baseChips + chipsPerLevel × (level − 1)`, analog Mult.
 2. Kartenchips: `scoringCards × geschätzter Durchschnittswert` aus dem
    Deck-Profil (Bildkarten-Anteil gewichtet; Standarddeck ≈ 7,3).
-3. Joker **in Besitzreihenfolge**: erst `chips`, dann `mult`, dann `xmult`
-   multiplikativ — dieselbe Reihenfolge wie im Spiel. Editionen inklusive.
+3. Joker **in Brettreihenfolge**, Karte für Karte von links nach rechts:
+   Chips addieren, Mult addieren, dann Mult multiplizieren — exakt wie im
+   Spiel. Editionen inklusive. Eine schlechte Reihenfolge senkt damit die
+   Schätzung sichtbar, und die Reihenfolge-Beratung sagt daneben, wie man
+   sie hebt.
 4. `score = chips × mult`.
 
 `blindTargets(ante) → { small, big, boss }` aus der Blind-Tabelle.
