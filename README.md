@@ -81,6 +81,8 @@ Catalog facts are transcribed from the community-maintained
 curves follow the wiki's [Blinds and Antes](https://balatrogame.fandom.com/wiki/Blinds_and_Antes)
 and [Stakes](https://balatrowiki.org/w/Stakes) references. Ratings and tags are
 project-owned heuristics and should be changed together with scenario tests.
+Detailed attribution and license boundaries are recorded in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 When updating game data, record the Balatro version and source in the commit.
 The validation tests protect shape and completeness; they do not prove that a
@@ -94,5 +96,9 @@ load.
 
 ## License
 
-No open-source license has been selected yet. Until one is added, normal
-copyright rules apply even though the repository is public.
+Bal-Track's original application code and original project material are
+licensed under the [MIT License](LICENSE), copyright 2026 fmnznr.
+
+Balatro content and third-party material are not covered by that license. See
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for scope, attribution and
+the licenses that continue to apply to source material.
