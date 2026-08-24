@@ -3,6 +3,7 @@ import { recommend } from '../../engine/recommend';
 import { useRun } from '../../run/RunContext';
 import type { Edition, ShopState } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
+import JokerStickerFields from '../components/JokerStickerFields';
 import NumberField from '../components/NumberField';
 import RecommendationList from '../components/RecommendationList';
 
@@ -19,6 +20,14 @@ export default function ShopScreen() {
     dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop) : [];
+  const usedJokerSlots = run.jokers.filter(j => j.edition !== 'negative').length;
+  const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
+  const voucherBlocked = Boolean(
+    voucherDef
+      && (voucherDef.cost > run.money
+        || run.vouchers.includes(voucherDef.id)
+        || (voucherDef.requires && !run.vouchers.includes(voucherDef.requires))),
+  );
 
   const removeCard = (i: number) => setShop(s => ({ ...s, cards: s.cards.filter((_, j) => j !== i) }));
   const removePack = (i: number) => setShop(s => ({ ...s, packIds: s.packIds.filter((_, j) => j !== i) }));
@@ -34,6 +43,10 @@ export default function ShopScreen() {
       <ul className="rows">
         {shop.cards.map((slot, i) => {
           const name = slot.kind === 'joker' ? getJoker(slot.jokerId)?.name : getConsumable(slot.consumableId)?.name;
+          const hasRoom = slot.kind === 'joker'
+            ? slot.edition === 'negative' || usedJokerSlots < run.jokerSlots
+            : run.consumables.length < run.consumableSlots;
+          const canBuy = slot.price <= run.money && hasRoom;
           return (
             <li key={i} className="row">
               <span className="grow">{name}</span>
@@ -55,6 +68,21 @@ export default function ShopScreen() {
                   ))}
                 </select>
               )}
+              {slot.kind === 'joker' && (
+                <JokerStickerFields
+                  stickers={slot.stickers}
+                  onChange={stickers =>
+                    setShop(s => ({
+                      ...s,
+                      cards: s.cards.map((card, j) =>
+                        j === i && card.kind === 'joker'
+                          ? { ...card, stickers, price: stickers.rental ? 1 : card.price }
+                          : card,
+                      ),
+                    }))
+                  }
+                />
+              )}
               <NumberField
                 label="$"
                 value={slot.price}
@@ -63,18 +91,13 @@ export default function ShopScreen() {
                 }
               />
               <button
-                onClick={() => {
-                  if (slot.kind === 'joker') {
-                    dispatch({ type: 'ADD_JOKER', jokerId: slot.jokerId, edition: slot.edition, price: slot.price });
-                  } else {
-                    dispatch({ type: 'ADD_CONSUMABLE', consumableId: slot.consumableId, price: slot.price });
-                  }
-                  removeCard(i);
-                }}
+                disabled={!canBuy}
+                title={!hasRoom ? 'No free slot' : slot.price > run.money ? 'Not affordable' : undefined}
+                onClick={() => dispatch({ type: 'BUY_SHOP_CARD', index: i })}
               >
                 Bought
               </button>
-              <button className="ghost" onClick={() => removeCard(i)}>✕</button>
+              <button className="ghost" aria-label={`remove ${name ?? 'card'}`} onClick={() => removeCard(i)}>✕</button>
             </li>
           );
         })}
@@ -96,14 +119,13 @@ export default function ShopScreen() {
         <div className="row">
           <span className="grow">{getVoucher(shop.voucherId)?.name}</span>
           <button
-            onClick={() => {
-              dispatch({ type: 'REDEEM_VOUCHER', voucherId: shop.voucherId!, price: getVoucher(shop.voucherId!)?.cost ?? 10 });
-              setShop(s => ({ ...s, voucherId: null }));
-            }}
+            disabled={voucherBlocked}
+            title={voucherDef?.requires && !run.vouchers.includes(voucherDef.requires) ? 'Base voucher not redeemed' : undefined}
+            onClick={() => dispatch({ type: 'BUY_SHOP_VOUCHER' })}
           >
             Redeemed
           </button>
-          <button className="ghost" onClick={() => setShop(s => ({ ...s, voucherId: null }))}>✕</button>
+          <button className="ghost" aria-label="remove voucher" onClick={() => setShop(s => ({ ...s, voucherId: null }))}>✕</button>
         </div>
       ) : (
         <AutocompleteInput placeholder="Add voucher…" kinds={['voucher']} onPick={item => setShop(s => ({ ...s, voucherId: item.id }))} />
@@ -118,14 +140,13 @@ export default function ShopScreen() {
             <li key={i} className="row">
               <span className="grow">{def.name}</span>
               <button
-                onClick={() => {
-                  dispatch({ type: 'SPEND', amount: def.cost });
-                  removePack(i);
-                }}
+                disabled={def.cost > run.money}
+                title={def.cost > run.money ? 'Not affordable' : undefined}
+                onClick={() => dispatch({ type: 'BUY_SHOP_PACK', index: i })}
               >
                 Bought ${def.cost}
               </button>
-              <button className="ghost" onClick={() => removePack(i)}>✕</button>
+              <button className="ghost" aria-label={`remove ${def.name}`} onClick={() => removePack(i)}>✕</button>
             </li>
           );
         })}
@@ -135,10 +156,8 @@ export default function ShopScreen() {
 
       <div className="row">
         <button
-          onClick={() => {
-            dispatch({ type: 'SPEND', amount: shop.rerollCost });
-            setShop(s => ({ ...s, cards: [], rerollCost: s.rerollCost + 1 }));
-          }}
+          disabled={shop.rerollCost > run.money}
+          onClick={() => dispatch({ type: 'REROLL_SHOP' })}
         >
           Rerolled
         </button>

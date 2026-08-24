@@ -13,7 +13,7 @@ export default function RunSetup({ onStarted }: { onStarted: () => void }) {
       <h3>Deck</h3>
       <div className="chip-grid">
         {meta.decks.map(d => (
-          <button key={d} className={d === deck ? 'chip active' : 'chip'} onClick={() => setDeck(d)}>
+          <button key={d} aria-pressed={d === deck} className={d === deck ? 'chip active' : 'chip'} onClick={() => setDeck(d)}>
             {d}
           </button>
         ))}
@@ -21,7 +21,7 @@ export default function RunSetup({ onStarted }: { onStarted: () => void }) {
       <h3>Stake</h3>
       <div className="chip-grid">
         {meta.stakes.map(s => (
-          <button key={s} className={s === stake ? 'chip active' : 'chip'} onClick={() => setStake(s)}>
+          <button key={s} aria-pressed={s === stake} className={s === stake ? 'chip active' : 'chip'} onClick={() => setStake(s)}>
             {s}
           </button>
         ))}
@@ -35,7 +35,7 @@ export default function RunSetup({ onStarted }: { onStarted: () => void }) {
       >
         Start Run
       </button>
-      <p className="muted">Special decks: check money and joker slots on the Run screen after starting.</p>
+      <p className="muted">Deck and stake starting rules are applied automatically; you can still correct counters on the Run screen.</p>
     </section>
   );
 }

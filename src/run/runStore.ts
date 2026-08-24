@@ -1,8 +1,11 @@
-import { getConsumable, getJoker } from '../catalog/catalog';
+import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
+import { stakeDiscardPenalty } from '../engine/gameRules';
 import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
-import type { DeckProfile, Edition, EnhancementType, HandType, PackKind, RunState, ShopState, Suit } from '../types';
+import type {
+  DeckProfile, Edition, EnhancementType, HandType, JokerStickers, PackKind, RunState, ShopState, Suit,
+} from '../types';
 
 export interface FinishedRun {
   deck: string;
@@ -19,7 +22,14 @@ export interface PackDraft {
 
 export interface StoreState {
   current: RunState | null;
-  past: RunState[]; // undo snapshots, oldest first, max 50
+  past: UndoSnapshot[]; // complete undo snapshots, oldest first, max 50
+  finished: FinishedRun[];
+  shopDraft: ShopState | null;
+  packDraft: PackDraft | null;
+}
+
+export interface UndoSnapshot {
+  current: RunState | null;
   finished: FinishedRun[];
   shopDraft: ShopState | null;
   packDraft: PackDraft | null;
@@ -30,8 +40,9 @@ export type RunAction =
   | { type: 'SET_MONEY'; money: number }
   | { type: 'SET_ANTE'; ante: number }
   | { type: 'SET_JOKER_SLOTS'; slots: number }
-  | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; price?: number }
+  | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; stickers?: JokerStickers; price?: number }
   | { type: 'SET_JOKER_EDITION'; index: number; edition: Edition }
+  | { type: 'SET_JOKER_STICKERS'; index: number; stickers: JokerStickers }
   | { type: 'SELL_JOKER'; index: number }
   | { type: 'REDEEM_VOUCHER'; voucherId: string; price?: number }
   | { type: 'ADD_CONSUMABLE'; consumableId: string; price?: number }
@@ -39,6 +50,7 @@ export type RunAction =
   | { type: 'PLAY_PLANET'; consumableId: string }
   | { type: 'SET_HAND_LEVEL'; hand: HandType; level: number }
   | { type: 'SET_HAND_PLAYS'; hand: HandType; value: number }
+  | { type: 'SET_DISCARDS_USED'; value: number }
   | { type: 'SET_HANDS_PER_ROUND'; value: number }
   | { type: 'SET_DISCARDS_PER_ROUND'; value: number }
   | { type: 'SPEND'; amount: number }
@@ -53,12 +65,23 @@ export type RunAction =
   | { type: 'APPLY_CONSUMABLE'; consumableId: string }
   | { type: 'CONVERT_SUITS'; to: Suit; from: Partial<Record<Suit, number>> }
   | { type: 'MOVE_JOKER'; index: number; direction: 'left' | 'right' }
-  | { type: 'SET_JOKER_ORDER'; order: number[] };
+  | { type: 'SET_JOKER_ORDER'; order: number[] }
+  | { type: 'BUY_SHOP_CARD'; index: number }
+  | { type: 'BUY_SHOP_VOUCHER' }
+  | { type: 'BUY_SHOP_PACK'; index: number }
+  | { type: 'REROLL_SHOP' };
 
 const DECK_JOKER_SLOTS: Record<string, number> = { Black: 6, Painted: 4 };
 const DECK_START_MONEY: Record<string, number> = { Yellow: 14 };
 const DECK_HANDS: Record<string, number> = { Blue: 5, Black: 3 };
 const DECK_DISCARDS: Record<string, number> = { Red: 4 };
+
+const DECK_START: Record<string, { consumableSlots?: number; vouchers?: string[]; consumables?: string[] }> = {
+  Magic: { consumableSlots: 3, vouchers: ['crystal-ball'], consumables: ['the-fool', 'the-fool'] },
+  Nebula: { consumableSlots: 1, vouchers: ['telescope'] },
+  Ghost: { consumables: ['hex'] },
+  Zodiac: { vouchers: ['overstock', 'tarot-merchant', 'planet-merchant'] },
+};
 
 /** Hands/discards a voucher permanently adds to every round. */
 const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> = {
@@ -83,22 +106,82 @@ export function initialDeckProfile(deck: string): DeckProfile {
 
 export function newRunState(deck: string, stake: string): RunState {
   const handLevels = Object.fromEntries(HAND_TYPES.map(h => [h, 1])) as Record<HandType, number>;
+  const start = DECK_START[deck];
   return {
     deck,
     stake,
     ante: 1,
     money: DECK_START_MONEY[deck] ?? 4,
     jokerSlots: DECK_JOKER_SLOTS[deck] ?? 5,
-    consumableSlots: 2,
+    consumableSlots: start?.consumableSlots ?? 2,
     jokers: [],
-    vouchers: [],
-    consumables: [],
+    vouchers: [...(start?.vouchers ?? [])],
+    consumables: [...(start?.consumables ?? [])],
     handLevels,
     handPlays: Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>,
+    discardsUsed: 0,
     handsPerRound: DECK_HANDS[deck] ?? 4,
-    discardsPerRound: DECK_DISCARDS[deck] ?? 3,
+    discardsPerRound: Math.max(0, (DECK_DISCARDS[deck] ?? 3) - stakeDiscardPenalty(stake)),
     deckProfile: initialDeckProfile(deck),
     status: 'active',
+  };
+}
+
+function totalHandPlays(run: Pick<RunState, 'handPlays'>): number {
+  return HAND_TYPES.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0);
+}
+
+function usedJokerSlots(run: Pick<RunState, 'jokers'>): number {
+  return run.jokers.filter(j => j.edition !== 'negative').length;
+}
+
+function addJoker(
+  run: RunState,
+  jokerId: string,
+  edition: Edition,
+  stickers: JokerStickers | undefined,
+  price = 0,
+): RunState | null {
+  if (!getJoker(jokerId) || price < 0 || price > run.money) return null;
+  if (edition !== 'negative' && usedJokerSlots(run) >= run.jokerSlots) return null;
+  return {
+    ...run,
+    money: run.money - price,
+    jokers: [...run.jokers, {
+      jokerId,
+      edition,
+      stickers,
+      acquiredAtPlays: totalHandPlays(run),
+      acquiredAtDiscards: run.discardsUsed,
+    }],
+  };
+}
+
+function addConsumable(run: RunState, consumableId: string, price = 0): RunState | null {
+  if (!getConsumable(consumableId) || price < 0 || price > run.money) return null;
+  if (run.consumables.length >= run.consumableSlots) return null;
+  return { ...run, money: run.money - price, consumables: [...run.consumables, consumableId] };
+}
+
+function redeemVoucher(run: RunState, voucherId: string, price = 0): RunState | null {
+  const def = getVoucher(voucherId);
+  if (!def || run.vouchers.includes(voucherId) || price < 0 || price > run.money) return null;
+  if (def.requires && !run.vouchers.includes(def.requires)) return null;
+
+  let { jokerSlots, consumableSlots, ante } = run;
+  if (voucherId === 'antimatter') jokerSlots += 1;
+  if (voucherId === 'crystal-ball') consumableSlots += 1;
+  if (voucherId === 'hieroglyph' || voucherId === 'petroglyph') ante = Math.max(0, ante - 1);
+  const resource = RESOURCE_VOUCHERS[voucherId];
+  return {
+    ...run,
+    money: run.money - price,
+    jokerSlots,
+    consumableSlots,
+    ante,
+    handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
+    discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
+    vouchers: [...run.vouchers, voucherId],
   };
 }
 
@@ -112,7 +195,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
   }
   if (action.type === 'UNDO') {
     if (state.past.length === 0) return state;
-    return { ...state, current: state.past[state.past.length - 1], past: state.past.slice(0, -1) };
+    const previous = state.past[state.past.length - 1];
+    return { ...state, ...previous, past: state.past.slice(0, -1) };
   }
 
   const run = state.current;
@@ -122,7 +206,12 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     ...state,
     ...extra,
     current: next,
-    past: [...state.past.slice(-49), run],
+    past: [...state.past.slice(-49), {
+      current: run,
+      finished: state.finished,
+      shopDraft: state.shopDraft,
+      packDraft: state.packDraft,
+    }],
   });
 
   switch (action.type) {
@@ -131,27 +220,37 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     case 'SET_PACK_DRAFT':
       return { ...state, packDraft: action.draft };
     case 'SET_MONEY':
-      return push({ ...run, money: action.money });
+      return push({ ...run, money: Math.max(0, action.money) });
     case 'SET_ANTE':
-      return push({ ...run, ante: Math.max(1, action.ante) });
+      return push({ ...run, ante: Math.max(0, action.ante) });
     case 'SET_JOKER_SLOTS':
       return push({ ...run, jokerSlots: Math.max(1, action.slots) });
-    case 'ADD_JOKER':
-      return push({
-        ...run,
-        money: run.money - (action.price ?? 0),
-        jokers: [...run.jokers, { jokerId: action.jokerId, edition: action.edition }],
-      });
+    case 'ADD_JOKER': {
+      const next = addJoker(run, action.jokerId, action.edition, action.stickers, action.price);
+      return next ? push(next) : state;
+    }
     case 'SET_JOKER_EDITION':
+      if (!run.jokers[action.index]) return state;
+      if (
+        run.jokers[action.index].edition === 'negative'
+        && action.edition !== 'negative'
+        && usedJokerSlots(run) >= run.jokerSlots
+      ) return state;
       return push({
         ...run,
         jokers: run.jokers.map((j, i) => (i === action.index ? { ...j, edition: action.edition } : j)),
       });
+    case 'SET_JOKER_STICKERS':
+      if (!run.jokers[action.index]) return state;
+      return push({
+        ...run,
+        jokers: run.jokers.map((j, i) => (i === action.index ? { ...j, stickers: action.stickers } : j)),
+      });
     case 'SELL_JOKER': {
       const owned = run.jokers[action.index];
-      if (!owned) return state;
+      if (!owned || owned.stickers?.eternal) return state;
       const def = getJoker(owned.jokerId);
-      const refund = def ? sellValue(def.cost, owned.edition) : 0;
+      const refund = def ? sellValue(def.cost, owned.edition, owned.stickers) : 0;
       return push({
         ...run,
         money: run.money + refund,
@@ -159,28 +258,13 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       });
     }
     case 'REDEEM_VOUCHER': {
-      let { jokerSlots, consumableSlots, ante } = run;
-      if (action.voucherId === 'antimatter') jokerSlots += 1;
-      if (action.voucherId === 'crystal-ball') consumableSlots += 1;
-      if (action.voucherId === 'hieroglyph' || action.voucherId === 'petroglyph') ante = Math.max(1, ante - 1);
-      const resource = RESOURCE_VOUCHERS[action.voucherId];
-      return push({
-        ...run,
-        money: run.money - (action.price ?? 0),
-        jokerSlots,
-        consumableSlots,
-        ante,
-        handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
-        discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
-        vouchers: [...run.vouchers, action.voucherId],
-      });
+      const next = redeemVoucher(run, action.voucherId, action.price);
+      return next ? push(next) : state;
     }
-    case 'ADD_CONSUMABLE':
-      return push({
-        ...run,
-        money: run.money - (action.price ?? 0),
-        consumables: [...run.consumables, action.consumableId],
-      });
+    case 'ADD_CONSUMABLE': {
+      const next = addConsumable(run, action.consumableId, action.price);
+      return next ? push(next) : state;
+    }
     case 'USE_CONSUMABLE': {
       const id = run.consumables[action.index];
       if (id === undefined) return state;
@@ -208,6 +292,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
         ...run,
         handPlays: { ...run.handPlays, [action.hand]: Math.max(0, action.value) },
       });
+    case 'SET_DISCARDS_USED':
+      return push({ ...run, discardsUsed: Math.max(0, action.value) });
     case 'SET_HANDS_PER_ROUND':
       return push({ ...run, handsPerRound: Math.max(0, action.value) });
     case 'SET_DISCARDS_PER_ROUND':
@@ -262,7 +348,45 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       if (!valid) return state;
       return push({ ...run, jokers: order.map(i => run.jokers[i]) });
     }
+    case 'BUY_SHOP_CARD': {
+      const shop = state.shopDraft;
+      const slot = shop?.cards[action.index];
+      if (!shop || !slot) return state;
+      const next = slot.kind === 'joker'
+        ? addJoker(run, slot.jokerId, slot.edition, slot.stickers, slot.price)
+        : addConsumable(run, slot.consumableId, slot.price);
+      if (!next) return state;
+      return push(next, { shopDraft: { ...shop, cards: shop.cards.filter((_, i) => i !== action.index) } });
+    }
+    case 'BUY_SHOP_VOUCHER': {
+      const shop = state.shopDraft;
+      const voucherId = shop?.voucherId;
+      const def = voucherId ? getVoucher(voucherId) : undefined;
+      if (!shop || !voucherId || !def) return state;
+      const next = redeemVoucher(run, voucherId, def.cost);
+      if (!next) return state;
+      return push(next, { shopDraft: { ...shop, voucherId: null } });
+    }
+    case 'BUY_SHOP_PACK': {
+      const shop = state.shopDraft;
+      const packId = shop?.packIds[action.index];
+      const def = packId ? getPack(packId) : undefined;
+      if (!shop || !packId || !def || def.cost > run.money) return state;
+      return push(
+        { ...run, money: run.money - def.cost },
+        { shopDraft: { ...shop, packIds: shop.packIds.filter((_, i) => i !== action.index) } },
+      );
+    }
+    case 'REROLL_SHOP': {
+      const shop = state.shopDraft ?? { cards: [], voucherId: null, packIds: [], rerollCost: 5 };
+      if (shop.rerollCost < 0 || shop.rerollCost > run.money) return state;
+      return push(
+        { ...run, money: run.money - shop.rerollCost },
+        { shopDraft: { ...shop, cards: [], rerollCost: shop.rerollCost + 1 } },
+      );
+    }
     case 'SPEND':
+      if (action.amount < 0 || action.amount > run.money) return state;
       return push({ ...run, money: run.money - action.amount });
     case 'END_RUN':
       return push(null, {
@@ -276,7 +400,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
   }
 }
 
-export const STORAGE_KEY = 'bal-track:v1';
+export const STORAGE_KEY = 'bal-track:v2';
+const LEGACY_STORAGE_KEY = 'bal-track:v1';
 
 export function save(state: StoreState): void {
   try {
@@ -288,22 +413,62 @@ export function save(state: StoreState): void {
 
 export function load(): StoreState | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<StoreState>;
-    const withDefaults = (r: RunState): RunState => ({
-      ...r,
-      deckProfile: r.deckProfile ?? initialDeckProfile(r.deck),
-      handPlays: r.handPlays ?? (Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>),
-      handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
-      discardsPerRound: r.discardsPerRound ?? DECK_DISCARDS[r.deck] ?? 3,
+    const parsed = JSON.parse(raw) as Partial<StoreState> & { past?: unknown[] };
+    const isRun = (value: unknown): value is RunState => {
+      if (!value || typeof value !== 'object') return false;
+      const candidate = value as Partial<RunState>;
+      return typeof candidate.deck === 'string' && typeof candidate.stake === 'string'
+        && Array.isArray(candidate.jokers) && Array.isArray(candidate.vouchers)
+        && Array.isArray(candidate.consumables) && typeof candidate.handLevels === 'object';
+    };
+    const withDefaults = (r: RunState): RunState => {
+      const handPlays = r.handPlays
+        ?? (Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>);
+      const discardsUsed = r.discardsUsed ?? 0;
+      const acquiredAtPlays = HAND_TYPES.reduce((sum, hand) => sum + (handPlays[hand] ?? 0), 0);
+      return {
+        ...r,
+        deckProfile: r.deckProfile ?? initialDeckProfile(r.deck),
+        handPlays,
+        discardsUsed,
+        jokers: r.jokers.map(j => ({
+          ...j,
+          acquiredAtPlays: j.acquiredAtPlays ?? acquiredAtPlays,
+          acquiredAtDiscards: j.acquiredAtDiscards ?? discardsUsed,
+        })),
+        handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
+        discardsPerRound: r.discardsPerRound
+          ?? Math.max(0, (DECK_DISCARDS[r.deck] ?? 3) - stakeDiscardPenalty(r.stake)),
+      };
+    };
+    const current = isRun(parsed.current) ? withDefaults(parsed.current) : null;
+    if (parsed.current && !current) return null;
+    const finished = Array.isArray(parsed.finished) ? parsed.finished : [];
+    const shopDraft = parsed.shopDraft ?? null;
+    const packDraft = parsed.packDraft ?? null;
+    const past = (parsed.past ?? []).flatMap(value => {
+      // v1 stored bare RunState snapshots; v2 stores the entire transaction context.
+      if (isRun(value)) {
+        return [{ current: withDefaults(value), finished, shopDraft, packDraft }];
+      }
+      if (!value || typeof value !== 'object') return [];
+      const snapshot = value as Partial<UndoSnapshot>;
+      if (snapshot.current !== null && !isRun(snapshot.current)) return [];
+      return [{
+        current: snapshot.current ? withDefaults(snapshot.current) : null,
+        finished: Array.isArray(snapshot.finished) ? snapshot.finished : finished,
+        shopDraft: snapshot.shopDraft ?? null,
+        packDraft: snapshot.packDraft ?? null,
+      }];
     });
     return {
-      current: parsed.current ? withDefaults(parsed.current) : null,
-      past: (parsed.past ?? []).map(withDefaults),
-      finished: parsed.finished ?? [],
-      shopDraft: parsed.shopDraft ?? null,
-      packDraft: parsed.packDraft ?? null,
+      current,
+      past,
+      finished,
+      shopDraft,
+      packDraft,
     };
   } catch {
     return null;

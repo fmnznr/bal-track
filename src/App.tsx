@@ -40,9 +40,14 @@ function Shell() {
 
   return (
     <div className="app">
-      <nav className="tabs">
+      <nav className="tabs" aria-label="Run sections">
         {TABS.map(t => (
-          <button key={t.id} className={t.id === screen ? 'tab active' : 'tab'} onClick={() => setScreen(t.id)}>
+          <button
+            key={t.id}
+            aria-current={t.id === screen ? 'page' : undefined}
+            className={t.id === screen ? 'tab active' : 'tab'}
+            onClick={() => setScreen(t.id)}
+          >
             {t.label}
           </button>
         ))}

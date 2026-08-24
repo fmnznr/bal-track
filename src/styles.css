@@ -43,6 +43,13 @@ button {
 }
 button:active { transform: scale(0.98); }
 button:disabled { opacity: 0.4; }
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--accent-2);
+  outline-offset: 2px;
+}
 
 button.primary { background: var(--accent); border-color: var(--accent); font-weight: 600; }
 button.danger { background: var(--bad); border-color: var(--bad); }
@@ -118,7 +125,8 @@ button.ghost { background: transparent; }
   background: transparent;
   text-align: left;
 }
-.autocomplete-results button:hover { background: var(--panel); }
+.autocomplete-results button:hover,
+.autocomplete-results button.active { background: var(--panel); }
 .autocomplete-results small { color: var(--muted); }
 
 select {
@@ -195,6 +203,22 @@ details summary { cursor: pointer; color: var(--muted); padding: 8px 0; }
   font-size: 0.8rem;
   min-width: 1.2em;
 }
+
+.sticker-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  width: 100%;
+  padding-left: 2rem;
+}
+.sticker-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.sticker-toggle input { accent-color: var(--accent-2); }
 
 .score-panel {
   border-left: 4px solid var(--panel-2);

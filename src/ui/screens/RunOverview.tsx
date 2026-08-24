@@ -8,6 +8,7 @@ import type { Edition, Suit } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
 import DeckProfileSection from '../components/DeckProfileSection';
 import JokerOrderPanel from '../components/JokerOrderPanel';
+import JokerStickerFields from '../components/JokerStickerFields';
 import NumberField from '../components/NumberField';
 import ScorePanel from '../components/ScorePanel';
 import StrategyPanel from '../components/StrategyPanel';
@@ -33,7 +34,7 @@ export default function RunOverview() {
 
       <div className="row">
         <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
-        <NumberField label="Ante" value={run.ante} min={1} onChange={ante => dispatch({ type: 'SET_ANTE', ante })} />
+        <NumberField label="Ante" value={run.ante} min={0} onChange={ante => dispatch({ type: 'SET_ANTE', ante })} />
         <NumberField label="Joker slots" value={run.jokerSlots} min={1} onChange={slots => dispatch({ type: 'SET_JOKER_SLOTS', slots })} />
       </div>
 
@@ -71,8 +72,16 @@ export default function RunOverview() {
                   <option key={ed} value={ed}>{ed}</option>
                 ))}
               </select>
-              <button onClick={() => dispatch({ type: 'SELL_JOKER', index: i })}>
-                Sell ${sellValue(def.cost, owned.edition)}
+              <JokerStickerFields
+                stickers={owned.stickers}
+                onChange={stickers => dispatch({ type: 'SET_JOKER_STICKERS', index: i, stickers })}
+              />
+              <button
+                disabled={owned.stickers?.eternal}
+                title={owned.stickers?.eternal ? 'Eternal jokers cannot be sold' : undefined}
+                onClick={() => dispatch({ type: 'SELL_JOKER', index: i })}
+              >
+                {owned.stickers?.eternal ? 'Cannot sell' : `Sell $${sellValue(def.cost, owned.edition, owned.stickers)}`}
               </button>
             </li>
           );
@@ -139,6 +148,11 @@ export default function RunOverview() {
             label="Discards per round"
             value={run.discardsPerRound}
             onChange={value => dispatch({ type: 'SET_DISCARDS_PER_ROUND', value })}
+          />
+          <NumberField
+            label="Discards used"
+            value={run.discardsUsed}
+            onChange={value => dispatch({ type: 'SET_DISCARDS_USED', value })}
           />
         </div>
         {HAND_TYPES.map(hand => (

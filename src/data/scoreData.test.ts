@@ -37,10 +37,12 @@ describe('handValues.json', () => {
 });
 
 describe('blinds.json', () => {
-  it('covers antes 1 to 8 and rises monotonically', () => {
-    expect(blinds.anteBase).toHaveLength(9); // index 0 unused
-    for (let ante = 2; ante <= 8; ante++) {
-      expect(blinds.anteBase[ante], `ante ${ante}`).toBeGreaterThan(blinds.anteBase[ante - 1]);
+  it('covers antes 0 to 8 for every score-scaling stake and rises monotonically', () => {
+    for (const table of [blinds.anteBase, blinds.greenStakeAnteBase, blinds.purpleStakeAnteBase]) {
+      expect(table).toHaveLength(9);
+      for (let ante = 1; ante <= 8; ante++) {
+        expect(table[ante], `ante ${ante}`).toBeGreaterThan(table[ante - 1]);
+      }
     }
     expect(blinds.anteBase[1]).toBe(300);
     expect(blinds.anteBase[8]).toBe(50000);

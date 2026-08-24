@@ -6,7 +6,7 @@ export default function ScorePanel() {
   const run = store.current!;
   const hand = referenceHand(run);
   const estimate = estimateHandScore(run, hand);
-  const targets = blindTargets(run.ante, run.deck);
+  const targets = blindTargets(run.ante, run.deck, run.stake);
   const fmt = (n: number) => n.toLocaleString('en-US');
   // Keep the line readable on a phone when a wide board fills every list.
   const names = (list: string[]) =>

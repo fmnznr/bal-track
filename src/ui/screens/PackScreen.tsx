@@ -44,6 +44,10 @@ export default function PackScreen() {
   const take = (id: string) => {
     const joker = getJoker(id);
     if (joker) {
+      if (run.jokers.filter(owned => owned.edition !== 'negative').length >= run.jokerSlots) {
+        setNote(`No free joker slot — sell a joker on the Run tab before taking ${joker.name}.`);
+        return;
+      }
       dispatch({ type: 'ADD_JOKER', jokerId: id, edition: 'base' });
       setNote(`${joker.name} added to your jokers.`);
     } else {
@@ -76,6 +80,7 @@ export default function PackScreen() {
         {KINDS.map(k => (
           <button
             key={k}
+            aria-pressed={k === kind}
             className={k === kind ? 'chip active' : 'chip'}
             onClick={() => {
               setKind(k);

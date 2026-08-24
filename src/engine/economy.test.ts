@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { interest, interestCapFor, interestLost, sellValue } from './economy';
+import { interest, interestCapFor, interestLost, runInterest, runInterestLost, sellValue } from './economy';
+import { newRunState } from '../run/runStore';
 
 describe('interest', () => {
   it('earns $1 per full $5, capped at $5 by default', () => {
@@ -32,6 +33,14 @@ describe('interestLost', () => {
   });
 });
 
+describe('deck-aware interest', () => {
+  it('never assigns interest or an interest loss to Green Deck', () => {
+    const green = { ...newRunState('Green', 'White'), money: 25 };
+    expect(runInterest(green)).toBe(0);
+    expect(runInterestLost(green, 10)).toBe(0);
+  });
+});
+
 describe('sellValue', () => {
   it('is half the cost, floored, minimum $1', () => {
     expect(sellValue(6, 'base')).toBe(3);
@@ -41,5 +50,8 @@ describe('sellValue', () => {
   it('editions raise the sell value', () => {
     expect(sellValue(10, 'polychrome')).toBe(7);
     expect(sellValue(10, 'foil')).toBe(6);
+  });
+  it('rental overrides the normal sell value', () => {
+    expect(sellValue(20, 'polychrome', { rental: true })).toBe(1);
   });
 });
