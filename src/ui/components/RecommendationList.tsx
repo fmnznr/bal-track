@@ -7,11 +7,11 @@ export default function RecommendationList({ recs }: { recs: Recommendation[] })
   return (
     <ol className="recs">
       {recs.map((r, i) => (
-        <li key={i} className={`rec rec-${r.confidence}${i === 0 ? ' rec-top' : ''}`}>
+        <li key={i} className={`rec rec-${r.priority}${i === 0 ? ' rec-top' : ''}`}>
           <div className="rec-head">
             <strong>{r.action}</strong>
             <span className="rec-meta">
-              {r.score.toFixed(1)} · {r.confidence}
+              priority {r.score.toFixed(1)} · {r.evidence}
             </span>
           </div>
           <ul>

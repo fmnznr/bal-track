@@ -1,40 +1,98 @@
 # Bal-Track — Balatro Shop Advisor
 
-A mobile-first PWA that acts as a second-screen advisor for Balatro runs on
-platforms without mod or save-file access (mobile, Switch, Xbox). You enter
-your run state and each shop's contents manually (fast autocomplete over the
-full card catalog); the app returns ranked, explained recommendations for
-every shop decision — buy/sell/reroll/skip, vouchers, packs, and pack picks.
-A strategy advisor on the run screen reads your jokers and deck, names the
-build worth committing to (or honestly says "stay flexible"), and feeds the
-recommended plan back into shop advice. A semi-automatic deck profile (suit,
-face-card and enhancement counts) keeps the advice honest about what your
-deck actually contains. It also checks your joker order — jokers trigger
-left to right — and can apply a suggested ordering in one tap. Telling it
-how often you played each poker hand sharpens the plan further — a flush
-build is recognised from your actual hands, not just your jokers. Where a
-joker's effect is unambiguous, the app also estimates what your typical hand
-scores and how far that is from the ante's blind targets — always labelled
-as an estimate, and always naming the jokers it could not count.
+[![Deploy to GitHub Pages](https://github.com/fmnznr/bal-track/actions/workflows/deploy.yml/badge.svg)](https://github.com/fmnznr/bal-track/actions/workflows/deploy.yml)
 
-Recommendations are heuristic: phase-dependent card ratings, synergy tags
-matched against your detected build, and interest-aware economy rules. Every
-recommendation states its reasons — trust your own judgment when it matters.
+**[Open the live app](https://fmnznr.github.io/bal-track/)**
+
+Bal-Track is a mobile-first, offline-capable second-screen advisor for Balatro
+runs on platforms without mod or save-file access (mobile, Switch and Xbox).
+Enter the current run and shop state manually; the app ranks and explains
+buy, sell, reroll, skip, voucher, booster and pack-pick decisions.
+
+The app is intentionally an explainable heuristic advisor, not a deterministic
+solver. Every recommendation shows its reasons and labels whether it comes
+from modeled mechanics, a partial model or hand-curated heuristics.
+
+## What it tracks
+
+- All 150 Jokers, 32 Vouchers, 52 consumables and 15 booster variants.
+- Deck and cumulative Stake starting rules, including high-Stake Joker stickers.
+- Interest thresholds, Green Deck's no-interest economy and Rental upkeep.
+- Joker slots, editions, Eternal/Perishable/Rental stickers and sell values.
+- Strategy direction from Joker tags, deck profile and hands actually played.
+- Suit, face-card and enhancement counts with common consumable effects.
+- Joker trigger order, with a safe one-tap reorder suggestion.
+- Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
+- Local run history, persistent shop/pack drafts and complete transaction undo.
+
+## Current limitations
+
+- Shop and run state are entered manually; the app does not read Balatro saves.
+- Ratings and synergy tags are curated heuristics, not win-rate-trained values.
+- Exact score contribution is modeled only for unambiguous flat-effect Jokers.
+  Conditional, random, copy, retrigger and most scaling effects are named but
+  deliberately excluded from the numeric estimate.
+- Boss-specific effects, tags, playing-card seals and exact card-by-card scoring
+  are not simulated.
+- Perishable remaining rounds are not counted; the sticker is treated as a
+  general flexibility penalty.
+- Unusual card-price modifiers may require correcting the displayed card price
+  manually. Pack and voucher discounts are not modeled yet.
+
+Use the ranking as a checklist and explanation aid. Your knowledge of the
+current blind and run still wins when the model lacks context.
 
 ## Develop
 
-- `npm install`
-- `npm run dev` — dev server
-- `npm test` — run the test suite
-- `npm run build` — typecheck + production build (`dist/`)
+Node.js 24 is used in CI. The supported local range is Node 20.19 through 26.
+
+```sh
+npm ci
+npm run dev
+npm test
+npm run build
+```
+
+The production build runs strict TypeScript checking before Vite. Tests cover
+catalog integrity, persistence migrations, game rules, recommendation behavior
+and the main UI flows.
 
 ## Deploy
 
-Any static host over HTTPS works (required for the service worker). Upload
-the contents of `dist/`.
+Pushes to `main` are tested, built and deployed to GitHub Pages. Pull requests
+run the same test and production-build gate without deploying. Any other static
+HTTPS host can serve the contents of `dist/`; HTTPS is required for the service
+worker.
 
-## Data
+## Architecture
 
-Catalog data (`src/data/*.json`) is transcribed from the community wiki;
-ratings/tags are hand-curated heuristics — tweak them freely, the validation
-tests in `src/data/` keep the structure honest.
+- `src/data/` — catalog data and structural validation tests.
+- `src/engine/` — pure recommendation, strategy, economy and scoring rules.
+- `src/run/` — versioned local persistence and the transactional reducer.
+- `src/ui/` — mobile-first React screens and reusable controls.
+
+Keeping the engine pure makes recommendation scenarios easy to regression-test
+without rendering the UI.
+
+## Data and calibration
+
+Catalog facts are transcribed from the community-maintained
+[Balatro Wiki](https://balatrogame.fandom.com/wiki/Balatro_Wiki). Stake score
+curves follow the wiki's [Blinds and Antes](https://balatrogame.fandom.com/wiki/Blinds_and_Antes)
+and [Stakes](https://balatrowiki.org/w/Stakes) references. Ratings and tags are
+project-owned heuristics and should be changed together with scenario tests.
+
+When updating game data, record the Balatro version and source in the commit.
+The validation tests protect shape and completeness; they do not prove that a
+subjective rating is strategically optimal.
+
+## Privacy
+
+Bal-Track has no backend or analytics. Run data stays in the browser's local
+storage and the static app remains usable offline after its first successful
+load.
+
+## License
+
+No open-source license has been selected yet. Until one is added, normal
+copyright rules apply even though the repository is public.

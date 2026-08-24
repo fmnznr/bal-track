@@ -1,5 +1,5 @@
 import { HAND_TYPES } from '../types';
-import type { HandType, JokerDef, RunState } from '../types';
+import type { HandType, JokerDef, OwnedJoker, RunState } from '../types';
 
 export function totalPlays(run: RunState): number {
   return HAND_TYPES.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0);
@@ -51,9 +51,16 @@ const NEUTRAL: PlaySignal = { delta: 0, notes: [] };
  * per-round resource. Returns a neutral signal at default values so a fresh
  * run scores exactly as before.
  */
-export function playSignalForJoker(def: JokerDef, run: RunState, context: SignalContext = 'shop'): PlaySignal {
+export function playSignalForJoker(
+  def: JokerDef,
+  run: RunState,
+  context: SignalContext = 'shop',
+  owned?: OwnedJoker,
+): PlaySignal {
   const total = totalPlays(run);
   const extraDiscards = run.discardsPerRound - 3;
+  const playsSinceAcquired = Math.max(0, total - (owned?.acquiredAtPlays ?? total));
+  const discardsSinceAcquired = Math.max(0, run.discardsUsed - (owned?.acquiredAtDiscards ?? run.discardsUsed));
 
   switch (def.id) {
     case 'supernova': {
@@ -77,11 +84,17 @@ export function playSignalForJoker(def: JokerDef, run: RunState, context: Signal
     }
     // Both only scale from the moment you own them — a shop copy starts fresh.
     case 'green-joker':
-      if (context !== 'owned' || total < MIN_PLAYS) return NEUTRAL;
-      return { delta: Math.min(2, total * 0.08), notes: [`Grown over ${total} hands played`] };
+      if (context !== 'owned' || playsSinceAcquired === 0) return NEUTRAL;
+      return {
+        delta: Math.max(-2, Math.min(2, (playsSinceAcquired - discardsSinceAcquired) * 0.08)),
+        notes: [`Tracked since acquisition: ${playsSinceAcquired} hands, ${discardsSinceAcquired} discards`],
+      };
     case 'ice-cream':
-      if (context !== 'owned' || total < MIN_PLAYS) return NEUTRAL;
-      return { delta: -Math.min(2, total * 0.08), notes: [`Ice Cream has already melted through ${total} hands`] };
+      if (context !== 'owned' || playsSinceAcquired === 0) return NEUTRAL;
+      return {
+        delta: -Math.min(2, playsSinceAcquired * 0.08),
+        notes: [`Ice Cream has melted through ${playsSinceAcquired} hands since acquisition`],
+      };
     case 'banner':
     case 'delayed-gratification': {
       if (extraDiscards === 0) return NEUTRAL;

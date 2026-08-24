@@ -1,6 +1,11 @@
 export type Phase = 'early' | 'mid' | 'late';
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'legendary';
 export type Edition = 'base' | 'foil' | 'holographic' | 'polychrome' | 'negative';
+export interface JokerStickers {
+  eternal?: boolean;
+  perishable?: boolean;
+  rental?: boolean;
+}
 export type ConsumableKind = 'tarot' | 'planet' | 'spectral';
 export type PackKind = 'standard' | 'arcana' | 'celestial' | 'buffoon' | 'spectral';
 
@@ -81,6 +86,10 @@ export interface PackDef {
 export interface OwnedJoker {
   jokerId: string;
   edition: Edition;
+  stickers?: JokerStickers;
+  /** Global play counters when this copy was acquired, for stateful estimates. */
+  acquiredAtPlays?: number;
+  acquiredAtDiscards?: number;
 }
 
 export interface RunState {
@@ -95,6 +104,7 @@ export interface RunState {
   consumables: string[]; // consumable ids currently held
   handLevels: Record<HandType, number>; // all start at 1
   handPlays: Record<HandType, number>;
+  discardsUsed: number;
   handsPerRound: number;
   discardsPerRound: number;
   deckProfile: DeckProfile;
@@ -102,7 +112,7 @@ export interface RunState {
 }
 
 export type ShopCardSlot =
-  | { kind: 'joker'; jokerId: string; edition: Edition; price: number }
+  | { kind: 'joker'; jokerId: string; edition: Edition; stickers?: JokerStickers; price: number }
   | { kind: 'consumable'; consumableId: string; price: number };
 
 export interface ShopState {
@@ -120,7 +130,10 @@ export interface Recommendation {
   kind: RecKind;
   action: string; // human-readable, e.g. "Buy Blueprint ($10)"
   score: number;
-  confidence: 'high' | 'medium' | 'low';
+  /** Action priority. This is desirability, not model certainty. */
+  priority: 'high' | 'medium' | 'low';
+  /** How much of the recommendation comes from explicit mechanics vs heuristics. */
+  evidence: 'modeled' | 'partial' | 'heuristic';
   reasons: string[];
   refId?: string; // catalog id this refers to, if any
 }

@@ -17,8 +17,12 @@ describe('blindTargets', () => {
     expect(blindTargets(3).boss).toBe(4000);
   });
   it('clamps out-of-range antes', () => {
-    expect(blindTargets(0).small).toBe(300);
+    expect(blindTargets(0).small).toBe(100);
     expect(blindTargets(99).small).toBe(50000);
+  });
+  it('uses cumulative Green and Purple Stake score curves', () => {
+    expect(blindTargets(8, 'Red', 'Green').small).toBe(100000);
+    expect(blindTargets(8, 'Red', 'Gold').small).toBe(200000);
   });
 });
 
@@ -74,6 +78,12 @@ describe('estimateHandScore', () => {
     const base = runWith(['joker']);
     const polychrome = { ...base, jokers: [{ jokerId: 'joker', edition: 'polychrome' as const }] };
     expect(estimateHandScore(polychrome, 'Pair').mult).toBeGreaterThan(estimateHandScore(base, 'Pair').mult);
+  });
+
+  it('balances chips and mult on Plasma Deck', () => {
+    const plasma = { ...runWith(), deck: 'Plasma' };
+    const estimate = estimateHandScore(plasma, 'Pair');
+    expect(estimate.score).toBe(Math.round(((estimate.chips + estimate.mult) / 2) ** 2));
   });
 });
 

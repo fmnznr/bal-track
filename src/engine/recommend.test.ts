@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile, newRunState } from '../run/runStore';
 import { recommend, recommendPackPick } from './recommend';
-import type { RunState, ShopState } from '../types';
+import type { OwnedJoker, RunState, ShopState } from '../types';
 
 function run(overrides: Partial<RunState> = {}): RunState {
   return { ...newRunState('Red', 'White'), ...overrides };
@@ -11,7 +11,7 @@ function shop(overrides: Partial<ShopState> = {}): ShopState {
   return { cards: [], voucherId: null, packIds: [], rerollCost: 5, ...overrides };
 }
 
-function owned(...jokerIds: string[]) {
+function owned(...jokerIds: string[]): OwnedJoker[] {
   return jokerIds.map(jokerId => ({ jokerId, edition: 'base' as const }));
 }
 
@@ -38,14 +38,14 @@ describe('recommend — economy awareness', () => {
 });
 
 describe('recommend — strong buys', () => {
-  it('puts a high-value joker on top with high confidence', () => {
+  it('puts a high-value joker on top with high priority', () => {
     const recs = recommend(
       run({ money: 40, ante: 4 }),
       shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
     );
     expect(recs[0].kind).toBe('buy-joker');
     expect(recs[0].action).toBe('Buy Blueprint ($10)');
-    expect(recs[0].confidence).toBe('high');
+    expect(recs[0].priority).toBe('high');
   });
 
   it('rewards synergy with the detected build', () => {
@@ -87,6 +87,29 @@ describe('recommend — full joker slots', () => {
     const composite = recs.find(r => r.kind === 'sell-and-buy');
     expect(composite?.reasons.join(' ')).toMatch(/\$24 → \$15/);
   });
+
+  it('allows a sell-and-buy when the sale makes the purchase affordable', () => {
+    const recs = recommend(
+      run({
+        money: 9,
+        ante: 4,
+        jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
+      }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    expect(recs.some(rec => rec.kind === 'sell-and-buy')).toBe(true);
+    expect(recs.find(rec => rec.refId === 'blueprint')?.reasons.join(' ')).not.toMatch(/Not affordable/);
+  });
+
+  it('never proposes selling an Eternal joker', () => {
+    const jokers = owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish');
+    jokers[0] = { ...jokers[0], stickers: { eternal: true } };
+    const recs = recommend(
+      run({ money: 30, ante: 4, jokers }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    expect(recs.find(rec => rec.kind === 'sell-and-buy')?.action).not.toMatch(/Sell Joker,/);
+  });
 });
 
 describe('recommend — vouchers and packs', () => {
@@ -114,6 +137,13 @@ describe('recommend — reroll and skip', () => {
     const recs = recommend(run({ money: 25 }), shop());
     const skip = recs.find(r => r.kind === 'skip');
     expect(skip?.reasons.join(' ')).toMatch(/\$5 interest/);
+  });
+
+  it('does not invent interest for Green Deck', () => {
+    const green = { ...run({ money: 25 }), deck: 'Green' };
+    const skip = recommend(green, shop()).find(rec => rec.kind === 'skip');
+    expect(skip?.reasons.join(' ')).toMatch(/earns no interest/);
+    expect(skip?.reasons.join(' ')).not.toMatch(/earns \$5 interest/);
   });
 });
 

@@ -1,4 +1,5 @@
-import type { Edition } from '../types';
+import type { Edition, JokerStickers, RunState } from '../types';
+import { earnsInterest } from './gameRules';
 
 /** Interest cap in dollars earned per round (base game: $5 at $25 banked). */
 export function interestCapFor(voucherIds: string[]): number {
@@ -15,6 +16,17 @@ export function interestLost(money: number, cost: number, cap = 5): number {
   return interest(money, cap) - interest(money - cost, cap);
 }
 
+export function runInterest(run: Pick<RunState, 'deck' | 'money' | 'vouchers'>): number {
+  return earnsInterest(run) ? interest(run.money, interestCapFor(run.vouchers)) : 0;
+}
+
+export function runInterestLost(
+  run: Pick<RunState, 'deck' | 'money' | 'vouchers'>,
+  cost: number,
+): number {
+  return earnsInterest(run) ? interestLost(run.money, cost, interestCapFor(run.vouchers)) : 0;
+}
+
 export const EDITION_COST_BONUS: Record<Edition, number> = {
   base: 0,
   foil: 2,
@@ -23,6 +35,7 @@ export const EDITION_COST_BONUS: Record<Edition, number> = {
   negative: 5,
 };
 
-export function sellValue(cost: number, edition: Edition): number {
+export function sellValue(cost: number, edition: Edition, stickers?: JokerStickers): number {
+  if (stickers?.rental) return 1;
   return Math.max(1, Math.floor((cost + EDITION_COST_BONUS[edition]) / 2));
 }

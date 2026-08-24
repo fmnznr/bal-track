@@ -9,9 +9,14 @@ export default function HistoryScreen() {
       </section>
     );
   }
+  const wins = store.finished.filter(run => run.result === 'won').length;
+  const winRate = Math.round((wins / store.finished.length) * 100);
   return (
     <section className="screen">
       <h2>Past runs</h2>
+      <p className="muted">
+        {store.finished.length} runs · {wins} wins · {winRate}% win rate
+      </p>
       <ul className="rows">
         {store.finished.map((r, i) => (
           <li key={i} className="row">

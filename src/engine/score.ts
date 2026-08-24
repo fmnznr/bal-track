@@ -4,9 +4,15 @@ import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
 import type { Edition, HandType, HandValueDef, RunState } from '../types';
 import { MIN_PLAYS, mostPlayedHand, totalPlays } from './playSignals';
+import { stakeHas } from './gameRules';
 
 const handValues = handValuesJson as unknown as HandValueDef[];
-const blinds = blindsJson as { anteBase: number[]; multipliers: { small: number; big: number; boss: number } };
+const blinds = blindsJson as {
+  anteBase: number[];
+  greenStakeAnteBase: number[];
+  purpleStakeAnteBase: number[];
+  multipliers: { small: number; big: number; boss: number };
+};
 const byHand = new Map(handValues.map(h => [h.hand, h]));
 
 /**
@@ -44,9 +50,14 @@ function averageCardChips(run: RunState): number {
   return 6.5 + faceShare * 3.5;
 }
 
-export function blindTargets(ante: number, deck?: string): { small: number; big: number; boss: number } {
+export function blindTargets(ante: number, deck?: string, stake = 'White'): { small: number; big: number; boss: number } {
   const safeAnte = Number.isFinite(ante) ? Math.floor(ante) : 1;
-  const base = blinds.anteBase[Math.min(8, Math.max(1, safeAnte))];
+  const table = stakeHas(stake, 'Purple')
+    ? blinds.purpleStakeAnteBase
+    : stakeHas(stake, 'Green')
+      ? blinds.greenStakeAnteBase
+      : blinds.anteBase;
+  const base = table[Math.min(8, Math.max(0, safeAnte))];
   // Plasma doubles every blind requirement.
   const deckFactor = deck === 'Plasma' ? 2 : 1;
   return {
@@ -120,7 +131,10 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
   }
 
   const rounded = { chips: Math.round(chips), mult: Math.round(mult * 100) / 100 };
-  return { ...rounded, score: Math.round(rounded.chips * rounded.mult), modeled, inactive, unmodeled };
+  const score = run.deck === 'Plasma'
+    ? Math.round(((rounded.chips + rounded.mult) / 2) ** 2)
+    : Math.round(rounded.chips * rounded.mult);
+  return { ...rounded, score, modeled, inactive, unmodeled };
 }
 
 /** Estimated score gain from adding this joker to the current run. */

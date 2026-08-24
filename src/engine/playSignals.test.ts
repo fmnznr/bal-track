@@ -48,8 +48,9 @@ describe('playSignalForJoker', () => {
 
   it('scales an owned Green Joker up and Ice Cream down with hands played', () => {
     const run = runWith({ Flush: 10 });
-    expect(playSignalForJoker(greenJoker, run, 'owned').delta).toBeCloseTo(0.8);
-    expect(playSignalForJoker(iceCream, run, 'owned').delta).toBeCloseTo(-0.8);
+    const owned = { jokerId: 'green-joker', edition: 'base' as const, acquiredAtPlays: 0, acquiredAtDiscards: 0 };
+    expect(playSignalForJoker(greenJoker, run, 'owned', owned).delta).toBeCloseTo(0.8);
+    expect(playSignalForJoker(iceCream, run, 'owned', owned).delta).toBeCloseTo(-0.8);
   });
 
   it('leaves both alone in the shop, where a fresh copy starts over', () => {

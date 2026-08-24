@@ -21,13 +21,28 @@ describe('newRunState', () => {
     expect(newRunState('Yellow', 'White').money).toBe(14);
     expect(newRunState('Black', 'White').jokerSlots).toBe(6);
     expect(newRunState('Painted', 'White').jokerSlots).toBe(4);
+    expect(newRunState('Magic', 'White')).toMatchObject({
+      consumableSlots: 3,
+      vouchers: ['crystal-ball'],
+      consumables: ['the-fool', 'the-fool'],
+    });
+    expect(newRunState('Nebula', 'White')).toMatchObject({ consumableSlots: 1, vouchers: ['telescope'] });
+    expect(newRunState('Ghost', 'White').consumables).toEqual(['hex']);
+    expect(newRunState('Zodiac', 'White').vouchers).toEqual(['overstock', 'tarot-merchant', 'planet-merchant']);
+  });
+  it('applies cumulative stake starting rules', () => {
+    expect(newRunState('Red', 'White').discardsPerRound).toBe(4);
+    expect(newRunState('Red', 'Blue').discardsPerRound).toBe(3);
+    expect(newRunState('Blue', 'Gold').discardsPerRound).toBe(2);
   });
 });
 
 describe('reduce', () => {
   it('buys a joker and deducts the price', () => {
     const s = reduce(started(), { type: 'ADD_JOKER', jokerId: 'joker', edition: 'base', price: 2 });
-    expect(s.current?.jokers).toEqual([{ jokerId: 'joker', edition: 'base' }]);
+    expect(s.current?.jokers[0]).toMatchObject({
+      jokerId: 'joker', edition: 'base', acquiredAtPlays: 0, acquiredAtDiscards: 0,
+    });
     expect(s.current?.money).toBe(2);
   });
 
@@ -44,9 +59,26 @@ describe('reduce', () => {
     expect(s.current?.money).toBe(7);
   });
 
+  it('does not sell an Eternal joker', () => {
+    let s = started();
+    s = reduce(s, { type: 'ADD_JOKER', jokerId: 'joker', edition: 'base', stickers: { eternal: true } });
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'SELL_JOKER', index: 0 });
+    expect(s.current?.jokers).toHaveLength(1);
+    expect(s.past).toHaveLength(pastLen);
+  });
+
+  it('sells a Rental joker for exactly $1', () => {
+    let s = started();
+    s = reduce(s, { type: 'ADD_JOKER', jokerId: 'blueprint', edition: 'polychrome', stickers: { rental: true } });
+    s = reduce(s, { type: 'SELL_JOKER', index: 0 });
+    expect(s.current?.money).toBe(5);
+  });
+
   it('redeems vouchers and applies their state effects', () => {
     let s = started();
     s = reduce(s, { type: 'SET_MONEY', money: 30 });
+    s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'blank' });
     s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'antimatter', price: 10 });
     expect(s.current?.money).toBe(20);
     expect(s.current?.jokerSlots).toBe(6);
@@ -80,6 +112,13 @@ describe('reduce', () => {
     expect(s.finished[0]?.result).toBe('lost');
     expect(s.finished[0]?.deck).toBe('Red');
   });
+
+  it('undoes ending a run without leaving a duplicate history entry', () => {
+    let s = reduce(started(), { type: 'END_RUN', result: 'won' });
+    s = reduce(s, { type: 'UNDO' });
+    expect(s.current?.status).toBe('active');
+    expect(s.finished).toHaveLength(0);
+  });
 });
 
 describe('persistence', () => {
@@ -91,6 +130,11 @@ describe('persistence', () => {
   });
   it('returns null when nothing is stored', () => {
     expect(load()).toBeNull();
+  });
+  it('loads saves from the legacy v1 storage key', () => {
+    const legacy = started('Checkered', 'Purple');
+    localStorage.setItem('bal-track:v1', JSON.stringify(legacy));
+    expect(load()?.current).toMatchObject({ deck: 'Checkered', stake: 'Purple' });
   });
 });
 
@@ -128,6 +172,35 @@ describe('drafts', () => {
     });
     save(s);
     expect(load()?.shopDraft?.cards).toHaveLength(1);
+  });
+
+  it('buys a shop card atomically and restores the complete transaction on undo', () => {
+    let s = started();
+    s = reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+    s = reduce(s, { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(s.current?.money).toBe(2);
+    expect(s.current?.jokers[0]?.jokerId).toBe('joker');
+    expect(s.shopDraft?.cards).toHaveLength(0);
+    s = reduce(s, { type: 'UNDO' });
+    expect(s.current?.money).toBe(4);
+    expect(s.current?.jokers).toHaveLength(0);
+    expect(s.shopDraft?.cards).toHaveLength(1);
+  });
+
+  it('keeps unaffordable shop items and money unchanged', () => {
+    let s = started();
+    s = reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+    const pastLen = s.past.length;
+    s = reduce(s, { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(s.current?.money).toBe(4);
+    expect(s.shopDraft?.cards).toHaveLength(1);
+    expect(s.past).toHaveLength(pastLen);
   });
 
   it('backfills missing draft fields from old saves', () => {
@@ -170,7 +243,7 @@ describe('deck profile', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: legacyRun, past: [legacyRun], finished: [] }));
     const loaded = load();
     expect(loaded?.current?.deckProfile.suits.spades).toBe(26);
-    expect(loaded?.past[0]?.deckProfile.deckSize).toBe(52);
+    expect(loaded?.past[0]?.current?.deckProfile.deckSize).toBe(52);
   });
 });
 
@@ -294,6 +367,6 @@ describe('hand play tracking', () => {
     const loaded = load();
     expect(loaded?.current?.handPlays['Pair']).toBe(0);
     expect(loaded?.current?.handsPerRound).toBe(5);
-    expect(loaded?.past[0]?.discardsPerRound).toBe(3);
+    expect(loaded?.past[0]?.current?.discardsPerRound).toBe(3);
   });
 });
