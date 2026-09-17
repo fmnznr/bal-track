@@ -65,7 +65,8 @@ npm run build
 CI runs ESLint, then the tests, then the production build, which itself runs
 strict TypeScript checking before Vite. Tests cover
 catalog integrity, persistence migrations, game rules, recommendation behavior
-and the main UI flows.
+and the main UI flows, plus a 300-scenario engine baseline that turns any change
+to shared machinery into a reviewable diff rather than a silent shift.
 
 ## Deploy
 
