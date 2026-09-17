@@ -1,31 +1,89 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { phaseForAnte } from '../types';
 import type {
-  Edition, JokerDef, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
+  Edition, JokerStickers, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
 } from '../types';
-import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
-import type { ArchetypeProfile } from './archetype';
-import { deckSignalForJoker } from './deckSignals';
-import { INTEREST_TIER_DOLLARS, interestCapFor, runInterest, runInterestLost, sellValue } from './economy';
-import { earnsInterest, hasFreeJokerSlot, rentalUpkeep, usedJokerSlots } from './gameRules';
-import { playSignalForJoker } from './playSignals';
-import { estimateHandScore, estimateJokerDelta, referenceHand } from './score';
+import { interestCapFor, runInterest, runInterestLost, sellValue } from './economy';
+import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
+import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorFromRating } from './impact';
+import type { Impact, JokerContext } from './impact';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
-import type { ArchetypeDef, StrategyCandidate } from '../types';
 
-/** Desirability an edition adds to a card, not what it adds to a hand's score. */
-export const EDITION_SCORE_BONUS: Record<Edition, number> = TUNING.edition;
+/**
+ * Rounds of play left in the run, which is what turns a per-round cost into a
+ * total one. A rental joker bought in ante 1 pays its upkeep eight times as
+ * often as the same joker bought in ante 8.
+ */
+export function roundsRemaining(ante: number): number {
+  const { antesPerRun, roundsPerAnte } = TUNING.economy;
+  return Math.max(1, (antesPerRun - Math.floor(ante) + 1) * roundsPerAnte);
+}
+
+/**
+ * Converts dollars given up into the same unit as a score multiplier.
+ *
+ * This is the only place money and score meet. Spending is a real loss of
+ * purchasing power, so a purchase has to earn its price back in hand score
+ * before it beats keeping the money.
+ */
+export function economyMultiplier(dollars: number): number {
+  return 2 ** (-dollars / TUNING.economy.dollarsPerDoubling);
+}
+
+interface Cost {
+  dollars: number;
+  reasons: string[];
+}
+
+/**
+ * What an action really costs: the price, plus the interest it stops earning
+ * for every remaining round, plus any per-round upkeep it brings with it.
+ */
+function costOf(run: RunState, price: number, stickers?: JokerStickers): Cost {
+  const rounds = roundsRemaining(run.ante);
+  const reasons: string[] = [];
+  let dollars = price;
+
+  // Interest is charged over the recovery horizon, not the whole run: you earn
+  // through the next blinds and climb back out of the tier you dropped.
+  const lostPerRound = runInterestLost(run, price);
+  if (lostPerRound > 0) {
+    const recovery = Math.min(rounds, TUNING.economy.interestRecoveryRounds);
+    dollars += lostPerRound * recovery;
+    reasons.push(
+      `Drops your interest by $${lostPerRound}/round while you rebuild ($${run.money} → $${run.money - price})`,
+    );
+  }
+
+  const upkeep = rentalUpkeep(stickers);
+  if (upkeep > 0) {
+    dollars += upkeep * rounds;
+    reasons.push(`Rental upkeep costs $${upkeep} × ${rounds} remaining rounds`);
+  }
+
+  return { dollars, reasons };
+}
 
 function rec(
   kind: RecKind,
   action: string,
-  score: number,
+  impact: number,
+  costDollars: number,
   reasons: string[],
   refId?: string,
   evidence: Recommendation['evidence'] = 'heuristic',
 ): Recommendation {
-  return { kind, action, score, priority: 'low', evidence, reasons, refId };
+  const score = impact * economyMultiplier(costDollars);
+  return { kind, action, score, impact, costDollars, priority: 'low', evidence, reasons, refId };
+}
+
+/** An action that cannot be taken at all, so it ranks below everything. */
+function unavailable(kind: RecKind, action: string, reason: string, refId?: string): Recommendation {
+  return {
+    kind, action, score: 0, impact: 0, costDollars: 0, priority: 'low',
+    evidence: 'heuristic', reasons: [reason], refId,
+  };
 }
 
 function finalize(recs: Recommendation[]): Recommendation[] {
@@ -37,366 +95,240 @@ function finalize(recs: Recommendation[]): Recommendation[] {
     }));
 }
 
-function economyNotes(run: RunState, price: number, weight: number): { penalty: number; notes: string[] } {
-  const lost = runInterestLost(run, price);
-  if (lost <= 0) return { penalty: 0, notes: [] };
-  return {
-    penalty: lost * weight,
-    notes: [`Drops your interest by $${lost}/round ($${run.money} → $${run.money - price})`],
-  };
-}
-
-/** Capped bonus for however many of the run's dominant tags a card carries. */
-function synergyBonus(matches: number): number {
-  return Math.min(TUNING.synergy.cap, matches * TUNING.synergy.perMatchingTag);
-}
-
-/** Heuristic value of an owned joker in the current context (used to find the weakest). */
-function ownedJokerValue(run: RunState, index: number, phase: Phase, profile: ArchetypeProfile): number {
-  const owned = run.jokers[index];
-  const def = getJoker(owned.jokerId);
-  if (!def) return 0;
-  const synergy = def.tags.filter(t => profile.dominant.includes(t)).length;
-  const deckSig = deckSignalForJoker(def, run.deckProfile);
-  let value = def.rating[phase] + synergyBonus(synergy) + EDITION_SCORE_BONUS[owned.edition] + deckSig.delta;
-  if (deckSig.capAt !== undefined) value = Math.min(value, deckSig.capAt);
-  value += playSignalForJoker(def, run).delta;
-  value -= rentalUpkeep(owned.stickers) * TUNING.stickers.owned.rentalPerUpkeepDollar;
-  if (owned.stickers?.perishable) value += TUNING.stickers.owned.perishable;
-  return value;
-}
-
-function planetBonus(run: RunState, profile: ArchetypeProfile, consumableId: string): { bonus: number; notes: string[] } {
-  const def = getConsumable(consumableId);
-  if (def?.kind !== 'planet' || !def.hand) return { bonus: 0, notes: [] };
-  let bonus = 0;
-  const notes: string[] = [];
-  if (profile.dominant.some(t => (TAG_HAND_AFFINITY[t] ?? []).includes(def.hand!))) {
-    bonus += TUNING.planet.matchesBuild;
-    notes.push(`Levels ${def.hand} — matches your build`);
-  }
-  const level = run.handLevels[def.hand];
-  if (level > 1) {
-    bonus += Math.min(TUNING.planet.perExistingLevelCap, (level - 1) * TUNING.planet.perExistingLevel);
-    notes.push(`${def.hand} is already level ${level} — keep stacking it`);
-  }
-  if (run.primaryHand && def.hand === run.primaryHand) {
-    bonus += TUNING.planet.matchesPrimaryHand;
-    notes.push(`${def.hand} is the hand you build around`);
-  }
-  return { bonus, notes };
-}
-
-function activePlan(run: RunState): StrategyCandidate | null {
-  const advice = adviseStrategy(run);
-  if (advice.commitment === 'open') return null;
-  return advice.candidates[0] ?? null;
-}
-
-function planJokerBonus(defId: string, tags: readonly string[], plan: StrategyCandidate | null): { bonus: number; notes: string[] } {
-  if (!plan) return { bonus: 0, notes: [] };
-  const arch: ArchetypeDef | undefined = getArchetype(plan.archetypeId);
-  if (!arch) return { bonus: 0, notes: [] };
-  if (arch.keyJokers.includes(defId)) {
-    return { bonus: TUNING.plan.keyJoker, notes: [`On the watchlist for your recommended ${plan.name} plan`] };
-  }
-  if (tags.some(t => (arch.coreTags as readonly string[]).includes(t))) {
-    return { bonus: TUNING.plan.coreTag, notes: [`Fits your recommended ${plan.name} plan`] };
-  }
-  return { bonus: 0, notes: [] };
-}
-
-function planPlanetBonus(consumableId: string, plan: StrategyCandidate | null): { bonus: number; notes: string[] } {
-  if (!plan) return { bonus: 0, notes: [] };
-  const def = getConsumable(consumableId);
-  if (def?.kind !== 'planet' || !def.hand || !plan.hands.includes(def.hand)) return { bonus: 0, notes: [] };
-  return {
-    bonus: TUNING.planet.matchesPlan,
-    notes: [`Levels ${def.hand} for your recommended ${plan.name} plan`],
-  };
-}
-
 interface WeakestOwned {
   index: number;
-  value: number;
-  def: JokerDef;
+  impact: Impact;
+  name: string;
+  cost: number;
   edition: Edition;
+  stickers?: JokerStickers;
 }
 
-/** Weakest non-negative owned joker by current heuristic value, or null if none. */
-function findWeakestOwned(run: RunState, phase: Phase, profile: ArchetypeProfile): WeakestOwned | null {
-  let index = -1;
-  let value = Infinity;
+/** The owned joker contributing least, judged the same way a shop card is. */
+function findWeakestOwned(run: RunState, ctx: JokerContext): WeakestOwned | null {
+  let weakest: WeakestOwned | null = null;
   run.jokers.forEach((owned, i) => {
     if (owned.edition === 'negative' || owned.stickers?.eternal) return;
-    const v = ownedJokerValue(run, i, phase, profile);
-    if (v < value) {
-      value = v;
-      index = i;
+    const def = getJoker(owned.jokerId);
+    if (!def) return;
+    const impact = jokerImpact(run, def, owned.edition, owned.stickers, ctx);
+    if (!weakest || impact.multiplier < weakest.impact.multiplier) {
+      weakest = {
+        index: i, impact, name: def.name, cost: def.cost, edition: owned.edition, stickers: owned.stickers,
+      };
     }
   });
-  const owned = run.jokers[index];
-  const def = owned ? getJoker(owned.jokerId) : undefined;
-  if (!owned || !def) return null;
-  return { index, value, def, edition: owned.edition };
+  return weakest;
 }
 
-function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: ArchetypeProfile, plan: StrategyCandidate | null): Recommendation {
-  if (slot.kind === 'consumable') {
-    const def = getConsumable(slot.consumableId);
-    if (!def) return rec('buy-consumable', 'Buy unknown card', 0, ['Unknown catalog id']);
-    const action = `Buy ${def.name} ($${slot.price})`;
-    if (slot.price > run.money) {
-      return rec('buy-consumable', action, 0, [`Not affordable ($${slot.price} > $${run.money})`], def.id);
-    }
-    let score = def.rating;
-    const reasons: string[] = [def.effect];
-    const planet = planetBonus(run, profile, def.id);
-    score += planet.bonus;
-    reasons.push(...planet.notes);
-    const planPlanet = planPlanetBonus(def.id, plan);
-    score += planPlanet.bonus;
-    reasons.push(...planPlanet.notes);
-    if (run.consumables.length >= run.consumableSlots) {
-      score += TUNING.slotsFull.consumable;
-      reasons.push('Your consumable slots are full');
-    }
-    const econ = economyNotes(run, slot.price, TUNING.interestWeight.card);
-    score -= econ.penalty;
-    reasons.push(...econ.notes);
-    return rec('buy-consumable', action, score, reasons, def.id);
-  }
+function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Recommendation {
+  const id = slot.kind === 'joker' ? slot.jokerId : slot.consumableId;
+  const def = slot.kind === 'joker' ? getJoker(id) : getConsumable(id);
+  if (!def) return unavailable(slot.kind === 'joker' ? 'buy-joker' : 'buy-consumable', 'Buy unknown card', 'Unknown catalog id');
 
-  const def = getJoker(slot.jokerId);
-  if (!def) return rec('buy-joker', 'Buy unknown joker', 0, ['Unknown catalog id']);
+  const stickers = slot.kind === 'joker' ? slot.stickers : undefined;
+  const edition: Edition = slot.kind === 'joker' ? slot.edition : 'base';
+  const impact = cardImpact(run, id, edition, stickers, ctx)!;
   const action = `Buy ${def.name} ($${slot.price})`;
-  const synMatches = def.tags.filter(t => profile.dominant.includes(t));
-  let rawScore = def.rating[phase] + synergyBonus(synMatches.length) + EDITION_SCORE_BONUS[slot.edition];
-  const baseReasons: string[] = [`${def.rarity} joker rated ${def.rating[phase]}/10 at this stage`];
-  if (synMatches.length > 0) baseReasons.push(`Fits your build: ${synMatches.join(', ')}`);
-  if (slot.edition !== 'base') baseReasons.push(`${slot.edition} edition is a bonus`);
-  if (slot.stickers?.eternal) {
-    rawScore += TUNING.stickers.eternal;
-    baseReasons.push('Eternal — cannot be sold or destroyed later');
-  }
-  if (slot.stickers?.perishable) {
-    rawScore += TUNING.stickers.perishable;
-    baseReasons.push('Perishable — debuffed after 5 rounds');
-  }
-  if (slot.stickers?.rental) {
-    rawScore += TUNING.stickers.rental;
-    baseReasons.push('Rental — costs $3 at the end of every round');
-  }
-  const planB = planJokerBonus(def.id, def.tags, plan);
-  rawScore += planB.bonus;
-  baseReasons.push(...planB.notes);
-  const deckSig = deckSignalForJoker(def, run.deckProfile);
-  rawScore += deckSig.delta;
-  if (deckSig.capAt !== undefined) rawScore = Math.min(rawScore, deckSig.capAt);
-  baseReasons.push(...deckSig.notes);
-  const playSig = playSignalForJoker(def, run);
-  rawScore += playSig.delta;
-  baseReasons.push(...playSig.notes);
-  const hand = referenceHand(run);
-  const delta = estimateJokerDelta(run, hand, def.id, slot.edition);
-  if (delta > 0) {
-    const current = estimateHandScore(run, hand).score;
-    // Capped: the estimate breaks ties, it does not carry a card.
-    const { relativeGainFactor, cap, fallbackWhenNoBaseline } = TUNING.scoreEstimate;
-    rawScore += Math.min(cap, current > 0 ? (delta / current) * relativeGainFactor : fallbackWhenNoBaseline);
-    baseReasons.push(`+${delta.toLocaleString('en-US')} estimated on your ${hand}`);
-  }
-  const econ = economyNotes(run, slot.price, TUNING.interestWeight.card);
+  const kind: RecKind = slot.kind === 'joker' ? 'buy-joker' : 'buy-consumable';
 
-  const slotsFull = !hasFreeJokerSlot(run, slot.edition);
-  if (!slotsFull) {
+  if (slot.kind === 'consumable') {
     if (slot.price > run.money) {
-      return rec('buy-joker', action, 0, [`Not affordable ($${slot.price} > $${run.money})`], def.id);
+      return unavailable(kind, action, `Not affordable ($${slot.price} > $${run.money})`, def.id);
     }
-    return rec('buy-joker', action, rawScore - econ.penalty, [...baseReasons, ...econ.notes], def.id, def.score ? 'partial' : 'heuristic');
+    const cost = costOf(run, slot.price);
+    const reasons = [...impact.reasons, ...cost.reasons];
+    if (run.consumables.length >= run.consumableSlots) {
+      reasons.push('Your consumable slots are full — using one first is part of the price');
+    }
+    return rec(kind, action, impact.multiplier, cost.dollars, reasons, def.id, impact.evidence);
   }
 
-  // Slots full: compare against the weakest owned joker.
-  const weakest = findWeakestOwned(run, phase, profile);
-  if (weakest) {
-    const refund = sellValue(weakest.def.cost, weakest.edition, run.jokers[weakest.index].stickers);
-    if (slot.price > run.money + refund) {
-      return rec('buy-joker', action, 0, [
-        `Not affordable even after selling ${weakest.def.name} ($${run.money} + $${refund} < $${slot.price})`,
-      ], def.id);
+  const cost = costOf(run, slot.price, stickers);
+
+  if (hasFreeJokerSlot(run, slot.edition)) {
+    if (slot.price > run.money) {
+      return unavailable(kind, action, `Not affordable ($${slot.price} > $${run.money})`, def.id);
     }
-    const netEcon = economyNotes(run, slot.price - refund, TUNING.interestWeight.card);
-    const netScore = rawScore - netEcon.penalty;
-    if (netScore > weakest.value + TUNING.slotsFull.sellAndBuyMargin) {
+    return rec(kind, action, impact.multiplier, cost.dollars, [...impact.reasons, ...cost.reasons], def.id, impact.evidence);
+  }
+
+  // Slots are full, so the real choice is trading a joker you own for this one.
+  const weakest = findWeakestOwned(run, ctx);
+  if (weakest) {
+    const refund = sellValue(weakest.cost, weakest.edition, weakest.stickers);
+    if (slot.price > run.money + refund) {
+      return unavailable(
+        kind, action,
+        `Not affordable even after selling ${weakest.name} ($${run.money} + $${refund} < $${slot.price})`,
+        def.id,
+      );
+    }
+    // Swapping trades one card's contribution for another's, so the gain is the
+    // ratio between them rather than the newcomer's own multiplier.
+    const swap = impact.multiplier / weakest.impact.multiplier;
+    if (swap >= TUNING.slots.sellAndBuyMargin) {
+      const netCost = costOf(run, Math.max(0, slot.price - refund), stickers);
       return rec(
         'sell-and-buy',
-        `Sell ${weakest.def.name}, buy ${def.name} ($${slot.price})`,
-        netScore - weakest.value * TUNING.slotsFull.sellAndBuyValueDrag,
+        `Sell ${weakest.name}, buy ${def.name} ($${slot.price})`,
+        swap,
+        netCost.dollars,
         [
-          ...baseReasons,
-          ...netEcon.notes,
-          `Slots full — ${weakest.def.name} is your weakest (${weakest.value.toFixed(1)} vs ${netScore.toFixed(1)})`,
+          ...impact.reasons,
+          ...netCost.reasons,
+          `Slots full — ${weakest.name} contributes least (${formatMultiplier(weakest.impact.multiplier)}`
+          + ` against this card's ${formatMultiplier(impact.multiplier)})`,
           `Selling refunds $${refund}`,
         ],
         def.id,
-        def.score ? 'partial' : 'heuristic',
+        impact.evidence,
       );
     }
   }
+
   if (slot.price > run.money) {
-    return rec('buy-joker', action, 0, [`Not affordable without a sellable joker ($${slot.price} > $${run.money})`], def.id);
+    return unavailable(kind, action, `Not affordable without a sellable joker ($${slot.price} > $${run.money})`, def.id);
   }
-  return rec('buy-joker', action, Math.min(rawScore - econ.penalty, TUNING.slotsFull.blockedBuyCap), [
-    ...baseReasons,
-    ...econ.notes,
-    'Joker slots are full and nothing is clearly worth selling for this',
-  ], def.id);
+  return rec(
+    kind, action, impact.multiplier * TUNING.slots.blockedPenalty, cost.dollars,
+    [...impact.reasons, ...cost.reasons, 'Joker slots are full and nothing is clearly worth selling for this'],
+    def.id, impact.evidence,
+  );
 }
 
-function evalVoucher(run: RunState, voucherId: string, phase: Phase): Recommendation {
+function evalVoucher(run: RunState, voucherId: string, ante: number): Recommendation {
   const def = getVoucher(voucherId);
-  if (!def) return rec('buy-voucher', 'Buy unknown voucher', 0, ['Unknown catalog id']);
+  if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
   const action = `Buy ${def.name} ($${def.cost})`;
   if (def.cost > run.money) {
-    return rec('buy-voucher', action, 0, [`Not affordable ($${def.cost} > $${run.money})`], def.id);
+    return unavailable('buy-voucher', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
   }
-  let score = def.rating;
-  const reasons: string[] = [def.effect];
-  if (phase === 'late') {
-    score += TUNING.voucher.latePenalty;
-    reasons.push('Late in the run — less time to profit from it');
-  }
-  const econ = economyNotes(run, def.cost, TUNING.interestWeight.voucher);
-  score -= econ.penalty;
-  reasons.push(...econ.notes);
-  return rec('buy-voucher', action, score, reasons, def.id);
+
+  // A voucher pays out over the rest of the run, so the same voucher is worth
+  // less the later it is bought. That replaces a flat late-game penalty with
+  // the reason behind it.
+  const rounds = roundsRemaining(ante);
+  const fullRun = TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte;
+  const share = rounds / fullRun;
+  const multiplier = 1 + (priorFromRating(def.rating) - 1) * share;
+  const reasons = [def.effect];
+  if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
+
+  const cost = costOf(run, def.cost);
+  return rec('buy-voucher', action, multiplier, cost.dollars, [...reasons, ...cost.reasons], def.id);
 }
 
 function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {
   const def = getPack(packId);
-  if (!def) return rec('buy-pack', 'Buy unknown pack', 0, ['Unknown catalog id']);
+  if (!def) return unavailable('buy-pack', 'Buy unknown pack', 'Unknown catalog id');
   const action = `Buy ${def.name} ($${def.cost})`;
   if (def.cost > run.money) {
-    return rec('buy-pack', action, 0, [`Not affordable ($${def.cost} > $${run.money})`], def.id);
+    return unavailable('buy-pack', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
   }
-  let score = def.rating[phase];
-  const reasons: string[] = [`${def.options} options, pick ${def.picks}`];
-  const econ = economyNotes(run, def.cost, TUNING.interestWeight.pack);
-  score -= econ.penalty;
-  reasons.push(...econ.notes);
-  return rec('buy-pack', action, score, reasons, def.id);
+  const cost = costOf(run, def.cost);
+  return rec(
+    'buy-pack', action, priorFromRating(def.rating[phase]), cost.dollars,
+    [`${def.options} options, pick ${def.picks}`, ...cost.reasons], def.id,
+  );
 }
 
-function evalReroll(run: RunState, shop: ShopState, bestBuy: number): Recommendation {
+function evalReroll(run: RunState, shop: ShopState): Recommendation {
   const action = `Reroll ($${shop.rerollCost})`;
   if (shop.rerollCost > run.money) {
-    return rec('reroll', action, 0, [`Not affordable ($${shop.rerollCost} > $${run.money})`]);
+    return unavailable('reroll', action, `Not affordable ($${shop.rerollCost} > $${run.money})`);
   }
-  let score = TUNING.reroll.base;
-  const reasons: string[] = [`Costs $${shop.rerollCost}`];
-  if (bestBuy < TUNING.reroll.weakShopThreshold) {
-    score += TUNING.reroll.weakShopBonus;
-    reasons.push('Current offers are weak — fishing for better is reasonable');
-  }
-  if (runInterestLost(run, shop.rerollCost) === 0) {
-    score += TUNING.reroll.freeOfInterestBonus;
-    reasons.push('Rerolling costs you no interest');
-  }
-  return rec('reroll', action, score, reasons);
+  const cost = costOf(run, shop.rerollCost);
+  // No comparison against the current shop is needed: a card already on offer
+  // that beats an average shop simply outranks this on the same scale.
+  return rec('reroll', action, TUNING.reroll.expectedNetGain, cost.dollars, [
+    `Costs $${shop.rerollCost}`,
+    `A fresh shop is worth about ${formatMultiplier(TUNING.reroll.expectedNetGain)} on average,`
+    + ' once you have paid for whatever it turns up',
+    ...cost.reasons,
+  ]);
 }
 
-function evalSkip(run: RunState, bestBuy: number, phase: Phase, plan: StrategyCandidate | null): Recommendation {
-  const canEarnInterest = earnsInterest(run);
-  const cap = canEarnInterest ? interestCapFor(run.vouchers) : 0;
-  const earned = runInterest(run);
-  let score = TUNING.skip.base
-    + Math.min(TUNING.skip.perInterestDollarCap, earned * TUNING.skip.perInterestDollar);
-  const reasons: string[] = canEarnInterest
-    ? [`Banking $${run.money} earns $${earned} interest per round`]
-    : ['Green Deck earns no interest — cash can be spent without breaking an interest tier'];
-  const growthRoom = earned < cap;
-  if (growthRoom && phase !== 'late') {
-    score += phase === 'early' ? TUNING.skip.growthRoom.early : TUNING.skip.growthRoom.mid;
-    reasons.push('Growing your interest pays off every remaining round');
-  }
-  const toNextTier = run.money >= 0
-    ? (INTEREST_TIER_DOLLARS - (run.money % INTEREST_TIER_DOLLARS)) % INTEREST_TIER_DOLLARS
-    : 0;
-  if (growthRoom && phase !== 'late' && toNextTier > 0 && toNextTier <= TUNING.skip.nearNextTierWithin) {
-    score += TUNING.skip.nearNextTierBonus;
-    reasons.push(`Save $${toNextTier} more to reach the next interest tier`);
+/**
+ * Buying nothing is the zero point of the whole scale: no score gained, no
+ * dollars given up, so exactly 1.0. Every other action is measured against it,
+ * which is why banking needs no bonuses of its own — the cost of spending is
+ * already charged to the things that spend.
+ */
+function evalSkip(run: RunState, plan: JokerContext['plan']): Recommendation {
+  const reasons: string[] = [];
+  if (earnsInterest(run)) {
+    const earned = runInterest(run);
+    const cap = interestCapFor(run.vouchers);
+    reasons.push(`Banking $${run.money} earns $${earned} interest per round`);
+    if (earned < cap) {
+      const toNextTier = run.money >= 0 ? (5 - (run.money % 5)) % 5 : 0;
+      if (toNextTier > 0) reasons.push(`$${toNextTier} more reaches the next interest tier`);
+      else reasons.push(`Still below the $${cap}/round cap, so saving keeps compounding`);
+    }
+  } else {
+    reasons.push('Green Deck earns no interest — cash can be spent without breaking an interest tier');
   }
   if (plan?.archetypeId === 'economy') {
-    score += TUNING.plan.economySkip;
+    // Context, not a score change: the model prices what spending costs you now,
+    // not how an economy build compounds what you keep.
     reasons.push(`Banking fits your recommended ${plan.name} plan`);
   }
-  if (bestBuy >= TUNING.skip.strongBuyThreshold) {
-    score += TUNING.skip.strongBuyPenalty;
-    reasons.push('But there is a strong buy available');
-  } else if (bestBuy < TUNING.skip.weakShopThreshold) {
-    reasons.push('Nothing in this shop is a clear upgrade');
-  }
-  return rec('skip', 'Buy nothing', score, reasons);
+  reasons.push('Nothing bought means nothing given up — every other option is measured against this');
+  return rec('skip', 'Buy nothing', 1, 0, reasons);
+}
+
+function planFor(run: RunState): JokerContext['plan'] {
+  const advice = adviseStrategy(run);
+  if (advice.commitment === 'open') return null;
+  const candidate = advice.candidates[0];
+  const arch = candidate ? getArchetype(candidate.archetypeId) : undefined;
+  if (!candidate || !arch) return null;
+  return {
+    archetypeId: arch.id,
+    name: candidate.name,
+    keyJokers: arch.keyJokers,
+    coreTags: arch.coreTags,
+    hands: arch.hands,
+  };
 }
 
 export function recommend(run: RunState, shop: ShopState): Recommendation[] {
   const phase = phaseForAnte(run.ante);
-  const profile = detectArchetype(run);
-  const plan = activePlan(run);
-  const buys: Recommendation[] = [];
-  for (const slot of shop.cards) buys.push(evalShopCard(run, slot, phase, profile, plan));
-  if (shop.voucherId) buys.push(evalVoucher(run, shop.voucherId, phase));
-  for (const packId of shop.packIds) buys.push(evalPack(run, packId, phase));
-  const bestBuy = buys.reduce((max, r) => Math.max(max, r.score), 0);
-  return finalize([...buys, evalReroll(run, shop, bestBuy), evalSkip(run, bestBuy, phase, plan)]);
+  const ctx = contextFor(run, phase, planFor(run));
+  const recs: Recommendation[] = [];
+  for (const slot of shop.cards) recs.push(evalShopCard(run, slot, ctx));
+  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante));
+  for (const packId of shop.packIds) recs.push(evalPack(run, packId, phase));
+  recs.push(evalReroll(run, shop), evalSkip(run, ctx.plan));
+  return finalize(recs);
 }
 
 /**
  * Ranks the options inside an opened booster pack.
  * `optionIds` may contain joker ids (Buffoon packs) and consumable ids.
+ *
+ * A pack pick is free, so there is no cost side here — only which option does
+ * the most for your hand.
  */
 export function recommendPackPick(run: RunState, optionIds: string[]): Recommendation[] {
   const phase = phaseForAnte(run.ante);
-  const profile = detectArchetype(run);
-  const plan = activePlan(run);
+  const ctx = contextFor(run, phase, planFor(run));
   const recs = optionIds.map(id => {
-    const joker = getJoker(id);
-    if (joker) {
-      const synMatches = joker.tags.filter(t => profile.dominant.includes(t));
-      let score = joker.rating[phase] + synergyBonus(synMatches.length);
-      const reasons: string[] = [`Rated ${joker.rating[phase]}/10 at this stage`];
-      if (synMatches.length > 0) reasons.push(`Fits your build: ${synMatches.join(', ')}`);
-      const planB = planJokerBonus(joker.id, joker.tags, plan);
-      score += planB.bonus;
-      reasons.push(...planB.notes);
-      const deckSig = deckSignalForJoker(joker, run.deckProfile);
-      score += deckSig.delta;
-      if (deckSig.capAt !== undefined) score = Math.min(score, deckSig.capAt);
-      reasons.push(...deckSig.notes);
-      const playSig = playSignalForJoker(joker, run);
-      score += playSig.delta;
-      reasons.push(...playSig.notes);
-      if (usedJokerSlots(run) >= run.jokerSlots) {
-        const weakest = findWeakestOwned(run, phase, profile);
-        if (weakest && score > weakest.value + TUNING.slotsFull.sellAndBuyMargin) {
-          reasons.push(`Slots full — sell ${weakest.def.name} (worth ${weakest.value.toFixed(1)}) to make room`);
-        } else {
-          reasons.push('Careful: your joker slots are full and nothing is clearly worth selling');
-        }
+    const impact = cardImpact(run, id, 'base', undefined, ctx);
+    if (!impact) return unavailable('pick', `Take ${id}`, 'Unknown catalog id', id);
+    const name = getJoker(id)?.name ?? getConsumable(id)?.name ?? id;
+    const reasons = [...impact.reasons];
+
+    if (getJoker(id) && !hasFreeJokerSlot(run, 'base')) {
+      const weakest = findWeakestOwned(run, ctx);
+      if (weakest && impact.multiplier / weakest.impact.multiplier >= TUNING.slots.sellAndBuyMargin) {
+        reasons.push(`Slots full — sell ${weakest.name} (${formatMultiplier(weakest.impact.multiplier)}) to make room`);
+      } else {
+        reasons.push('Careful: your joker slots are full and nothing is clearly worth selling');
       }
-      return rec('pick', `Take ${joker.name}`, score, reasons, id, joker.score ? 'partial' : 'heuristic');
     }
-    const c = getConsumable(id);
-    if (!c) return rec('pick', `Take ${id}`, 0, ['Unknown catalog id']);
-    let score = c.rating;
-    const reasons: string[] = [c.effect];
-    const planet = planetBonus(run, profile, c.id);
-    score += planet.bonus;
-    reasons.push(...planet.notes);
-    const planPlanet = planPlanetBonus(c.id, plan);
-    score += planPlanet.bonus;
-    reasons.push(...planPlanet.notes);
-    return rec('pick', `Take ${c.name}`, score, reasons, id);
+    return rec('pick', `Take ${name}`, impact.multiplier, 0, reasons, id, impact.evidence);
   });
   return finalize(recs);
 }

@@ -13,6 +13,11 @@ The app is intentionally an explainable heuristic advisor, not a deterministic
 solver. Every recommendation shows its reasons and labels whether it comes
 from modeled mechanics, a partial model or hand-curated heuristics.
 
+Recommendations are ranked on one quantity: the estimated multiplier on your
+hand score, after the dollars the action gives up. Buying nothing is exactly
+1.0, so "+40% score, costs $8" is a claim you can check against your own reading
+of the board — and disagree with.
+
 ## What it tracks
 
 - All 150 Jokers, 32 Vouchers, 52 consumables and 15 booster variants.
@@ -37,6 +42,13 @@ Corrections section exists only for when a run drifts from what was recorded.
 - Exact score contribution is modeled only for unambiguous flat-effect Jokers.
   Conditional, random, copy, retrigger and most scaling effects are named but
   deliberately excluded from the numeric estimate.
+- Where a Joker is modeled, that estimate is marginal — what the card does to
+  your board right now — while the rating it is blended with is absolute. On an
+  empty board every marginal effect looks enormous, so the blend leans on the
+  rating. See
+  [`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md).
+- The ranking prices one shop visit at a time. It does not model how an economy
+  build compounds, so a plan changes the advisor's reasons but not its numbers.
 - Boss-specific effects, tags, playing-card seals and exact card-by-card scoring
   are not simulated.
 - Perishable remaining rounds are not counted; the sticker is treated as a
@@ -80,6 +92,7 @@ worker.
 - `src/data/` — catalog data and structural validation tests.
 - `src/catalog/` — typed catalog lookups and the autocomplete search index.
 - `src/engine/` — pure recommendation, strategy, economy and scoring rules.
+- `src/engine/impact.ts` — the one axis every card is ranked on.
 - `src/engine/tuning.ts` — every tunable heuristic weight, in one annotated table.
 - `src/run/` — versioned local persistence and the transactional reducer.
 - `src/ui/` — mobile-first React screens and reusable controls.
@@ -88,6 +101,11 @@ Keeping the engine pure makes recommendation scenarios easy to regression-test
 without rendering the UI.
 
 ## Data and calibration
+
+Every card is ranked by its estimated effect on your hand score, with costs held
+in dollars and converted once through a single stated exchange rate. The design
+and its known weaknesses are in
+[`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md).
 
 Heuristic weights live in [`src/engine/tuning.ts`](src/engine/tuning.ts), separate
 from the game rules in `gameRules.ts`, `economy.ts` and `score.ts`. A game rule is

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile, newRunState } from '../run/runStore';
-import { recommend, recommendPackPick } from './recommend';
+import { economyMultiplier, recommend, recommendPackPick } from './recommend';
 import type { OwnedJoker, RunState, ShopState } from '../types';
 
 function run(overrides: Partial<RunState> = {}): RunState {
@@ -16,14 +16,26 @@ function owned(...jokerIds: string[]): OwnedJoker[] {
 }
 
 describe('recommend — economy awareness', () => {
-  it('advises against a weak buy that breaks an interest tier', () => {
+  it('charges a broken interest tier to the buy that breaks it', () => {
     const recs = recommend(
       run({ money: 24, jokers: owned('golden-joker') }),
       shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 6 }] }),
     );
-    expect(recs[0].kind).not.toBe('buy-joker');
-    const buy = recs.find(r => r.kind === 'buy-joker');
-    expect(buy?.reasons.join(' ')).toMatch(/interest/i);
+    const buy = recs.find(r => r.kind === 'buy-joker')!;
+    expect(buy.reasons.join(' ')).toMatch(/interest/i);
+    // The price is $6, so anything above that is the interest the tier break costs.
+    expect(buy.costDollars).toBeGreaterThan(6);
+    expect(buy.score).toBeLessThan(buy.impact);
+  });
+
+  it('prices the same card higher when it does not break a tier', () => {
+    const card = { kind: 'joker' as const, jokerId: 'joker', edition: 'base' as const, price: 6 };
+    const breaksTier = recommend(run({ money: 24 }), shop({ cards: [card] }))
+      .find(r => r.kind === 'buy-joker')!;
+    const clearOfTier = recommend(run({ money: 40 }), shop({ cards: [card] }))
+      .find(r => r.kind === 'buy-joker')!;
+    expect(clearOfTier.costDollars).toBeLessThan(breaksTier.costDollars);
+    expect(clearOfTier.score).toBeGreaterThan(breaksTier.score);
   });
 
   it('marks unaffordable items instead of recommending them', () => {
@@ -113,10 +125,13 @@ describe('recommend — full joker slots', () => {
 });
 
 describe('recommend — vouchers and packs', () => {
-  it('discounts vouchers late in the run', () => {
-    const recs = recommend(run({ money: 20, ante: 7 }), shop({ voucherId: 'telescope' }));
-    const voucher = recs.find(r => r.kind === 'buy-voucher');
-    expect(voucher?.reasons.join(' ')).toMatch(/Late in the run/);
+  it('discounts vouchers late in the run, because fewer rounds are left to profit', () => {
+    const early = recommend(run({ money: 20, ante: 1 }), shop({ voucherId: 'telescope' }))
+      .find(r => r.kind === 'buy-voucher')!;
+    const late = recommend(run({ money: 20, ante: 7 }), shop({ voucherId: 'telescope' }))
+      .find(r => r.kind === 'buy-voucher')!;
+    expect(late.impact).toBeLessThan(early.impact);
+    expect(late.reasons.join(' ')).toMatch(/rounds left to profit/);
   });
 
   it('recommends a celestial pack early', () => {
@@ -220,13 +235,15 @@ describe('recommend — strategy feedback', () => {
 });
 
 describe('recommend — skip calibration', () => {
-  it('prefers banking over a mediocre buy early in the run', () => {
+  it('prefers banking when a card costs more than it is worth', () => {
+    // Overpriced for what it does, so the dollars outweigh the score it adds.
     const recs = recommend(
-      run({ money: 13 }),
-      shop({ cards: [{ kind: 'joker', jokerId: 'droll-joker', edition: 'base', price: 6 }] }),
+      run({ money: 40, jokers: owned('droll-joker', 'crafty-joker') }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'ice-cream', edition: 'base', price: 38 }] }),
     );
     expect(recs[0].kind).toBe('skip');
-    expect(recs[0].reasons.join(' ')).toMatch(/interest/i);
+    const buy = recs.find(r => r.kind === 'buy-joker')!;
+    expect(buy.score).toBeLessThan(1);
   });
 
   it('still buys a strong joker instead of banking', () => {
@@ -243,7 +260,7 @@ describe('recommend — skip calibration', () => {
       shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
     );
     const skip = recs.find(r => r.kind === 'skip');
-    expect(skip?.reasons.join(' ')).toMatch(/Save \$2 more/);
+    expect(skip?.reasons.join(' ')).toMatch(/\$2 more reaches the next interest tier/);
   });
 
   it('boosts banking under an Economy plan', () => {
@@ -263,14 +280,14 @@ describe('recommend — skip calibration', () => {
     expect(recs[0].kind).toBe('buy-joker');
   });
 
-  it('keeps skip modest late in the run', () => {
-    const recs = recommend(
-      run({ money: 23, ante: 7 }),
-      shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
-    );
-    const skip = recs.find(r => r.kind === 'skip');
-    const reroll = recs.find(r => r.kind === 'reroll');
-    expect(reroll!.score).toBeGreaterThan(skip!.score);
+  it('anchors the whole scale on buying nothing', () => {
+    for (const ante of [1, 4, 7]) {
+      for (const money of [0, 13, 40]) {
+        const skip = recommend(run({ money, ante }), shop()).find(r => r.kind === 'skip')!;
+        expect(skip.score, `ante ${ante}, $${money}`).toBe(1);
+        expect(skip.costDollars).toBe(0);
+      }
+    }
   });
 });
 
@@ -288,7 +305,10 @@ describe('recommend — declared hand', () => {
   it('prefers the planet for the hand you build around', () => {
     const picks = recommendPackPick(run({ money: 20, primaryHand: 'Flush' }), ['mercury', 'jupiter']);
     expect(picks[0].action).toBe('Take Jupiter');
-    expect(picks[0].reasons.join(' ')).toMatch(/hand you build around/);
+    // Levelling the hand the estimate is built on is the one consumable effect
+    // the score model computes outright rather than guessing at.
+    expect(picks[0].evidence).toBe('modeled');
+    expect(picks[0].reasons.join(' ')).toMatch(/Levels Flush, the hand your estimate is built on/);
   });
 
   it('does not push any planet while no hand has been declared', () => {
@@ -298,13 +318,15 @@ describe('recommend — declared hand', () => {
 });
 
 describe('recommend — score estimate', () => {
-  it('reports the estimated gain of a modeled joker', () => {
+  it('reports the modelled gain of a modeled joker and says it is tempered', () => {
     const recs = recommend(
       run({ money: 20 }),
       shop({ cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 2 }] }),
     );
-    const buy = recs.find(r => r.kind === 'buy-joker');
-    expect(buy?.reasons.join(' ')).toMatch(/estimated on your/);
+    const buy = recs.find(r => r.kind === 'buy-joker')!;
+    expect(buy.evidence).toBe('partial');
+    expect(buy.reasons.join(' ')).toMatch(/Modelled at .* on your High Card right now/);
+    expect(buy.reasons.join(' ')).toMatch(/tempered by its \d+\/10 rating/);
   });
 
   it('says nothing about jokers it cannot model', () => {
@@ -314,5 +336,59 @@ describe('recommend — score estimate', () => {
     );
     const buy = recs.find(r => r.kind === 'buy-joker');
     expect(buy?.reasons.join(' ')).not.toMatch(/estimated/);
+  });
+});
+
+describe('the scale itself', () => {
+  const shopWith = (price: number) =>
+    shop({ cards: [{ kind: 'joker' as const, jokerId: 'blueprint', edition: 'base' as const, price }] });
+
+  it('reports score as impact paid for in dollars', () => {
+    for (const r of recommend(run({ money: 40, ante: 3 }), shopWith(10))) {
+      if (r.score === 0) continue; // unavailable actions carry no estimate
+      expect(r.score, r.action).toBeCloseTo(r.impact * economyMultiplier(r.costDollars), 10);
+    }
+  });
+
+  it('makes the same card worse the more it costs', () => {
+    const scores = [2, 6, 12, 20].map(price =>
+      recommend(run({ money: 40 }), shopWith(price)).find(r => r.kind === 'buy-joker')!.score);
+    for (let i = 1; i < scores.length; i += 1) expect(scores[i]).toBeLessThan(scores[i - 1]);
+  });
+
+  it('gives an unavailable action a score of zero so it always sorts last', () => {
+    const recs = recommend(run({ money: 1 }), shopWith(30));
+    const buy = recs.find(r => r.kind === 'buy-joker')!;
+    expect(buy.score).toBe(0);
+    expect(recs[recs.length - 1].score).toBe(0);
+  });
+
+  it('charges rental upkeep against the rounds that are actually left', () => {
+    const rental = { kind: 'joker' as const, jokerId: 'blueprint', edition: 'base' as const, price: 1, stickers: { rental: true } };
+    const early = recommend(run({ money: 40, ante: 1 }), shop({ cards: [rental] })).find(r => r.kind === 'buy-joker')!;
+    const late = recommend(run({ money: 40, ante: 8 }), shop({ cards: [rental] })).find(r => r.kind === 'buy-joker')!;
+    expect(early.costDollars).toBeGreaterThan(late.costDollars);
+    expect(early.reasons.join(' ')).toMatch(/Rental upkeep/);
+  });
+
+  it('does not let a joker on a dead suit read as an upgrade', () => {
+    // Checkered has no diamonds at all, so Greedy Joker cannot fire.
+    const picks = recommendPackPick(
+      { ...run(), deck: 'Checkered', deckProfile: initialDeckProfile('Checkered') },
+      ['greedy-joker'],
+    );
+    expect(picks[0].impact).toBeLessThan(1);
+    expect(picks[0].reasons.join(' ')).toMatch(/No diamonds cards left/);
+  });
+
+  it('prices a swap as the ratio between the two jokers, not the newcomer alone', () => {
+    const full = run({
+      money: 30, ante: 4,
+      jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
+    });
+    const swap = recommend(full, shopWith(10)).find(r => r.kind === 'sell-and-buy')!;
+    const free = recommend({ ...full, jokerSlots: 9 }, shopWith(10)).find(r => r.kind === 'buy-joker')!;
+    expect(swap.impact).toBeLessThan(free.impact);
+    expect(swap.reasons.join(' ')).toMatch(/contributes least/);
   });
 });

@@ -2,11 +2,11 @@ import type { JokerDef, RunState } from '../types';
 import { TUNING } from './tuning';
 
 export interface PlaySignal {
-  delta: number;
-  notes: string[];
+  multiplier: number;
+  reasons: string[];
 }
 
-const NEUTRAL: PlaySignal = { delta: 0, notes: [] };
+const NEUTRAL: PlaySignal = { multiplier: 1, reasons: [] };
 
 /**
  * Score adjustment from how the player actually plays.
@@ -20,7 +20,7 @@ const NEUTRAL: PlaySignal = { delta: 0, notes: [] };
  * Returns a neutral signal when nothing has been declared, so a fresh run and
  * an undeclared run both score exactly as they did before.
  */
-export function playSignalForJoker(def: JokerDef, run: RunState): PlaySignal {
+export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal {
   const primary = run.primaryHand;
   const extraDiscards = run.discardsPerRound - TUNING.play.baselineDiscardsPerRound;
 
@@ -29,22 +29,22 @@ export function playSignalForJoker(def: JokerDef, run: RunState): PlaySignal {
     case 'supernova':
       if (!primary) return NEUTRAL;
       return {
-        delta: TUNING.play.consistentHandBonus,
-        notes: [`You build around ${primary}, so Supernova keeps climbing`],
+        multiplier: TUNING.play.consistentHand,
+        reasons: [`You build around ${primary}, so Supernova keeps climbing`],
       };
     // Wants the opposite: it rewards never repeating a hand.
     case 'obelisk':
       if (!primary) return NEUTRAL;
       return {
-        delta: TUNING.play.varietyJokerPenalty,
-        notes: [`Obelisk wants hand variety, but you build around ${primary}`],
+        multiplier: TUNING.play.varietyJoker,
+        reasons: [`Obelisk wants hand variety, but you build around ${primary}`],
       };
     case 'banner':
     case 'delayed-gratification': {
       if (extraDiscards === 0) return NEUTRAL;
       return {
-        delta: extraDiscards * TUNING.play.perExtraDiscard,
-        notes: [`${run.discardsPerRound} discards per round`],
+        multiplier: TUNING.play.perExtraDiscard ** extraDiscards,
+        reasons: [`${run.discardsPerRound} discards per round`],
       };
     }
     default:

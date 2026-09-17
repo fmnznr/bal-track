@@ -130,7 +130,16 @@ export type RecKind =
 export interface Recommendation {
   kind: RecKind;
   action: string; // human-readable, e.g. "Buy Blueprint ($10)"
+  /**
+   * Ranking value: the estimated score multiplier after paying for the action.
+   * Buying nothing is exactly 1, so above 1 beats sitting on your money and
+   * below 1 does not. 0 means the action cannot be taken at all.
+   */
   score: number;
+  /** The score multiplier on its own, before the cost is charged. */
+  impact: number;
+  /** Dollars the action gives up: its price, lost interest and any upkeep. */
+  costDollars: number;
   /** Action priority. This is desirability, not model certainty. */
   priority: 'high' | 'medium' | 'low';
   /** How much of the recommendation comes from explicit mechanics vs heuristics. */

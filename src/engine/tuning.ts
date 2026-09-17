@@ -4,189 +4,135 @@
  * These are project-owned heuristics, not game facts. Balatro's own rules —
  * interest tiers, sell values, blind targets, what an edition adds to a hand —
  * live in `gameRules.ts`, `economy.ts` and `score.ts` and are not tuning: they
- * are either right or wrong. The numbers here are judgement calls about how
- * desirable something is, and changing one shifts advice without making
- * anything factually incorrect.
+ * are either right or wrong. The numbers here are judgement calls, and changing
+ * one shifts advice without making anything factually incorrect.
  *
- * They share a single implicit unit: a 0–10 desirability scale anchored on the
- * curated `rating` in the catalog. That anchor is the weak point of the current
- * model — bonuses are added to a rating rather than derived from an expected
- * score, which is why several of them need an explicit ceiling to stop one
- * signal from dominating. Read every `cap` here as a symptom, not a design.
+ * Everything on the card side is a **multiplier on your hand score**, composed
+ * by multiplication. 1 changes nothing, 1.2 is "about a fifth more score", 0.8
+ * is "about a fifth less". That is why almost no ceilings remain: signals that
+ * compose multiplicatively cannot run away from each other the way additive
+ * points on an unnamed 0-10 scale could.
  *
- * Changing a value here changes advice, so scenario tests in `recommend.test.ts`
- * and `strategy.test.ts` are the place to prove the new behaviour is intended.
+ * Costs are kept in dollars until the last step, then converted once through
+ * `economy.dollarsPerDoubling`. That exchange rate is the one place money and
+ * score meet, and it is a judgement call stated out loud rather than smeared
+ * across a dozen penalty constants.
+ *
+ * Changing a value here changes advice, so the scenario tests and the engine
+ * baseline (`npm run baseline:update`) are where a change is reviewed.
  */
 export const TUNING = {
-  /** Cutoffs that turn a raw score into the badge shown next to an action. */
+  /**
+   * Cutoffs that turn a net multiplier into the badge shown next to an action.
+   * Buying nothing is exactly 1.0, so anything below that is worse than sitting
+   * on your money.
+   */
   priority: {
-    high: 7,
-    medium: 4,
+    high: 1.5,
+    medium: 1.1,
   },
 
-  /**
-   * How much an edition adds to a card's desirability. Not the same thing as
-   * what it adds to a hand's score (see EDITION_CHIPS and friends in score.ts):
-   * Negative scores nothing at all, but is rated highest because it does not
-   * consume a joker slot.
-   */
-  edition: {
-    base: 0,
-    foil: 0.5,
-    holographic: 0.8,
-    polychrome: 1.5,
-    negative: 2.5,
+  prior: {
+    /**
+     * The single assumption the heuristic half of the model rests on: a 10/10
+     * joker is taken to be worth roughly this much of your hand score, with
+     * ratings interpolating geometrically down to 1 at rating 0.
+     *
+     * Raise it and unmodelled jokers outrank modelled ones more often; lower it
+     * and the advisor trusts its own catalog ratings less.
+     */
+    ratingTopMultiplier: 3,
+    /**
+     * How far to trust the score model over the catalog rating, as the exponent
+     * in a geometric blend of the two.
+     *
+     * The two halves of the model measure different things. The score model
+     * knows this card's exact numbers against your board *right now*, which
+     * makes it explode on an empty board: +4 Mult on a bare High Card really is
+     * a 5x marginal gain, and really does stop mattering by ante 4. The rating
+     * knows how the card holds up across a run but nothing about your board.
+     *
+     * Blending keeps a modelled joker from outranking an unmodelled one purely
+     * because it happens to be one of the 19 the catalog has numbers for.
+     *
+     * KNOWN WEAKNESS: the two halves are not measuring the same thing. The prior
+     * is absolute (how good is this card, generally), the model is marginal (what
+     * does it do to this board, now). On a bare board every marginal is enormous,
+     * so the weight sits well below half — the rating carries more of the
+     * decision than a "we modelled it" label suggests. Making the prior marginal
+     * too, by modelling diminishing returns against board strength, is the fix;
+     * this constant is the stopgap until then.
+     */
+    modelWeight: 0.3,
   },
 
   /** Owned jokers sharing a dominant tag with the card being judged. */
   synergy: {
-    perMatchingTag: 1.2,
-    cap: 3,
+    perMatchingTag: 1.12,
+    cap: 1.45,
     /** Tags need this many owned jokers before they count as the run's direction. */
     dominantMinCount: 2,
   },
 
   /**
-   * Penalties for buying a sticker. A shop copy is judged on what the sticker
-   * costs you over the rest of the run; an owned copy is re-judged the same way
-   * when looking for the weakest joker to sell.
+   * Stickers that cost flexibility rather than money. Rental is absent on
+   * purpose: its $3 per round is a real cost and is charged in dollars, where
+   * it correctly matters less the later the run gets.
    */
   stickers: {
-    /** Cannot be sold later, so it occupies a slot permanently. */
-    eternal: -0.4,
-    /** Debuffed after 5 rounds. Remaining rounds are not tracked. */
-    perishable: -1,
-    /** Costs $3 every round. */
-    rental: -1.5,
-    owned: {
-      /** Applied per dollar of upkeep, so a $3 rental costs 1.5. */
-      rentalPerUpkeepDollar: 0.5,
-      perishable: -1,
-    },
+    eternal: 0.96,
+    perishable: 0.88,
   },
 
-  /**
-   * How hard a lost interest tier argues against a purchase, per dollar of
-   * interest lost per round. Vouchers weigh least because they pay off for the
-   * rest of the run; packs sit between vouchers and cards.
-   */
-  interestWeight: {
-    card: 0.8,
-    voucher: 0.5,
-    pack: 0.6,
-  },
-
-  /** Planet cards, judged against the build rather than in isolation. */
-  planet: {
-    /** Levels a hand the run's dominant tags care about. */
-    matchesBuild: 2,
-    /** Per level already invested, rewarding a stacked hand. */
-    perExistingLevel: 0.5,
-    perExistingLevelCap: 2,
-    /** Levels the hand the player declared they build around. */
-    matchesPrimaryHand: 1.5,
-    /** Levels a hand the recommended strategy plan wants. */
-    matchesPlan: 1.5,
-  },
-
-  /** Bonuses for matching the strategy plan the advisor currently recommends. */
+  /** Matching the strategy plan the advisor currently recommends. */
   plan: {
-    /** The card is on the plan's watchlist of key jokers. */
-    keyJoker: 1.2,
-    /** The card merely shares a tag with the plan. */
-    coreTag: 0.8,
-    /** Banking money while the recommended plan is the economy build. */
-    economySkip: 1,
+    keyJoker: 1.15,
+    coreTag: 1.08,
   },
 
-  /** Consequences of having no free slot for what is on offer. */
-  slotsFull: {
-    /** Buying a consumable with no consumable slot left. */
-    consumable: -1,
+  planet: {
     /**
-     * A replacement must beat the joker it displaces by this much before
-     * selling is advised, so a marginal upgrade does not churn the board.
+     * Levelling a hand the estimate is not built on. The gain is real but only
+     * lands if the player switches to that hand.
      */
-    sellAndBuyMargin: 1,
-    /** The displaced joker's value still drags the suggestion down by this share. */
-    sellAndBuyValueDrag: 0.4,
-    /** Ceiling on a buy that fits nowhere and beats nothing worth selling. */
-    blockedBuyCap: 2,
-  },
-
-  /**
-   * How much the modelled score estimate may move a recommendation. It breaks
-   * ties between cards the heuristics rate alike; it does not carry a card,
-   * because only unconditional flat effects are modelled at all.
-   */
-  scoreEstimate: {
-    /** Bonus is (delta / current score) x this factor, then capped. */
-    relativeGainFactor: 2,
-    cap: 2,
-    /** Used instead when the current estimate is zero and a ratio is undefined. */
-    fallbackWhenNoBaseline: 1,
-  },
-
-  voucher: {
-    /** Late in the run there are fewer rounds left to profit from it. */
-    latePenalty: -1.5,
-  },
-
-  reroll: {
-    base: 1.5,
-    /** Nothing on offer clears this, so fishing for a better shop is reasonable. */
-    weakShopThreshold: 4,
-    weakShopBonus: 2.5,
-    /** The reroll does not cost an interest tier. */
-    freeOfInterestBonus: 1,
-  },
-
-  skip: {
-    base: 3,
-    /** Per dollar of interest currently earned. */
-    perInterestDollar: 0.15,
-    perInterestDollarCap: 1,
-    /** Room left below the interest cap, so saving still compounds. */
-    growthRoom: { early: 1, mid: 0.5 },
-    /** Within this many dollars of the next $5 interest tier. */
-    nearNextTierWithin: 2,
-    nearNextTierBonus: 0.5,
-    /** A buy this strong argues against banking instead. */
-    strongBuyThreshold: 5,
-    strongBuyPenalty: -1.5,
-    /** Below this, the shop is called out as offering no clear upgrade. */
-    weakShopThreshold: 4,
+    offReferenceHand: 1.05,
+    /** ...and the build already points that way. */
+    matchesBuild: 1.25,
+    /** ...or the strategy plan the advisor recommends wants that hand. */
+    matchesPlan: 1.3,
+    /** Per level already invested, rewarding a stacked hand. */
+    perExistingLevel: 1.06,
   },
 
   /** Adjustments from what the deck is actually made of. */
   deck: {
     suit: {
-      /** Share of the deck below which a suit-dependent joker is a bad bet. */
+      /** The deck holds none of the suit, so the joker is close to dead weight. */
+      none: 0.3,
+      /** Share of the deck below which it is a bad bet. */
       scarceBelow: 0.15,
-      scarcePenalty: -2,
+      scarce: 0.6,
       /** Share above which it is actively good. A joker naming two suits needs more. */
       abundantAboveSingle: 0.4,
       abundantAboveMulti: 0.7,
-      abundantBonus: 1.5,
-      /** Hard ceiling when the deck holds none of the suit at all. */
-      noneCap: 1,
+      abundant: 1.25,
     },
     face: {
+      none: 0.3,
       scarceBelow: 0.15,
-      scarcePenalty: -1.5,
+      scarce: 0.7,
       abundantAbove: 0.3,
-      abundantBonus: 1,
-      noneCap: 1,
+      abundant: 1.15,
     },
     enhanced: {
       /** Steel Joker and Glass Joker scale with their matching enhanced cards. */
-      perMatchingCard: 0.5,
-      perMatchingCardCap: 3,
-      noneYetPenalty: -1,
-      /** Driver's License needs 16 enhanced cards before it does anything. */
+      perMatchingCard: 1.08,
+      cap: 1.6,
+      noneYet: 0.7,
+      /** Driver's License does nothing at all below its threshold. */
       driversLicenseRequirement: 16,
-      driversLicenseLive: 3,
-      driversLicenseDead: -2,
+      driversLicenseLive: 1.5,
+      driversLicenseDead: 0.55,
     },
   },
 
@@ -197,15 +143,68 @@ export const TUNING = {
    */
   play: {
     /** Supernova scales with repeat plays of one hand. */
-    consistentHandBonus: 1,
+    consistentHand: 1.12,
     /** Obelisk wants the opposite and is hurt by a committed build. */
-    varietyJokerPenalty: -1.5,
+    varietyJoker: 0.85,
     /** Baseline discards per round that Banner and friends are judged against. */
     baselineDiscardsPerRound: 3,
-    perExtraDiscard: 0.5,
+    perExtraDiscard: 1.06,
   },
 
-  /** Weights deciding which build the advisor recommends. */
+  economy: {
+    /**
+     * The exchange rate between money and score: giving up this many dollars
+     * costs about as much as halving your hand score.
+     *
+     * Lower it and the advisor hoards; raise it and it spends freely. Everything
+     * that used to be a per-case "interest penalty" weight is now this one
+     * number applied to honestly-counted dollars.
+     */
+    dollarsPerDoubling: 25,
+    /**
+     * How long a dented bankroll stays dented.
+     *
+     * Spending drops you an interest tier, but you earn through the next blinds
+     * and climb back, so the loss is transient. Charging it for every remaining
+     * round instead would price a $10 buy at ante 1 as if the money were gone
+     * forever — it made a $10 joker cost $58 and nothing ever looked worth
+     * buying. Recurring costs that genuinely never stop, like rental upkeep,
+     * are charged against the real rounds remaining.
+     */
+    interestRecoveryRounds: 2,
+    /** Blinds per ante, for turning "antes left" into "rounds left". */
+    roundsPerAnte: 3,
+    /** Antes in a standard run, used to judge how long a voucher has to pay off. */
+    antesPerRun: 8,
+  },
+
+  reroll: {
+    /**
+     * What a reroll is expected to be worth, **after** paying for whatever it
+     * turns up. That "after" matters: a reroll does not hand you a card, it
+     * hands you the chance to buy one, so pricing it at a typical card's gross
+     * multiplier would have it outrank most real purchases.
+     *
+     * Kept deliberately modest, so a shop already holding something good
+     * outranks rerolling without needing a rule that says so.
+     */
+    expectedNetGain: 1.12,
+  },
+
+  slots: {
+    /** A buy that fits nowhere and beats nothing worth selling is not available. */
+    blockedPenalty: 0.5,
+    /**
+     * How much better a replacement must be than the joker it displaces before
+     * selling is advised, so a marginal upgrade does not churn the board.
+     */
+    sellAndBuyMargin: 1.15,
+  },
+
+  /**
+   * Which build the advisor recommends. This is a separate ranking among
+   * archetypes, not a score multiplier, so it keeps its own additive scale.
+   */
   strategy: {
     /** Top candidate score needed to commit to a plan, or merely lean toward one. */
     commitThreshold: 6,

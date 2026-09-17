@@ -2,7 +2,7 @@ import handValuesJson from '../data/handValues.json';
 import blindsJson from '../data/blinds.json';
 import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
-import type { Edition, HandType, HandValueDef, RunState } from '../types';
+import type { Edition, HandType, HandValueDef, JokerScore, RunState } from '../types';
 import { stakeHas } from './gameRules';
 
 const handValues = handValuesJson as unknown as HandValueDef[];
@@ -90,7 +90,23 @@ export interface ScoreEstimate {
   unmodeled: string[];
 }
 
-export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate {
+/** A joker reduced to what the score model can actually read from it. */
+interface ScoringJoker {
+  name: string;
+  score?: JokerScore;
+  edition: Edition;
+}
+
+function boardOf(run: RunState): ScoringJoker[] {
+  const board: ScoringJoker[] = [];
+  for (const owned of run.jokers) {
+    const joker = getJoker(owned.jokerId);
+    if (joker) board.push({ name: joker.name, score: joker.score, edition: owned.edition });
+  }
+  return board;
+}
+
+function estimateWithBoard(run: RunState, hand: HandType, board: ScoringJoker[]): ScoreEstimate {
   const def = byHand.get(hand);
   if (!def) return { chips: 0, mult: 0, score: 0, modeled: [], inactive: [], unmodeled: [] };
 
@@ -103,9 +119,7 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
 
   // Jokers trigger left to right, so additive and multiplicative effects are applied
   // in board order — the same order jokerOrder.ts advises on.
-  for (const owned of run.jokers) {
-    const joker = getJoker(owned.jokerId);
-    if (!joker) continue;
+  for (const joker of board) {
     const score = joker.score;
     const applies = score !== undefined && (!score.requiresHand || handContains(hand, score.requiresHand));
 
@@ -122,9 +136,9 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
     // A joker's requiresHand gates its own ability, but its edition (foil/holo/polychrome)
     // is a flat bonus on the card itself: it scores every hand regardless of whether the
     // joker's own effect fires. Base/negative editions add zero, so this is a no-op for them.
-    chips += EDITION_CHIPS[owned.edition];
-    mult += EDITION_MULT[owned.edition];
-    mult *= EDITION_XMULT[owned.edition];
+    chips += EDITION_CHIPS[joker.edition];
+    mult += EDITION_MULT[joker.edition];
+    mult *= EDITION_XMULT[joker.edition];
   }
 
   const rounded = { chips: Math.round(chips), mult: Math.round(mult * 100) / 100 };
@@ -134,11 +148,47 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
   return { ...rounded, score, modeled, inactive, unmodeled };
 }
 
+export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate {
+  return estimateWithBoard(run, hand, boardOf(run));
+}
+
+/**
+ * How much adding one joker multiplies the estimate for this hand.
+ *
+ * `score` undefined means the joker's own ability is not modelled, so only its
+ * edition contributes — the caller supplies a prior for the ability itself.
+ *
+ * The joker is appended rightmost, which is where an xMult joker belongs and
+ * where jokerOrder.ts advises putting one. A player who leaves it elsewhere
+ * gets less than this out of it.
+ */
+export function jokerScoreMultiplier(
+  run: RunState,
+  hand: HandType,
+  score: JokerScore | undefined,
+  edition: Edition,
+): number {
+  const before = estimateHandScore(run, hand).score;
+  if (before <= 0) return 1;
+  const after = estimateWithBoard(run, hand, [...boardOf(run), { name: '', score, edition }]).score;
+  return after / before;
+}
+
+/** How much raising this hand's level multiplies its estimate. Exact, not a guess. */
+export function handLevelMultiplier(run: RunState, hand: HandType, levels = 1): number {
+  const before = estimateHandScore(run, hand).score;
+  if (before <= 0) return 1;
+  const raised: RunState = {
+    ...run,
+    handLevels: { ...run.handLevels, [hand]: (run.handLevels[hand] ?? 1) + levels },
+  };
+  return estimateHandScore(raised, hand).score / before;
+}
+
 /** Estimated score gain from adding this joker to the current run. */
 export function estimateJokerDelta(run: RunState, hand: HandType, jokerId: string, edition: Edition): number {
   const joker = getJoker(jokerId);
   if (!joker?.score) return 0;
   const before = estimateHandScore(run, hand).score;
-  const after = estimateHandScore({ ...run, jokers: [...run.jokers, { jokerId, edition }] }, hand).score;
-  return after - before;
+  return Math.round(before * jokerScoreMultiplier(run, hand, joker.score, edition)) - before;
 }
