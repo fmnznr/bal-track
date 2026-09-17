@@ -1,4 +1,5 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
+import { hasFreeJokerSlot } from '../../engine/gameRules';
 import { recommend } from '../../engine/recommend';
 import { useRun } from '../../run/RunContext';
 import type { Edition, ShopState } from '../../types';
@@ -20,7 +21,6 @@ export default function ShopScreen() {
     dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop) : [];
-  const usedJokerSlots = run.jokers.filter(j => j.edition !== 'negative').length;
   const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
   const voucherBlocked = Boolean(
     voucherDef
@@ -44,7 +44,7 @@ export default function ShopScreen() {
         {shop.cards.map((slot, i) => {
           const name = slot.kind === 'joker' ? getJoker(slot.jokerId)?.name : getConsumable(slot.consumableId)?.name;
           const hasRoom = slot.kind === 'joker'
-            ? slot.edition === 'negative' || usedJokerSlots < run.jokerSlots
+            ? hasFreeJokerSlot(run, slot.edition)
             : run.consumables.length < run.consumableSlots;
           const canBuy = slot.price <= run.money && hasRoom;
           return (

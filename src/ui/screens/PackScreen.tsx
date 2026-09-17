@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getConsumable, getJoker } from '../../catalog/catalog';
+import { hasFreeJokerSlot } from '../../engine/gameRules';
 import { recommendPackPick } from '../../engine/recommend';
 import { CONVERSION_TARGETS, hasProfileEffect } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
@@ -44,7 +45,7 @@ export default function PackScreen() {
   const take = (id: string) => {
     const joker = getJoker(id);
     if (joker) {
-      if (run.jokers.filter(owned => owned.edition !== 'negative').length >= run.jokerSlots) {
+      if (!hasFreeJokerSlot(run, 'base')) {
         setNote(`No free joker slot — sell a joker on the Run tab before taking ${joker.name}.`);
         return;
       }

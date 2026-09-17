@@ -49,11 +49,13 @@ Node.js 24 is used in CI. The supported local range is Node 20.19 through 26.
 ```sh
 npm ci
 npm run dev
+npm run lint
 npm test
 npm run build
 ```
 
-The production build runs strict TypeScript checking before Vite. Tests cover
+CI runs ESLint, then the tests, then the production build, which itself runs
+strict TypeScript checking before Vite. Tests cover
 catalog integrity, persistence migrations, game rules, recommendation behavior
 and the main UI flows.
 
@@ -67,6 +69,7 @@ worker.
 ## Architecture
 
 - `src/data/` — catalog data and structural validation tests.
+- `src/catalog/` — typed catalog lookups and the autocomplete search index.
 - `src/engine/` — pure recommendation, strategy, economy and scoring rules.
 - `src/run/` — versioned local persistence and the transactional reducer.
 - `src/ui/` — mobile-first React screens and reusable controls.

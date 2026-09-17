@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
+import { usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
 import { HAND_TYPES } from '../../types';
@@ -38,7 +39,7 @@ export default function RunOverview() {
         <NumberField label="Joker slots" value={run.jokerSlots} min={1} onChange={slots => dispatch({ type: 'SET_JOKER_SLOTS', slots })} />
       </div>
 
-      <h3>Jokers ({run.jokers.filter(j => j.edition !== 'negative').length}/{run.jokerSlots})</h3>
+      <h3>Jokers ({usedJokerSlots(run)}/{run.jokerSlots})</h3>
       <ul className="rows">
         {run.jokers.map((owned, i) => {
           const def = getJoker(owned.jokerId);

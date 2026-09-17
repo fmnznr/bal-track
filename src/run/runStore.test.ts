@@ -136,6 +136,17 @@ describe('persistence', () => {
     localStorage.setItem('bal-track:v1', JSON.stringify(legacy));
     expect(load()?.current).toMatchObject({ deck: 'Checkered', stake: 'Purple' });
   });
+  it('persists only the most recent undo steps', () => {
+    let s = started('Red', 'White');
+    for (let i = 1; i <= 30; i += 1) s = reduce(s, { type: 'SET_MONEY', money: i });
+    expect(s.past).toHaveLength(30); // in memory the full stack is kept
+
+    save(s);
+    const restored = load()!;
+    expect(restored.past).toHaveLength(10);
+    // The steps kept are the newest ones, so undo still walks backwards correctly.
+    expect(reduce(restored, { type: 'UNDO' }).current?.money).toBe(29);
+  });
 });
 
 describe('drafts', () => {

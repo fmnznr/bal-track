@@ -1,6 +1,6 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { stakeDiscardPenalty } from '../engine/gameRules';
+import { hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
 import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type {
@@ -131,10 +131,6 @@ function totalHandPlays(run: Pick<RunState, 'handPlays'>): number {
   return HAND_TYPES.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0);
 }
 
-function usedJokerSlots(run: Pick<RunState, 'jokers'>): number {
-  return run.jokers.filter(j => j.edition !== 'negative').length;
-}
-
 function addJoker(
   run: RunState,
   jokerId: string,
@@ -143,7 +139,7 @@ function addJoker(
   price = 0,
 ): RunState | null {
   if (!getJoker(jokerId) || price < 0 || price > run.money) return null;
-  if (edition !== 'negative' && usedJokerSlots(run) >= run.jokerSlots) return null;
+  if (!hasFreeJokerSlot(run, edition)) return null;
   return {
     ...run,
     money: run.money - price,
@@ -403,9 +399,18 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
 export const STORAGE_KEY = 'bal-track:v2';
 const LEGACY_STORAGE_KEY = 'bal-track:v1';
 
+/**
+ * Undo steps kept across a reload. The in-memory stack holds 50; persisting all
+ * of them writes ~50 full run snapshots on every change, which is the bulk of
+ * the payload and the slowest part of a save on a phone. Recent steps are what
+ * anyone actually reaches for after reopening the app.
+ */
+const PERSISTED_UNDO_STEPS = 10;
+
 export function save(state: StoreState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const trimmed: StoreState = { ...state, past: state.past.slice(-PERSISTED_UNDO_STEPS) };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   } catch {
     // storage unavailable (private mode etc.) — app still works, just not persistent
   }

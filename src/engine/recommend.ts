@@ -7,7 +7,7 @@ import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
 import { deckSignalForJoker } from './deckSignals';
 import { interestCapFor, runInterest, runInterestLost, sellValue } from './economy';
-import { earnsInterest, rentalUpkeep } from './gameRules';
+import { earnsInterest, hasFreeJokerSlot, rentalUpkeep, usedJokerSlots } from './gameRules';
 import { MIN_PLAYS, mostPlayedHand, playSignalForJoker, totalPlays } from './playSignals';
 import { estimateHandScore, estimateJokerDelta, referenceHand } from './score';
 import { adviseStrategy, getArchetype } from './strategy';
@@ -45,10 +45,6 @@ function economyNotes(run: RunState, price: number, weight: number): { penalty: 
     penalty: lost * weight,
     notes: [`Drops your interest by $${lost}/round ($${run.money} → $${run.money - price})`],
   };
-}
-
-function usedJokerSlots(run: RunState): number {
-  return run.jokers.filter(j => j.edition !== 'negative').length;
 }
 
 /** Heuristic value of an owned joker in the current context (used to find the weakest). */
@@ -204,7 +200,7 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, phase: Phase, profile: 
   }
   const econ = economyNotes(run, slot.price, 0.8);
 
-  const slotsFull = usedJokerSlots(run) >= run.jokerSlots && slot.edition !== 'negative';
+  const slotsFull = !hasFreeJokerSlot(run, slot.edition);
   if (!slotsFull) {
     if (slot.price > run.money) {
       return rec('buy-joker', action, 0, [`Not affordable ($${slot.price} > $${run.money})`], def.id);
