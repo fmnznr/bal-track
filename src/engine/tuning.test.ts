@@ -56,7 +56,7 @@ describe('TUNING', () => {
     }
 
     const boosts: [string, number][] = [
-      ['prior.ratingTopMultiplier', TUNING.prior.ratingTopMultiplier],
+      ['prior.ratingCurve', TUNING.prior.ratingCurve],
       ['synergy.perMatchingTag', TUNING.synergy.perMatchingTag],
       ['plan.keyJoker', TUNING.plan.keyJoker],
       ['plan.coreTag', TUNING.plan.coreTag],
@@ -71,9 +71,13 @@ describe('TUNING', () => {
     for (const [path, value] of boosts) expect(value, path).toBeGreaterThan(1);
   });
 
-  it('never lets a joker on a dead suit read as an upgrade', () => {
-    // A multiplier this low replaces the old hard cap: it scales the card down
-    // instead of clamping an unnamed rating.
-    expect(TUNING.deck.suit.none * TUNING.prior.ratingTopMultiplier).toBeLessThan(1);
+  it('keeps the prior on the same footing as the score model', () => {
+    // Both halves now estimate an absolute score contribution against the same
+    // baseline, which is what lets the model carry most of the weight.
+    expect(TUNING.prior.modelWeight).toBeGreaterThan(0.5);
+    expect(TUNING.prior.modelWeight).toBeLessThan(1);
+    // A floor under the baseline, but not so high that a real board is ignored.
+    expect(TUNING.prior.minBaselineShare).toBeGreaterThan(0);
+    expect(TUNING.prior.minBaselineShare).toBeLessThan(0.5);
   });
 });

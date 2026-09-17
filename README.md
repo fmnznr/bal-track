@@ -46,11 +46,11 @@ Corrections section exists only for when a run drifts from what was recorded.
   cards). Rank shares assume ranks are evenly spread, since rank composition is
   not tracked. Random, copy, retrigger, held-in-hand and time-scaling effects
   are named but deliberately excluded from the numeric estimate.
-- Where a Joker is modeled, that estimate is marginal — what the card does to
-  your board right now — while the rating it is blended with is absolute. On an
-  empty board every marginal effect looks enormous, so the blend leans on the
-  rating. See
-  [`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md).
+- Ratings and the score model both estimate a score contribution, so they are
+  blended on equal footing, but the weights behind the rating half
+  (`topShareOfTarget`, `ratingCurve`, `minBaselineShare`, `dollarsPerDoubling`)
+  are judgement calls, not values trained on played runs. See
+  [`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
 - The ranking prices one shop visit at a time. It does not model how an economy
   build compounds, so a plan changes the advisor's reasons but not its numbers.
 - Boss-specific effects, tags, playing-card seals and exact card-by-card scoring
@@ -107,9 +107,14 @@ without rendering the UI.
 ## Data and calibration
 
 Every card is ranked by its estimated effect on your hand score, with costs held
-in dollars and converted once through a single stated exchange rate. The design
-and its known weaknesses are in
-[`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md).
+in dollars and converted once through a single stated exchange rate. Both the
+score model and the catalog ratings estimate that effect as a score
+contribution, measured against a baseline floored at a share of the blind you
+are building toward and capped at the final blind of a run. The design and its
+known weaknesses are in
+[`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md)
+and
+[`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
 
 Heuristic weights live in [`src/engine/tuning.ts`](src/engine/tuning.ts), separate
 from the game rules in `gameRules.ts`, `economy.ts` and `score.ts`. A game rule is

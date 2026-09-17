@@ -6,6 +6,7 @@ import type {
   CardMatch, Edition, HandType, HandValueDef, JokerScore, RunCount, RunState, ScoreContribution,
 } from '../types';
 import { stakeHas } from './gameRules';
+import { TUNING } from './tuning';
 import { faceShare, suitShare } from './deckSignals';
 
 const handValues = handValuesJson as unknown as HandValueDef[];
@@ -256,42 +257,106 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
 }
 
 /**
- * How much adding one joker multiplies the estimate for this hand.
+ * The near-term bar: the boss blind an ante ahead, not merely the one in front
+ * of you. Balatro's targets escalate by roughly 2.5x per ante, so a board that
+ * only just clears today is already behind.
+ *
+ * This is the unit a card's worth is measured in, and the floor under the
+ * baseline. It is deliberately *not* the point where more score stops helping.
+ */
+export function scoreTarget(run: RunState): number {
+  const ante = Math.floor(run.ante) + TUNING.prior.lookaheadAntes;
+  return blindTargets(ante, run.deck, run.stake).boss;
+}
+
+/**
+ * The point past which more score genuinely buys nothing: the final boss of a
+ * full run.
+ *
+ * Saturating at the near-term target instead would tell a player at ante 2 to
+ * stop buying the moment they can clear ante 3 — which is how runs are lost,
+ * since the bar rises roughly 2.5x every ante afterwards. Only a board that
+ * already clears the last blind has finished scaling.
+ */
+export function scoreCeiling(run: RunState): number {
+  return blindTargets(TUNING.economy.antesPerRun, run.deck, run.stake).boss;
+}
+
+/**
+ * The score a card's contribution is measured against.
+ *
+ * Not simply your current estimate. A bare board scores about 12 against a 600
+ * blind, and dividing by 12 makes every card look like a miracle: +4 Mult reads
+ * as "+400%" when it is nowhere near enough to win. The baseline is therefore
+ * floored at a share of the target, on the grounds that boards far below the
+ * target are all equally losing and the useful question is how much a card
+ * *adds*, not what it multiplies a near-zero number by.
+ */
+export function scoreBaseline(run: RunState, hand: HandType): number {
+  const current = Math.min(estimateHandScore(run, hand).score, scoreCeiling(run));
+  return Math.max(current, scoreTarget(run) * TUNING.prior.minBaselineShare);
+}
+
+/**
+ * Turns an absolute score contribution into a multiplier on the baseline.
+ *
+ * Saturating at the target is the other half of the story: once a board clears
+ * what it is building toward, more score buys nothing, and the advisor should
+ * say so rather than keep recommending upgrades.
+ */
+export function marginalMultiplier(run: RunState, hand: HandType, contribution: number): number {
+  if (contribution <= 0) return 1;
+  const baseline = scoreBaseline(run, hand);
+  if (baseline <= 0) return 1;
+  return Math.max(1, Math.min(baseline + contribution, scoreCeiling(run)) / baseline);
+}
+
+/**
+ * Absolute score that adding one joker contributes, in the same units as the
+ * estimate itself. Zero when its modelled part cannot fire on this hand.
  *
  * `score` undefined means the joker's own ability is not modelled, so only its
- * edition contributes — the caller supplies a prior for the ability itself.
+ * edition contributes — the caller supplies an estimate for the ability itself.
  *
  * The joker is appended rightmost, which is where an xMult joker belongs and
  * where jokerOrder.ts advises putting one. A player who leaves it elsewhere
  * gets less than this out of it.
  */
-export function jokerScoreMultiplier(
+export function jokerScoreContribution(
   run: RunState,
   hand: HandType,
   score: JokerScore | undefined,
   edition: Edition,
 ): number {
   const before = estimateHandScore(run, hand).score;
-  if (before <= 0) return 1;
   const after = estimateWithBoard(run, hand, [...boardOf(run), { name: '', score, edition }]).score;
-  return after / before;
+  return Math.max(0, after - before);
 }
 
-/** How much raising this hand's level multiplies its estimate. Exact, not a guess. */
+/** How much adding one joker multiplies what the run is building toward. */
+export function jokerScoreMultiplier(
+  run: RunState,
+  hand: HandType,
+  score: JokerScore | undefined,
+  edition: Edition,
+): number {
+  return marginalMultiplier(run, hand, jokerScoreContribution(run, hand, score, edition));
+}
+
+/** How much raising this hand's level moves the run along. Exact, not a guess. */
 export function handLevelMultiplier(run: RunState, hand: HandType, levels = 1): number {
   const before = estimateHandScore(run, hand).score;
-  if (before <= 0) return 1;
   const raised: RunState = {
     ...run,
     handLevels: { ...run.handLevels, [hand]: (run.handLevels[hand] ?? 1) + levels },
   };
-  return estimateHandScore(raised, hand).score / before;
+  const after = estimateHandScore(raised, hand).score;
+  return marginalMultiplier(run, hand, after - before);
 }
 
 /** Estimated score gain from adding this joker to the current run. */
 export function estimateJokerDelta(run: RunState, hand: HandType, jokerId: string, edition: Edition): number {
   const joker = getJoker(jokerId);
   if (!joker?.score) return 0;
-  const before = estimateHandScore(run, hand).score;
-  return Math.round(before * jokerScoreMultiplier(run, hand, joker.score, edition)) - before;
+  return jokerScoreContribution(run, hand, joker.score, edition);
 }

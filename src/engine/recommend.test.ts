@@ -83,9 +83,9 @@ describe('recommend — full joker slots', () => {
       shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
     );
     expect(recs[0].kind).toBe('sell-and-buy');
-    // Crafty Joker needs a Flush and the reference hand is High Card, so it is
-    // contributing nothing at all — a better thing to sell than a joker that fires.
-    expect(recs[0].action).toMatch(/^Sell Crafty Joker, buy Blueprint/);
+    // Crafty Joker contributes nothing on this hand but sits on the recommended
+    // Flush plan, so it is kept; the plain Joker, which fits no plan, goes.
+    expect(recs[0].action).toMatch(/^Sell Joker, buy Blueprint/);
     expect(recs[0].reasons.join(' ')).toMatch(/Slots full/);
   });
 
@@ -190,7 +190,7 @@ describe('recommendPackPick — replacement hints', () => {
       jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
     });
     const picks = recommendPackPick(fullRun, ['blueprint']);
-    expect(picks[0].reasons.join(' ')).toMatch(/sell Crafty Joker .*to make room/);
+    expect(picks[0].reasons.join(' ')).toMatch(/sell Joker .*to make room/);
   });
 
   it('warns without a sell target when no pack pick is worth a slot', () => {
@@ -329,8 +329,8 @@ describe('recommend — score estimate', () => {
     );
     const buy = recs.find(r => r.kind === 'buy-joker')!;
     expect(buy.evidence).toBe('partial');
-    expect(buy.reasons.join(' ')).toMatch(/Modelled at .* on your High Card right now/);
-    expect(buy.reasons.join(' ')).toMatch(/tempered by its \d+\/10 rating/);
+    expect(buy.reasons.join(' ')).toMatch(/Modelled at about [\d,]+ score on your High Card/);
+    expect(buy.reasons.join(' ')).toMatch(/weighed against its \d+\/10 rating/);
   });
 
   it('says nothing about jokers it cannot model', () => {
@@ -416,7 +416,7 @@ describe('a card the model knows is dead', () => {
     const dead = recommendPackPick(base, ['steel-joker'])[0];
     const live = recommendPackPick(withSteel, ['steel-joker'])[0];
     expect(live.impact).toBeGreaterThan(dead.impact);
-    expect(live.reasons.join(' ')).toMatch(/Modelled at/);
+    expect(live.reasons.join(' ')).toMatch(/Modelled at about/);
   });
 
   it('treats a hand-conditional joker that cannot fire as the weakest on the board', () => {

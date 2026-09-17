@@ -5,8 +5,9 @@ import type {
 } from '../types';
 import { interestCapFor, runInterest, runInterestLost, sellValue } from './economy';
 import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
-import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorFromRating } from './impact';
+import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution } from './impact';
 import type { Impact, JokerContext } from './impact';
+import { marginalMultiplier, referenceHand } from './score';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
 
@@ -211,7 +212,8 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
   const rounds = roundsRemaining(ante);
   const fullRun = TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte;
   const share = rounds / fullRun;
-  const multiplier = 1 + (priorFromRating(def.rating) - 1) * share;
+  const hand = referenceHand(run);
+  const multiplier = marginalMultiplier(run, hand, priorContribution(run, def.rating) * share);
   const reasons = [def.effect];
   if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
 
@@ -227,8 +229,10 @@ function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {
     return unavailable('buy-pack', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
   }
   const cost = costOf(run, def.cost);
+  const hand = referenceHand(run);
+  const multiplier = marginalMultiplier(run, hand, priorContribution(run, def.rating[phase]));
   return rec(
-    'buy-pack', action, priorFromRating(def.rating[phase]), cost.dollars,
+    'buy-pack', action, multiplier, cost.dollars,
     [`${def.options} options, pick ${def.picks}`, ...cost.reasons], def.id,
   );
 }

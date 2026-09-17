@@ -21,7 +21,9 @@ import { detectArchetype, TAG_HAND_AFFINITY } from './archetype';
 import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
-import { handLevelMultiplier, jokerScoreMultiplier, referenceHand } from './score';
+import {
+  handLevelMultiplier, jokerScoreContribution, marginalMultiplier, referenceHand, scoreTarget,
+} from './score';
 import { TUNING } from './tuning';
 
 export type Evidence = 'modeled' | 'partial' | 'heuristic';
@@ -34,17 +36,25 @@ export interface Impact {
 }
 
 /**
- * Turns a curated 0-10 rating into an expected score multiplier.
+ * What a curated 0-10 rating is worth, in score.
  *
- * This is the single assumption the whole heuristic half of the model rests on:
- * a 10/10 joker is taken to be worth roughly `ratingTopMultiplier` times your
- * hand score, and ratings interpolate geometrically between that and 1. It is a
- * judgement call, but it is now *one* judgement call in a named place, rather
- * than fifty additive constants that only made sense relative to each other.
+ * This is the single assumption the heuristic half of the model rests on: a
+ * 10/10 joker contributes about `topShareOfTarget` of the blind the run is
+ * building toward, and lower ratings fall away along `ratingCurve`.
+ *
+ * Crucially it returns a *contribution*, the same quantity the score model
+ * produces, so the two can be blended and compared instead of living on
+ * different scales. Making this marginal rather than absolute is what let
+ * `modelWeight` rise from 0.3 to 0.7.
  */
-export function priorFromRating(rating: number): number {
-  const clamped = Math.min(10, Math.max(0, rating));
-  return TUNING.prior.ratingTopMultiplier ** (clamped / 10);
+export function priorContribution(run: RunState, rating: number): number {
+  const clamped = Math.min(10, Math.max(0, rating)) / 10;
+  return scoreTarget(run) * TUNING.prior.topShareOfTarget * clamped ** TUNING.prior.ratingCurve;
+}
+
+/** What a rating is worth as a multiplier on what the run is building toward. */
+export function priorFromRating(run: RunState, hand: HandType, rating: number): number {
+  return marginalMultiplier(run, hand, priorContribution(run, rating));
 }
 
 /** Multiplier for however many of the run's dominant tags a card shares. */
@@ -104,33 +114,31 @@ export function jokerImpact(
   let multiplier: number;
   let evidence: Evidence;
 
+  // The edition is a flat effect on the card, so it is always computed outright.
+  const editionScore = jokerScoreContribution(run, hand, undefined, edition);
+  const rating = def.rating[ctx.phase];
+  const rated = priorContribution(run, rating);
+
   if (def.score) {
-    const modelled = jokerScoreMultiplier(run, hand, def.score, edition);
-    const prior = priorFromRating(def.rating[ctx.phase]) * jokerScoreMultiplier(run, hand, undefined, edition);
+    const modelled = jokerScoreContribution(run, hand, def.score, edition);
+    // Geometric, so a modelled contribution of zero carries through: a joker the
+    // model knows cannot fire is not rescued by a good rating.
+    const w = TUNING.prior.modelWeight;
+    const blended = modelled ** w * rated ** (1 - w);
+    multiplier = marginalMultiplier(run, hand, blended);
     evidence = 'partial';
-    if (modelled > 1) {
-      // Blended rather than taken straight: see TUNING.prior.modelWeight for why
-      // a marginal gain on the current board is not the whole story.
-      const w = TUNING.prior.modelWeight;
-      multiplier = modelled ** w * prior ** (1 - w);
+    if (modelled > editionScore) {
       reasons.push(
-        `Modelled at ${formatMultiplier(modelled)} on your ${hand} right now,`
-        + ` tempered by its ${def.rating[ctx.phase]}/10 rating over a full run`,
+        `Modelled at about ${Math.round(modelled).toLocaleString('en-US')} score on your ${hand},`
+        + ` weighed against its ${rating}/10 rating over a full run`,
       );
     } else {
-      // The blend exists to temper an inflated marginal, not to rescue a card the
-      // model knows is dead. Steel Joker with no steel cards adds exactly nothing,
-      // and that is a certainty, not a noisy estimate — letting a 7/10 rating lift
-      // it back to "+68%" would be the model reporting the opposite of what it knows.
-      multiplier = modelled;
       reasons.push(`Adds nothing to your ${hand} as your deck and board stand`);
     }
   } else {
-    const ability = priorFromRating(def.rating[ctx.phase]);
-    const editionOnly = jokerScoreMultiplier(run, hand, undefined, edition);
-    multiplier = ability * editionOnly;
+    multiplier = marginalMultiplier(run, hand, rated + editionScore);
     evidence = 'heuristic';
-    reasons.push(`${def.rarity} joker rated ${def.rating[ctx.phase]}/10 at this stage — effect not modelled`);
+    reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — effect not modelled`);
   }
   if (edition !== 'base') reasons.push(`${edition} edition is a bonus`);
 
@@ -210,7 +218,7 @@ export function consumableImpact(
     return { multiplier, evidence: 'heuristic', reasons };
   }
 
-  return { multiplier: priorFromRating(def.rating), evidence: 'heuristic', reasons };
+  return { multiplier: priorFromRating(run, hand, def.rating), evidence: 'heuristic', reasons };
 }
 
 /** Impact of a card in a shop slot, resolved from the catalog. */

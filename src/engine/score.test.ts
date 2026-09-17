@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile, newRunState } from '../run/runStore';
-import { blindTargets, estimateHandScore, estimateJokerDelta, handContains, referenceHand } from './score';
+import {
+  blindTargets, estimateHandScore, estimateJokerDelta, handContains, marginalMultiplier,
+  referenceHand, scoreBaseline, scoreCeiling, scoreTarget,
+} from './score';
 import type { RunState } from '../types';
 
 function runWith(jokerIds: string[] = [], overrides: Partial<RunState> = {}): RunState {
@@ -227,5 +230,53 @@ describe('per-card and per-count score models', () => {
     const estimate = estimateHandScore(withJokers(['scary-face', 'blueprint']), 'Pair');
     expect(estimate.modeled).toContain('Scary Face');
     expect(estimate.unmodeled).toContain('Blueprint');
+  });
+});
+
+describe('the baseline a contribution is measured against', () => {
+  it('floors a bare board so a small card is not a miracle', () => {
+    const bare = newRunState('Red', 'White');
+    // 12 score against a 600 blind: dividing by 12 would read as "+400%".
+    expect(estimateHandScore(bare, 'High Card').score).toBeLessThan(50);
+    expect(scoreBaseline(bare, 'High Card')).toBe(scoreTarget(bare) * 0.25);
+    expect(marginalMultiplier(bare, 'High Card', 48)).toBeLessThan(1.2);
+  });
+
+  it('uses the real board once it is above the floor', () => {
+    const strong: RunState = {
+      ...newRunState('Red', 'White'),
+      handLevels: { ...newRunState('Red', 'White').handLevels, Flush: 8 },
+    };
+    const score = estimateHandScore(strong, 'Flush').score;
+    expect(score).toBeGreaterThan(scoreTarget(strong) * 0.25);
+    expect(scoreBaseline(strong, 'Flush')).toBe(score);
+  });
+
+  it('saturates only at the final blind, not the next one', () => {
+    const run: RunState = { ...newRunState('Red', 'White'), ante: 2 };
+    expect(scoreCeiling(run)).toBeGreaterThan(scoreTarget(run) * 10);
+    // A board that clears the next ante is nowhere near done scaling, so a real
+    // contribution must still register as a gain.
+    const nearNextTarget = scoreTarget(run);
+    const at: RunState = { ...run };
+    expect(marginalMultiplier(at, 'Pair', nearNextTarget)).toBeGreaterThan(1.5);
+  });
+
+  it('reports no gain for a board that already clears the final blind', () => {
+    const run: RunState = { ...newRunState('Red', 'White'), ante: 8 };
+    const ceiling = scoreCeiling(run);
+    const maxed: RunState = {
+      ...run,
+      handLevels: { ...run.handLevels, 'Flush Five': 200 },
+    };
+    expect(estimateHandScore(maxed, 'Flush Five').score).toBeGreaterThan(ceiling);
+    expect(marginalMultiplier(maxed, 'Flush Five', ceiling)).toBe(1);
+  });
+
+  it('never reports a contribution as a loss', () => {
+    const run = newRunState('Red', 'White');
+    for (const c of [0, -100, 1, 1e9]) {
+      expect(marginalMultiplier(run, 'Pair', c), String(c)).toBeGreaterThanOrEqual(1);
+    }
   });
 });

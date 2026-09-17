@@ -34,36 +34,47 @@ export const TUNING = {
 
   prior: {
     /**
-     * The single assumption the heuristic half of the model rests on: a 10/10
-     * joker is taken to be worth roughly this much of your hand score, with
-     * ratings interpolating geometrically down to 1 at rating 0.
-     *
-     * Raise it and unmodelled jokers outrank modelled ones more often; lower it
-     * and the advisor trusts its own catalog ratings less.
+     * Share of the blind target a 10/10 joker is assumed to contribute on its
+     * own. This is what the catalog rating is worth, expressed in the same
+     * units the score model works in, so the two can be compared at all.
      */
-    ratingTopMultiplier: 3,
+    topShareOfTarget: 0.8,
+    /**
+     * Curve applied to the 0-10 rating. Above 1, top-rated jokers pull further
+     * ahead of merely good ones, which matches how Balatro actually plays:
+     * the gap between a 9 and a 7 is wider than between a 5 and a 3.
+     */
+    ratingCurve: 1.5,
+    /**
+     * How many antes ahead the run is judged against. Zero would measure cards
+     * against the blind in front of you, which is losing play — targets grow by
+     * roughly 2.5x per ante, so a board that only just clears today is behind.
+     */
+    lookaheadAntes: 1,
+    /**
+     * Floor under the baseline a contribution is measured against, as a share of
+     * the target.
+     *
+     * Without it, a bare board scoring 12 against a 600 blind makes every card a
+     * miracle: +4 Mult divided by 12 reads as "+400%" for a card nowhere near
+     * enough to win. Boards far below the target are all equally losing, so what
+     * matters there is how much a card adds, not what it multiplies near-zero by.
+     */
+    minBaselineShare: 0.25,
     /**
      * How far to trust the score model over the catalog rating, as the exponent
-     * in a geometric blend of the two.
+     * in a geometric blend of the two *contributions*.
      *
-     * The two halves of the model measure different things. The score model
-     * knows this card's exact numbers against your board *right now*, which
-     * makes it explode on an empty board: +4 Mult on a bare High Card really is
-     * a 5x marginal gain, and really does stop mattering by ante 4. The rating
-     * knows how the card holds up across a run but nothing about your board.
+     * Both halves now estimate the same quantity — absolute score added, against
+     * the same baseline — so this is no longer reconciling incompatible scales.
+     * It weighs an exact but narrow estimate (the model covers a joker's
+     * unconditional part only) against a broad but vague one (the rating covers
+     * the whole card, including what it is worth over a run).
      *
-     * Blending keeps a modelled joker from outranking an unmodelled one purely
-     * because it happens to be one of the 19 the catalog has numbers for.
-     *
-     * KNOWN WEAKNESS: the two halves are not measuring the same thing. The prior
-     * is absolute (how good is this card, generally), the model is marginal (what
-     * does it do to this board, now). On a bare board every marginal is enormous,
-     * so the weight sits well below half — the rating carries more of the
-     * decision than a "we modelled it" label suggests. Making the prior marginal
-     * too, by modelling diminishing returns against board strength, is the fix;
-     * this constant is the stopgap until then.
+     * Because the blend is geometric, a modelled contribution of zero carries
+     * through: a joker the model knows cannot fire is not rescued by its rating.
      */
-    modelWeight: 0.3,
+    modelWeight: 0.7,
   },
 
   /** Owned jokers sharing a dominant tag with the card being judged. */
