@@ -29,8 +29,9 @@ jobs:
       - run: npm run lint
       - run: npm run validate:catalog
       - run: npm test
-      - run: npm run build -- --base=/bal-track/
       - run: npx playwright install --with-deps chromium
+      # Runs before the Pages build: it makes its own default-base build, and
+      # the deploy build must be the one left in dist/ afterwards.
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -38,6 +39,7 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+      - run: npm run build -- --base=/bal-track/
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

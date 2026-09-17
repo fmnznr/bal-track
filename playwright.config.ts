@@ -31,7 +31,13 @@ export default defineConfig({
     },
   }],
   webServer: {
-    command: 'npm run preview -- --port 4173 --strictPort',
+    // Builds its own output rather than serving whatever dist/ happens to hold.
+    // CI builds with --base=/bal-track/ for Pages, and that build cannot be
+    // exercised at "/": the HTML is served but its asset links point at
+    // /bal-track/, so nothing mounts. Binding to 127.0.0.1 explicitly matters
+    // too — vite defaults to "localhost", which can resolve to ::1 on a runner
+    // while Playwright polls IPv4 and waits for a server that is already up.
+    command: 'npm run build && npm run preview -- --port 4173 --strictPort --host 127.0.0.1',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
