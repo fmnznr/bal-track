@@ -1,4 +1,5 @@
 import type { DeckProfile, JokerDef, Suit } from '../types';
+import { TUNING } from './tuning';
 
 const SUIT_TAGS: Record<string, Suit> = {
   'suit-hearts': 'hearts',
@@ -29,26 +30,28 @@ export interface DeckSignal {
   notes: string[];
 }
 
+const { enhanced: ENHANCED } = TUNING.deck;
+
+/** Scales a joker with the matching enhanced cards the deck actually holds. */
+function scaleWithEnhanced(count: number, label: string): { delta: number; notes: string[] } {
+  if (count === 0) return { delta: ENHANCED.noneYetPenalty, notes: [`No ${label} cards in your deck yet`] };
+  return {
+    delta: Math.min(ENHANCED.perMatchingCardCap, count * ENHANCED.perMatchingCard),
+    notes: [`${count} ${label} card${count === 1 ? '' : 's'} in your deck`],
+  };
+}
+
 const ENHANCED_HOOKS: Record<string, (p: DeckProfile) => { delta: number; notes: string[] }> = {
-  'steel-joker': p =>
-    p.enhanced.steel > 0
-      ? {
-          delta: Math.min(3, p.enhanced.steel * 0.5),
-          notes: [`${p.enhanced.steel} steel card${p.enhanced.steel === 1 ? '' : 's'} in your deck`],
-        }
-      : { delta: -1, notes: ['No steel cards in your deck yet'] },
-  'glass-joker': p =>
-    p.enhanced.glass > 0
-      ? {
-          delta: Math.min(3, p.enhanced.glass * 0.5),
-          notes: [`${p.enhanced.glass} glass card${p.enhanced.glass === 1 ? '' : 's'} in your deck`],
-        }
-      : { delta: -1, notes: ['No glass cards in your deck yet'] },
+  'steel-joker': p => scaleWithEnhanced(p.enhanced.steel, 'steel'),
+  'glass-joker': p => scaleWithEnhanced(p.enhanced.glass, 'glass'),
   'drivers-license': p => {
     const total = Object.values(p.enhanced).reduce((a, b) => a + b, 0);
-    return total >= 16
-      ? { delta: 3, notes: [`${total} enhanced cards — Driver's License is live`] }
-      : { delta: -2, notes: [`Only ${total}/16 enhanced cards in your deck`] };
+    return total >= ENHANCED.driversLicenseRequirement
+      ? { delta: ENHANCED.driversLicenseLive, notes: [`${total} enhanced cards — Driver's License is live`] }
+      : {
+          delta: ENHANCED.driversLicenseDead,
+          notes: [`Only ${total}/${ENHANCED.driversLicenseRequirement} enhanced cards in your deck`],
+        };
   },
 };
 
@@ -66,29 +69,31 @@ export function deckSignalForJoker(def: JokerDef, profile: DeckProfile): DeckSig
     const count = suits.reduce((sum, s) => sum + profile.suits[s], 0);
     const share = profile.deckSize > 0 ? Math.min(1, count / profile.deckSize) : 0;
     const label = suits.join('/');
-    const boostThreshold = suits.length > 1 ? 0.7 : 0.4;
+    const { suit: SUIT } = TUNING.deck;
+    const boostThreshold = suits.length > 1 ? SUIT.abundantAboveMulti : SUIT.abundantAboveSingle;
     if (count === 0) {
-      capAt = 1;
+      capAt = SUIT.noneCap;
       notes.push(`No ${label} cards left in your deck`);
-    } else if (profile.deckSize > 0 && share < 0.15) {
-      delta -= 2;
+    } else if (profile.deckSize > 0 && share < SUIT.scarceBelow) {
+      delta += SUIT.scarcePenalty;
       notes.push(`Few ${label} cards in your deck (${Math.round(share * 100)}%)`);
     } else if (profile.deckSize > 0 && share > boostThreshold) {
-      delta += 1.5;
+      delta += SUIT.abundantBonus;
       notes.push(`Your deck is loaded with ${label} (${Math.round(share * 100)}%)`);
     }
   }
 
   if (def.tags.includes('face-cards') && !FACE_ENABLERS.has(def.id)) {
+    const { face: FACE } = TUNING.deck;
     const share = faceShare(profile);
     if (profile.faceCards === 0) {
-      capAt = Math.min(capAt ?? Infinity, 1);
+      capAt = Math.min(capAt ?? Infinity, FACE.noneCap);
       notes.push('No face cards in your deck');
-    } else if (profile.deckSize > 0 && share < 0.15) {
-      delta -= 1.5;
+    } else if (profile.deckSize > 0 && share < FACE.scarceBelow) {
+      delta += FACE.scarcePenalty;
       notes.push(`Few face cards in your deck (${Math.round(share * 100)}%)`);
-    } else if (profile.deckSize > 0 && share > 0.3) {
-      delta += 1;
+    } else if (profile.deckSize > 0 && share > FACE.abundantAbove) {
+      delta += FACE.abundantBonus;
       notes.push(`Face-heavy deck (${Math.round(share * 100)}%)`);
     }
   }

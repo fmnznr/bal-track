@@ -1,4 +1,5 @@
 import type { JokerDef, RunState } from '../types';
+import { TUNING } from './tuning';
 
 export interface PlaySignal {
   delta: number;
@@ -21,28 +22,28 @@ const NEUTRAL: PlaySignal = { delta: 0, notes: [] };
  */
 export function playSignalForJoker(def: JokerDef, run: RunState): PlaySignal {
   const primary = run.primaryHand;
-  const extraDiscards = run.discardsPerRound - 3;
+  const extraDiscards = run.discardsPerRound - TUNING.play.baselineDiscardsPerRound;
 
   switch (def.id) {
     // Scales with repeat plays of one hand, so a declared plan is what makes it good.
     case 'supernova':
       if (!primary) return NEUTRAL;
       return {
-        delta: 1,
+        delta: TUNING.play.consistentHandBonus,
         notes: [`You build around ${primary}, so Supernova keeps climbing`],
       };
     // Wants the opposite: it rewards never repeating a hand.
     case 'obelisk':
       if (!primary) return NEUTRAL;
       return {
-        delta: -1.5,
+        delta: TUNING.play.varietyJokerPenalty,
         notes: [`Obelisk wants hand variety, but you build around ${primary}`],
       };
     case 'banner':
     case 'delayed-gratification': {
       if (extraDiscards === 0) return NEUTRAL;
       return {
-        delta: extraDiscards * 0.5,
+        delta: extraDiscards * TUNING.play.perExtraDiscard,
         notes: [`${run.discardsPerRound} discards per round`],
       };
     }

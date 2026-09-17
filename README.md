@@ -79,6 +79,7 @@ worker.
 - `src/data/` — catalog data and structural validation tests.
 - `src/catalog/` — typed catalog lookups and the autocomplete search index.
 - `src/engine/` — pure recommendation, strategy, economy and scoring rules.
+- `src/engine/tuning.ts` — every tunable heuristic weight, in one annotated table.
 - `src/run/` — versioned local persistence and the transactional reducer.
 - `src/ui/` — mobile-first React screens and reusable controls.
 
@@ -86,6 +87,12 @@ Keeping the engine pure makes recommendation scenarios easy to regression-test
 without rendering the UI.
 
 ## Data and calibration
+
+Heuristic weights live in [`src/engine/tuning.ts`](src/engine/tuning.ts), separate
+from the game rules in `gameRules.ts`, `economy.ts` and `score.ts`. A game rule is
+right or wrong; a tuning weight is a judgement call about desirability. Change a
+weight there and prove the new behaviour in the scenario tests — the tuning tests
+only guard the table's shape, not whether a value is strategically sound.
 
 Catalog facts are transcribed from the community-maintained
 [Balatro Wiki](https://balatrogame.fandom.com/wiki/Balatro_Wiki). Stake score

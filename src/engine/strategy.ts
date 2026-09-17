@@ -3,6 +3,7 @@ import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
 import { maxSuitShare } from './deckSignals';
+import { TUNING } from './tuning';
 
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
@@ -15,8 +16,8 @@ export function getArchetype(id: string): ArchetypeDef | undefined {
 }
 
 /** Top score needed before the advisor commits to / leans toward a plan. */
-export const COMMIT_THRESHOLD = 6;
-export const LEAN_THRESHOLD = 3;
+export const COMMIT_THRESHOLD = TUNING.strategy.commitThreshold;
+export const LEAN_THRESHOLD = TUNING.strategy.leanThreshold;
 
 export function adviseStrategy(run: RunState): StrategyAdvice {
   const deck = deckByName.get(run.deck);
@@ -35,7 +36,7 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
       if (def?.tags.some(t => arch.coreTags.includes(t))) tagHits += 1;
     }
     const keyOwned = arch.keyJokers.filter(id => ownedIds.has(id)).length;
-    score += tagHits * 2 + keyOwned * 1.5;
+    score += tagHits * TUNING.strategy.perTagHit + keyOwned * TUNING.strategy.perKeyJokerOwned;
     if (tagHits > 0) reasons.push(`${tagHits} of your jokers support this direction`);
     if (keyOwned > 0) reasons.push(`You already own ${keyOwned} key joker${keyOwned > 1 ? 's' : ''}`);
 
@@ -47,8 +48,8 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
 
     if (arch.id === 'flush') {
       const { suit, share } = maxSuitShare(run.deckProfile);
-      if (share > 0.4) {
-        score += 1.5;
+      if (share > TUNING.strategy.flushSuitShareAbove) {
+        score += TUNING.strategy.flushSuitShareBonus;
         reasons.push(`${Math.round(share * 100)}% of your deck is ${suit}`);
       }
     }
@@ -57,13 +58,13 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
     // weight immediately — unlike the play counters it replaced, it cannot be
     // skewed by one unusual blind.
     if (run.primaryHand && arch.hands.includes(run.primaryHand)) {
-      score += 3;
+      score += TUNING.strategy.declaredHandMatch;
       reasons.push(`${run.primaryHand} is the hand you build around`);
     }
 
     const leveled = arch.hands.reduce((sum, hand) => sum + Math.max(0, run.handLevels[hand] - 1), 0);
     if (leveled > 0) {
-      score += Math.min(3, leveled * 0.75);
+      score += Math.min(TUNING.strategy.perLevelInvestedCap, leveled * TUNING.strategy.perLevelInvested);
       reasons.push('You already leveled the matching hands');
     }
 
