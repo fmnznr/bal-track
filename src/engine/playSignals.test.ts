@@ -1,86 +1,61 @@
 import { describe, expect, it } from 'vitest';
 import { newRunState } from '../run/runStore';
 import { getJoker } from '../catalog/catalog';
-import { mostPlayedHand, playConfidence, playShare, playSignalForJoker, totalPlays } from './playSignals';
+import { playMultiplierForJoker } from './playSignals';
+import { TUNING } from './tuning';
 import type { HandType, RunState } from '../types';
 
-function runWith(plays: Partial<Record<HandType, number>> = {}, resource: Partial<RunState> = {}): RunState {
-  const base = newRunState('Magic', 'White');
-  return { ...base, handPlays: { ...base.handPlays, ...plays }, ...resource };
+function runWith(primaryHand: HandType | null = null, resource: Partial<RunState> = {}): RunState {
+  return { ...newRunState('Magic', 'White'), primaryHand, ...resource };
 }
 
-describe('play statistics', () => {
-  it('sums plays and finds the most played hand', () => {
-    const run = runWith({ Flush: 8, Pair: 4 });
-    expect(totalPlays(run)).toBe(12);
-    expect(mostPlayedHand(run)).toBe('Flush');
-    expect(playShare(run, ['Flush'])).toBeCloseTo(8 / 12);
-    expect(mostPlayedHand(runWith())).toBeNull();
-  });
-});
-
-describe('playSignalForJoker', () => {
+describe('playMultiplierForJoker', () => {
   const supernova = getJoker('supernova')!;
   const obelisk = getJoker('obelisk')!;
-  const greenJoker = getJoker('green-joker')!;
-  const iceCream = getJoker('ice-cream')!;
   const banner = getJoker('banner')!;
+  const delayed = getJoker('delayed-gratification')!;
   const blueprint = getJoker('blueprint')!;
 
-  it('is neutral at default resources with nothing played', () => {
+  it('is neutral at default resources with no hand declared', () => {
     const fresh = runWith();
-    for (const def of [supernova, obelisk, greenJoker, iceCream, banner, blueprint]) {
-      expect(playSignalForJoker(def, fresh), def.id).toEqual({ delta: 0, notes: [] });
+    for (const def of [supernova, obelisk, delayed, blueprint]) {
+      expect(playMultiplierForJoker(def, fresh), def.id).toEqual({ multiplier: 1, reasons: [] });
     }
   });
 
-  it('rewards Supernova for a well-played hand', () => {
-    const signal = playSignalForJoker(supernova, runWith({ Flush: 10 }));
-    expect(signal.delta).toBeCloseTo(1.5);
-    expect(signal.notes.join(' ')).toMatch(/10 plays/);
+  it('rewards Supernova once a hand is declared', () => {
+    const signal = playMultiplierForJoker(supernova, runWith('Flush'));
+    expect(signal.multiplier).toBe(TUNING.play.consistentHand);
+    expect(signal.multiplier).toBeGreaterThan(1);
+    expect(signal.reasons.join(' ')).toMatch(/Flush/);
   });
 
-  it('warns that Obelisk wants variety in a focused build', () => {
-    const signal = playSignalForJoker(obelisk, runWith({ Flush: 9, Pair: 1 }));
-    expect(signal.delta).toBe(-2);
-    expect(signal.notes.join(' ')).toMatch(/90%/);
+  it('warns that Obelisk wants variety in a declared build', () => {
+    const signal = playMultiplierForJoker(obelisk, runWith('Flush'));
+    expect(signal.multiplier).toBe(TUNING.play.varietyJoker);
+    expect(signal.multiplier).toBeLessThan(1);
+    expect(signal.reasons.join(' ')).toMatch(/variety/i);
   });
 
-  it('scales an owned Green Joker up and Ice Cream down with hands played', () => {
-    const run = runWith({ Flush: 10 });
-    const owned = { jokerId: 'green-joker', edition: 'base' as const, acquiredAtPlays: 0, acquiredAtDiscards: 0 };
-    expect(playSignalForJoker(greenJoker, run, 'owned', owned).delta).toBeCloseTo(0.8);
-    expect(playSignalForJoker(iceCream, run, 'owned', owned).delta).toBeCloseTo(-0.8);
+  it('scales Delayed Gratification with discards per round', () => {
+    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 5 })).multiplier)
+      .toBeCloseTo(TUNING.play.perExtraDiscard ** 2);
+    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 2 })).multiplier)
+      .toBeCloseTo(TUNING.play.perExtraDiscard ** -1);
   });
 
-  it('leaves both alone in the shop, where a fresh copy starts over', () => {
-    const run = runWith({ Flush: 10 });
-    expect(playSignalForJoker(greenJoker, run)).toEqual({ delta: 0, notes: [] });
-    expect(playSignalForJoker(iceCream, run)).toEqual({ delta: 0, notes: [] });
-  });
-
-  it('scales Banner with discards per round', () => {
-    expect(playSignalForJoker(banner, runWith({}, { discardsPerRound: 5 })).delta).toBeCloseTo(1);
-    expect(playSignalForJoker(banner, runWith({}, { discardsPerRound: 2 })).delta).toBeCloseTo(-0.5);
+  it('leaves Banner to the score model rather than signalling it twice', () => {
+    expect(playMultiplierForJoker(banner, runWith(null, { discardsPerRound: 5 })))
+      .toEqual({ multiplier: 1, reasons: [] });
   });
 
   it('ignores untouched jokers', () => {
-    expect(playSignalForJoker(blueprint, runWith({ Flush: 10 }))).toEqual({ delta: 0, notes: [] });
-  });
-});
-
-describe('playSignals — review follow-ups', () => {
-  it('ramps the statistic in with sample size', () => {
-    expect(playConfidence(runWith({ Flush: 7 }))).toBe(0);
-    expect(playConfidence(runWith({ Flush: 9 }))).toBeCloseTo(0.75);
-    expect(playConfidence(runWith({ Flush: 12 }))).toBe(1);
-    expect(playConfidence(runWith({ Flush: 40 }))).toBe(1);
+    expect(playMultiplierForJoker(blueprint, runWith('Flush'))).toEqual({ multiplier: 1, reasons: [] });
   });
 
   it('counts the Red deck extra discard as a real advantage', () => {
     const red = newRunState('Red', 'White');
-    const banner = getJoker('banner')!;
     expect(red.discardsPerRound).toBe(4);
-    expect(playSignalForJoker(banner, red).delta).toBeCloseTo(0.5);
+    expect(playMultiplierForJoker(delayed, red).multiplier).toBeCloseTo(TUNING.play.perExtraDiscard);
   });
 });

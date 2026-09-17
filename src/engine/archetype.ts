@@ -1,9 +1,10 @@
 import { getJoker } from '../catalog/catalog';
 import type { HandType, RunState, SynergyTag } from '../types';
+import { TUNING } from './tuning';
 
 export interface ArchetypeProfile {
   counts: Map<SynergyTag, number>;
-  /** Tags appearing on 2+ owned jokers, most frequent first. */
+  /** Tags appearing on enough owned jokers to count, most frequent first. */
   dominant: SynergyTag[];
 }
 
@@ -22,7 +23,7 @@ export function detectArchetype(run: RunState): ArchetypeProfile {
     for (const tag of def.tags) counts.set(tag, (counts.get(tag) ?? 0) + 1);
   }
   const dominant = [...counts.entries()]
-    .filter(([, n]) => n >= 2)
+    .filter(([, n]) => n >= TUNING.synergy.dominantMinCount)
     .sort((a, b) => b[1] - a[1])
     .map(([tag]) => tag);
   return { counts, dominant };

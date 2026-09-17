@@ -63,18 +63,14 @@ describe('adviseStrategy', () => {
     expect(flush?.reasons.join(' ')).toMatch(/% of your deck is hearts/);
   });
 
-  it('recognises a flush build from the hands actually played', () => {
-    const base = runWith('Red');
-    const flushPlayer = { ...base, handPlays: { ...base.handPlays, Flush: 8, Pair: 4 } };
-    const advice = adviseStrategy(flushPlayer);
+  it('recognises a flush build from the declared hand', () => {
+    const advice = adviseStrategy({ ...runWith('Red'), primaryHand: 'Flush' });
     expect(advice.commitment).not.toBe('open');
     expect(advice.candidates[0].archetypeId).toBe('flush');
-    expect(advice.candidates[0].reasons.join(' ')).toMatch(/8 of 12 hands/);
+    expect(advice.candidates[0].reasons.join(' ')).toMatch(/Flush is the hand you build around/);
   });
 
-  it('ignores a handful of plays as noise', () => {
-    const base = runWith('Red');
-    const barely = { ...base, handPlays: { ...base.handPlays, Flush: 2 } };
-    expect(adviseStrategy(barely).commitment).toBe('open');
+  it('stays open while no hand has been declared', () => {
+    expect(adviseStrategy(runWith('Red')).commitment).toBe('open');
   });
 });

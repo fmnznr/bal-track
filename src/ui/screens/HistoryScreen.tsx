@@ -1,11 +1,13 @@
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 
 export default function HistoryScreen() {
   const { store } = useRun();
+  const t = useT();
   if (store.finished.length === 0) {
     return (
       <section className="screen">
-        <p className="muted">No finished runs yet.</p>
+        <p className="muted">{t('noFinishedRuns')}</p>
       </section>
     );
   }
@@ -13,16 +15,16 @@ export default function HistoryScreen() {
   const winRate = Math.round((wins / store.finished.length) * 100);
   return (
     <section className="screen">
-      <h2>Past runs</h2>
+      <h2>{t('pastRuns')}</h2>
       <p className="muted">
-        {store.finished.length} runs · {wins} wins · {winRate}% win rate
+        {t('historySummary', { runs: store.finished.length, wins, rate: winRate })}
       </p>
       <ul className="rows">
         {store.finished.map((r, i) => (
           <li key={i} className="row">
             <span className="grow">{r.deck} · {r.stake}</span>
-            <span>Ante {r.ante}</span>
-            <span className={r.result === 'won' ? 'won' : 'lost'}>{r.result}</span>
+            <span>{t('ante')} {r.ante}</span>
+            <span className={r.result === 'won' ? 'won' : 'lost'}>{t(r.result)}</span>
             <small>{new Date(r.endedAt).toLocaleDateString()}</small>
           </li>
         ))}

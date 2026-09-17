@@ -33,13 +33,49 @@ export const SYNERGY_TAGS = [
 ] as const;
 export type SynergyTag = (typeof SYNERGY_TAGS)[number];
 
-/** Unconditional score contribution of a joker, if it has one. */
-export interface JokerScore {
+/**
+ * What a per-card effect matches among the cards a hand scores.
+ *
+ * Suit and face shares come from the tracked deck profile, so they follow a
+ * deck that has been converted or thinned. Rank shares assume the ranks are
+ * evenly spread, because the app does not track rank composition.
+ */
+export type CardMatch =
+  | { kind: 'suit'; suit: Suit }
+  | { kind: 'face' }
+  /** Matches this many of the thirteen ranks, e.g. 2 for "each played 10 or 4". */
+  | { kind: 'rank'; ranks: number };
+
+/** A contribution that repeats, once per matching card or per counted thing. */
+export interface ScoreContribution {
   chips?: number;
   mult?: number;
+  /** Compounds per repetition, so it is raised to the power of the count. */
   xmult?: number;
+}
+
+/**
+ * Things a joker can scale with that the run already tracks exactly, so the
+ * estimate needs no assumption at all.
+ */
+export type RunCount =
+  | 'emptyJokerSlots'
+  | 'jokers'
+  | 'discardsPerRound'
+  | 'deckSize'
+  | 'cardsRemovedFromDeck'
+  | 'money'
+  | 'steelCards'
+  | 'stoneCards';
+
+/** Score contribution of a joker, as far as it is modelled. */
+export interface JokerScore extends ScoreContribution {
   /** Only contributes when the estimated hand contains this. */
   requiresHand?: HandType;
+  /** Fires once per scoring card that matches; the count is an expectation. */
+  perCard?: ScoreContribution & { match: CardMatch };
+  /** Scales with something the run tracks, counted exactly. */
+  perCount?: ScoreContribution & { of: RunCount };
 }
 
 export interface JokerDef {
@@ -87,9 +123,6 @@ export interface OwnedJoker {
   jokerId: string;
   edition: Edition;
   stickers?: JokerStickers;
-  /** Global play counters when this copy was acquired, for stateful estimates. */
-  acquiredAtPlays?: number;
-  acquiredAtDiscards?: number;
 }
 
 export interface RunState {
@@ -103,8 +136,12 @@ export interface RunState {
   vouchers: string[]; // voucher ids redeemed this run
   consumables: string[]; // consumable ids currently held
   handLevels: Record<HandType, number>; // all start at 1
-  handPlays: Record<HandType, number>;
-  discardsUsed: number;
+  /**
+   * The hand the player actually builds around, declared once instead of
+   * counted per play. Null until they decide — every signal reading it falls
+   * back to something sensible rather than demanding the input.
+   */
+  primaryHand: HandType | null;
   handsPerRound: number;
   discardsPerRound: number;
   deckProfile: DeckProfile;
@@ -129,7 +166,16 @@ export type RecKind =
 export interface Recommendation {
   kind: RecKind;
   action: string; // human-readable, e.g. "Buy Blueprint ($10)"
+  /**
+   * Ranking value: the estimated score multiplier after paying for the action.
+   * Buying nothing is exactly 1, so above 1 beats sitting on your money and
+   * below 1 does not. 0 means the action cannot be taken at all.
+   */
   score: number;
+  /** The score multiplier on its own, before the cost is charged. */
+  impact: number;
+  /** Dollars the action gives up: its price, lost interest and any upkeep. */
+  costDollars: number;
   /** Action priority. This is desirability, not model certainty. */
   priority: 'high' | 'medium' | 'low';
   /** How much of the recommendation comes from explicit mechanics vs heuristics. */

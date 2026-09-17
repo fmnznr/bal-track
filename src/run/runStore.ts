@@ -1,10 +1,10 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { stakeDiscardPenalty } from '../engine/gameRules';
+import { hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
 import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type {
-  DeckProfile, Edition, EnhancementType, HandType, JokerStickers, PackKind, RunState, ShopState, Suit,
+  DeckProfile, Edition, EnhancementType, HandType, JokerStickers, OwnedJoker, PackKind, RunState, ShopState, Suit,
 } from '../types';
 
 export interface FinishedRun {
@@ -49,8 +49,7 @@ export type RunAction =
   | { type: 'USE_CONSUMABLE'; index: number }
   | { type: 'PLAY_PLANET'; consumableId: string }
   | { type: 'SET_HAND_LEVEL'; hand: HandType; level: number }
-  | { type: 'SET_HAND_PLAYS'; hand: HandType; value: number }
-  | { type: 'SET_DISCARDS_USED'; value: number }
+  | { type: 'SET_PRIMARY_HAND'; hand: HandType | null }
   | { type: 'SET_HANDS_PER_ROUND'; value: number }
   | { type: 'SET_DISCARDS_PER_ROUND'; value: number }
   | { type: 'SPEND'; amount: number }
@@ -118,21 +117,12 @@ export function newRunState(deck: string, stake: string): RunState {
     vouchers: [...(start?.vouchers ?? [])],
     consumables: [...(start?.consumables ?? [])],
     handLevels,
-    handPlays: Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>,
-    discardsUsed: 0,
+    primaryHand: null,
     handsPerRound: DECK_HANDS[deck] ?? 4,
     discardsPerRound: Math.max(0, (DECK_DISCARDS[deck] ?? 3) - stakeDiscardPenalty(stake)),
     deckProfile: initialDeckProfile(deck),
     status: 'active',
   };
-}
-
-function totalHandPlays(run: Pick<RunState, 'handPlays'>): number {
-  return HAND_TYPES.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0);
-}
-
-function usedJokerSlots(run: Pick<RunState, 'jokers'>): number {
-  return run.jokers.filter(j => j.edition !== 'negative').length;
 }
 
 function addJoker(
@@ -143,17 +133,11 @@ function addJoker(
   price = 0,
 ): RunState | null {
   if (!getJoker(jokerId) || price < 0 || price > run.money) return null;
-  if (edition !== 'negative' && usedJokerSlots(run) >= run.jokerSlots) return null;
+  if (!hasFreeJokerSlot(run, edition)) return null;
   return {
     ...run,
     money: run.money - price,
-    jokers: [...run.jokers, {
-      jokerId,
-      edition,
-      stickers,
-      acquiredAtPlays: totalHandPlays(run),
-      acquiredAtDiscards: run.discardsUsed,
-    }],
+    jokers: [...run.jokers, { jokerId, edition, stickers }],
   };
 }
 
@@ -287,13 +271,9 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     }
     case 'SET_HAND_LEVEL':
       return push({ ...run, handLevels: { ...run.handLevels, [action.hand]: Math.max(1, action.level) } });
-    case 'SET_HAND_PLAYS':
-      return push({
-        ...run,
-        handPlays: { ...run.handPlays, [action.hand]: Math.max(0, action.value) },
-      });
-    case 'SET_DISCARDS_USED':
-      return push({ ...run, discardsUsed: Math.max(0, action.value) });
+    case 'SET_PRIMARY_HAND':
+      if (action.hand === run.primaryHand) return state;
+      return push({ ...run, primaryHand: action.hand });
     case 'SET_HANDS_PER_ROUND':
       return push({ ...run, handsPerRound: Math.max(0, action.value) });
     case 'SET_DISCARDS_PER_ROUND':
@@ -400,12 +380,49 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
   }
 }
 
-export const STORAGE_KEY = 'bal-track:v2';
-const LEGACY_STORAGE_KEY = 'bal-track:v1';
+/**
+ * Runs written before the primary hand replaced the per-hand play counters.
+ * Only the fields the migration reads are described.
+ */
+type LegacyRunState = RunState & {
+  handPlays?: Partial<Record<HandType, number>>;
+  discardsUsed?: number;
+  jokers: (OwnedJoker & { acquiredAtPlays?: number; acquiredAtDiscards?: number })[];
+};
+
+/**
+ * Recovers the declared hand from v2 play counters: the most played hand, once
+ * enough hands were recorded to be more than noise. This was the same floor the
+ * old signals used before they would read the counters at all.
+ */
+const LEGACY_MIN_PLAYS = 8;
+
+function derivePrimaryHand(plays: Partial<Record<HandType, number>> | undefined): HandType | null {
+  if (!plays) return null;
+  const total = HAND_TYPES.reduce((sum, hand) => sum + (plays[hand] ?? 0), 0);
+  if (total < LEGACY_MIN_PLAYS) return null;
+  let best: HandType | null = null;
+  for (const hand of HAND_TYPES) {
+    if ((plays[hand] ?? 0) > (best ? (plays[best] ?? 0) : 0)) best = hand;
+  }
+  return best;
+}
+
+export const STORAGE_KEY = 'bal-track:v3';
+const LEGACY_STORAGE_KEYS = ['bal-track:v2', 'bal-track:v1'];
+
+/**
+ * Undo steps kept across a reload. The in-memory stack holds 50; persisting all
+ * of them writes ~50 full run snapshots on every change, which is the bulk of
+ * the payload and the slowest part of a save on a phone. Recent steps are what
+ * anyone actually reaches for after reopening the app.
+ */
+const PERSISTED_UNDO_STEPS = 10;
 
 export function save(state: StoreState): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const trimmed: StoreState = { ...state, past: state.past.slice(-PERSISTED_UNDO_STEPS) };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
   } catch {
     // storage unavailable (private mode etc.) — app still works, just not persistent
   }
@@ -413,7 +430,10 @@ export function save(state: StoreState): void {
 
 export function load(): StoreState | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY);
+    const raw = LEGACY_STORAGE_KEYS.reduce<string | null>(
+      (found, key) => found ?? localStorage.getItem(key),
+      localStorage.getItem(STORAGE_KEY),
+    );
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<StoreState> & { past?: unknown[] };
     const isRun = (value: unknown): value is RunState => {
@@ -423,21 +443,17 @@ export function load(): StoreState | null {
         && Array.isArray(candidate.jokers) && Array.isArray(candidate.vouchers)
         && Array.isArray(candidate.consumables) && typeof candidate.handLevels === 'object';
     };
-    const withDefaults = (r: RunState): RunState => {
-      const handPlays = r.handPlays
-        ?? (Object.fromEntries(HAND_TYPES.map(h => [h, 0])) as Record<HandType, number>);
-      const discardsUsed = r.discardsUsed ?? 0;
-      const acquiredAtPlays = HAND_TYPES.reduce((sum, hand) => sum + (handPlays[hand] ?? 0), 0);
+    const withDefaults = (r: LegacyRunState): RunState => {
+      const {
+        handPlays, discardsUsed: _discardsUsed, primaryHand, ...rest
+      } = r as LegacyRunState & RunState;
       return {
-        ...r,
+        ...rest,
         deckProfile: r.deckProfile ?? initialDeckProfile(r.deck),
-        handPlays,
-        discardsUsed,
-        jokers: r.jokers.map(j => ({
-          ...j,
-          acquiredAtPlays: j.acquiredAtPlays ?? acquiredAtPlays,
-          acquiredAtDiscards: j.acquiredAtDiscards ?? discardsUsed,
-        })),
+        primaryHand: primaryHand ?? derivePrimaryHand(handPlays),
+        // v2 tracked when each joker was acquired to scale Green Joker and Ice
+        // Cream; those signals are gone, so the counters go with them.
+        jokers: r.jokers.map(({ jokerId, edition, stickers }) => ({ jokerId, edition, stickers })),
         handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
         discardsPerRound: r.discardsPerRound
           ?? Math.max(0, (DECK_DISCARDS[r.deck] ?? 3) - stakeDiscardPenalty(r.stake)),

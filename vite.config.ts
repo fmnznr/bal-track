@@ -1,8 +1,6 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
-import { configDefaults } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   server: {
@@ -34,6 +32,8 @@ export default defineConfig({
     // jsdom implementation wins.
     execArgv: ['--no-experimental-webstorage'],
     setupFiles: './src/test-setup.ts',
-    exclude: [...configDefaults.exclude, '**/.claude/**'],
+    // e2e/ belongs to Playwright; vitest cannot run test.use() and would fail
+    // to collect it.
+    exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
   },
 });

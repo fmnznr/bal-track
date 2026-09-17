@@ -2,10 +2,15 @@ import handValuesJson from '../data/handValues.json';
 import blindsJson from '../data/blinds.json';
 import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
-import type { Edition, HandType, HandValueDef, RunState } from '../types';
-import { MIN_PLAYS, mostPlayedHand, totalPlays } from './playSignals';
+import type {
+  CardMatch, Edition, HandType, HandValueDef, JokerScore, RunCount, RunState, ScoreContribution,
+} from '../types';
 import { stakeHas } from './gameRules';
+import { TUNING } from './tuning';
+import { faceShare, suitShare } from './deckSignals';
 
+// Shape-checked by src/data/schema.ts: `npm run validate:catalog` parses this
+// file at build time, and tsc fails if the schema drifts from the type here.
 const handValues = handValuesJson as unknown as HandValueDef[];
 const blinds = blindsJson as {
   anteBase: number[];
@@ -67,11 +72,9 @@ export function blindTargets(ante: number, deck?: string, stake = 'White'): { sm
   };
 }
 
-/** The hand the estimate should describe: what you play, else what you levelled. */
+/** The hand the estimate should describe: what you build around, else what you levelled. */
 export function referenceHand(run: RunState): HandType {
-  // Same noise floor as every other play-statistic signal.
-  const played = totalPlays(run) >= MIN_PLAYS ? mostPlayedHand(run) : null;
-  if (played) return played;
+  if (run.primaryHand) return run.primaryHand;
   let best: HandType = 'High Card';
   for (const hand of HAND_TYPES) {
     if (run.handLevels[hand] > run.handLevels[best]) best = hand;
@@ -93,7 +96,109 @@ export interface ScoreEstimate {
   unmodeled: string[];
 }
 
-export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate {
+/** Ranks in a standard deck, for turning "each played 10 or 4" into a share. */
+const RANKS = 13;
+
+/**
+ * The share of the deck a per-card effect matches, which is also the expected
+ * share of a hand's scoring cards that trigger it.
+ */
+function matchShare(run: RunState, match: CardMatch): number {
+  switch (match.kind) {
+    case 'suit':
+      return suitShare(run.deckProfile, match.suit);
+    case 'face':
+      return faceShare(run.deckProfile);
+    case 'rank':
+      // The deck profile tracks suits and faces but not ranks, so ranks are
+      // assumed evenly spread. A deck stuffed with one rank scores better than
+      // this says.
+      return Math.min(1, Math.max(0, match.ranks / RANKS));
+  }
+}
+
+/** Counts a joker can scale with, read straight off the run. */
+function runCount(run: RunState, of: RunCount): number {
+  switch (of) {
+    case 'emptyJokerSlots':
+      return Math.max(0, run.jokerSlots - run.jokers.filter(j => j.edition !== 'negative').length);
+    case 'jokers':
+      return run.jokers.length;
+    case 'discardsPerRound':
+      return run.discardsPerRound;
+    case 'deckSize':
+      return run.deckProfile.deckSize;
+    case 'cardsRemovedFromDeck':
+      return Math.max(0, STANDARD_DECK_SIZE - run.deckProfile.deckSize);
+    case 'money':
+      return Math.max(0, run.money);
+    case 'steelCards':
+      return run.deckProfile.enhanced.steel;
+    case 'stoneCards':
+      return run.deckProfile.enhanced.stone;
+  }
+}
+
+/** A full Balatro deck, the baseline Erosion counts removals against. */
+const STANDARD_DECK_SIZE = 52;
+
+interface Repeated {
+  chips: number;
+  mult: number;
+  xmult: number;
+}
+
+const NOTHING: Repeated = { chips: 0, mult: 0, xmult: 1 };
+
+/**
+ * A contribution triggered once per matching card.
+ *
+ * Each trigger is a separate multiplication, so two scoring Kings under
+ * Triboulet are X2 then X2 again. A fractional expected count therefore becomes
+ * a fractional power, not a fractional factor.
+ */
+function perTrigger(part: ScoreContribution, count: number): Repeated {
+  if (count <= 0) return NOTHING;
+  return {
+    chips: (part.chips ?? 0) * count,
+    mult: (part.mult ?? 0) * count,
+    xmult: part.xmult !== undefined ? part.xmult ** count : 1,
+  };
+}
+
+/**
+ * A contribution that scales with a count rather than firing per card.
+ *
+ * These read as "X0.2 Mult for each Steel Card", which builds one multiplier of
+ * 1 + 0.2n rather than applying X0.2 n times. Getting this backwards would turn
+ * Steel Joker into a penalty.
+ */
+function perUnit(part: ScoreContribution, count: number): Repeated {
+  if (count <= 0) return NOTHING;
+  return {
+    chips: (part.chips ?? 0) * count,
+    mult: (part.mult ?? 0) * count,
+    xmult: part.xmult !== undefined ? 1 + part.xmult * count : 1,
+  };
+}
+
+/** A joker reduced to what the score model can actually read from it. */
+interface ScoringJoker {
+  name: string;
+  score?: JokerScore;
+  edition: Edition;
+}
+
+function boardOf(run: RunState): ScoringJoker[] {
+  const board: ScoringJoker[] = [];
+  for (const owned of run.jokers) {
+    const joker = getJoker(owned.jokerId);
+    if (joker) board.push({ name: joker.name, score: joker.score, edition: owned.edition });
+  }
+  return board;
+}
+
+function estimateWithBoard(run: RunState, hand: HandType, board: ScoringJoker[]): ScoreEstimate {
   const def = byHand.get(hand);
   if (!def) return { chips: 0, mult: 0, score: 0, modeled: [], inactive: [], unmodeled: [] };
 
@@ -106,9 +211,7 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
 
   // Jokers trigger left to right, so additive and multiplicative effects are applied
   // in board order — the same order jokerOrder.ts advises on.
-  for (const owned of run.jokers) {
-    const joker = getJoker(owned.jokerId);
-    if (!joker) continue;
+  for (const joker of board) {
     const score = joker.score;
     const applies = score !== undefined && (!score.requiresHand || handContains(hand, score.requiresHand));
 
@@ -118,6 +221,20 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
       chips += score.chips ?? 0;
       mult += score.mult ?? 0;
       mult *= score.xmult ?? 1;
+
+      if (score.perCard) {
+        const expected = def.scoringCards * matchShare(run, score.perCard.match);
+        const part = perTrigger(score.perCard, expected);
+        chips += part.chips;
+        mult += part.mult;
+        mult *= part.xmult;
+      }
+      if (score.perCount) {
+        const part = perUnit(score.perCount, runCount(run, score.perCount.of));
+        chips += part.chips;
+        mult += part.mult;
+        mult *= part.xmult;
+      }
       modeled.push(joker.name);
     } else {
       inactive.push(joker.name);
@@ -125,9 +242,9 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
     // A joker's requiresHand gates its own ability, but its edition (foil/holo/polychrome)
     // is a flat bonus on the card itself: it scores every hand regardless of whether the
     // joker's own effect fires. Base/negative editions add zero, so this is a no-op for them.
-    chips += EDITION_CHIPS[owned.edition];
-    mult += EDITION_MULT[owned.edition];
-    mult *= EDITION_XMULT[owned.edition];
+    chips += EDITION_CHIPS[joker.edition];
+    mult += EDITION_MULT[joker.edition];
+    mult *= EDITION_XMULT[joker.edition];
   }
 
   const rounded = { chips: Math.round(chips), mult: Math.round(mult * 100) / 100 };
@@ -137,11 +254,111 @@ export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate 
   return { ...rounded, score, modeled, inactive, unmodeled };
 }
 
+export function estimateHandScore(run: RunState, hand: HandType): ScoreEstimate {
+  return estimateWithBoard(run, hand, boardOf(run));
+}
+
+/**
+ * The near-term bar: the boss blind an ante ahead, not merely the one in front
+ * of you. Balatro's targets escalate by roughly 2.5x per ante, so a board that
+ * only just clears today is already behind.
+ *
+ * This is the unit a card's worth is measured in, and the floor under the
+ * baseline. It is deliberately *not* the point where more score stops helping.
+ */
+export function scoreTarget(run: RunState): number {
+  const ante = Math.floor(run.ante) + TUNING.prior.lookaheadAntes;
+  return blindTargets(ante, run.deck, run.stake).boss;
+}
+
+/**
+ * The point past which more score genuinely buys nothing: the final boss of a
+ * full run.
+ *
+ * Saturating at the near-term target instead would tell a player at ante 2 to
+ * stop buying the moment they can clear ante 3 — which is how runs are lost,
+ * since the bar rises roughly 2.5x every ante afterwards. Only a board that
+ * already clears the last blind has finished scaling.
+ */
+export function scoreCeiling(run: RunState): number {
+  return blindTargets(TUNING.economy.antesPerRun, run.deck, run.stake).boss;
+}
+
+/**
+ * The score a card's contribution is measured against.
+ *
+ * Not simply your current estimate. A bare board scores about 12 against a 600
+ * blind, and dividing by 12 makes every card look like a miracle: +4 Mult reads
+ * as "+400%" when it is nowhere near enough to win. The baseline is therefore
+ * floored at a share of the target, on the grounds that boards far below the
+ * target are all equally losing and the useful question is how much a card
+ * *adds*, not what it multiplies a near-zero number by.
+ */
+export function scoreBaseline(run: RunState, hand: HandType): number {
+  const current = Math.min(estimateHandScore(run, hand).score, scoreCeiling(run));
+  return Math.max(current, scoreTarget(run) * TUNING.prior.minBaselineShare);
+}
+
+/**
+ * Turns an absolute score contribution into a multiplier on the baseline.
+ *
+ * Saturating at the target is the other half of the story: once a board clears
+ * what it is building toward, more score buys nothing, and the advisor should
+ * say so rather than keep recommending upgrades.
+ */
+export function marginalMultiplier(run: RunState, hand: HandType, contribution: number): number {
+  if (contribution <= 0) return 1;
+  const baseline = scoreBaseline(run, hand);
+  if (baseline <= 0) return 1;
+  return Math.max(1, Math.min(baseline + contribution, scoreCeiling(run)) / baseline);
+}
+
+/**
+ * Absolute score that adding one joker contributes, in the same units as the
+ * estimate itself. Zero when its modelled part cannot fire on this hand.
+ *
+ * `score` undefined means the joker's own ability is not modelled, so only its
+ * edition contributes — the caller supplies an estimate for the ability itself.
+ *
+ * The joker is appended rightmost, which is where an xMult joker belongs and
+ * where jokerOrder.ts advises putting one. A player who leaves it elsewhere
+ * gets less than this out of it.
+ */
+export function jokerScoreContribution(
+  run: RunState,
+  hand: HandType,
+  score: JokerScore | undefined,
+  edition: Edition,
+): number {
+  const before = estimateHandScore(run, hand).score;
+  const after = estimateWithBoard(run, hand, [...boardOf(run), { name: '', score, edition }]).score;
+  return Math.max(0, after - before);
+}
+
+/** How much adding one joker multiplies what the run is building toward. */
+export function jokerScoreMultiplier(
+  run: RunState,
+  hand: HandType,
+  score: JokerScore | undefined,
+  edition: Edition,
+): number {
+  return marginalMultiplier(run, hand, jokerScoreContribution(run, hand, score, edition));
+}
+
+/** How much raising this hand's level moves the run along. Exact, not a guess. */
+export function handLevelMultiplier(run: RunState, hand: HandType, levels = 1): number {
+  const before = estimateHandScore(run, hand).score;
+  const raised: RunState = {
+    ...run,
+    handLevels: { ...run.handLevels, [hand]: (run.handLevels[hand] ?? 1) + levels },
+  };
+  const after = estimateHandScore(raised, hand).score;
+  return marginalMultiplier(run, hand, after - before);
+}
+
 /** Estimated score gain from adding this joker to the current run. */
 export function estimateJokerDelta(run: RunState, hand: HandType, jokerId: string, edition: Edition): number {
   const joker = getJoker(jokerId);
   if (!joker?.score) return 0;
-  const before = estimateHandScore(run, hand).score;
-  const after = estimateHandScore({ ...run, jokers: [...run.jokers, { jokerId, edition }] }, hand).score;
-  return after - before;
+  return jokerScoreContribution(run, hand, joker.score, edition);
 }

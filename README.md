@@ -13,29 +13,53 @@ The app is intentionally an explainable heuristic advisor, not a deterministic
 solver. Every recommendation shows its reasons and labels whether it comes
 from modeled mechanics, a partial model or hand-curated heuristics.
 
+Recommendations are ranked on one quantity: the estimated multiplier on your
+hand score, after the dollars the action gives up. Buying nothing is exactly
+1.0, so "+40% score, costs $8" is a claim you can check against your own reading
+of the board — and disagree with.
+
 ## What it tracks
 
 - All 150 Jokers, 32 Vouchers, 52 consumables and 15 booster variants.
 - Deck and cumulative Stake starting rules, including high-Stake Joker stickers.
 - Interest thresholds, Green Deck's no-interest economy and Rental upkeep.
 - Joker slots, editions, Eternal/Perishable/Rental stickers and sell values.
-- Strategy direction from Joker tags, deck profile and hands actually played.
-- Suit, face-card and enhancement counts with common consumable effects.
+- Strategy direction from Joker tags, deck profile and the hand you build around.
+- Suit, face-card and enhancement counts with common consumable effects, which
+  feed the score estimate rather than only the heuristics.
 - Joker trigger order, with a safe one-tap reorder suggestion.
 - Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
+
+Routine input is deliberately small: money, the cards on offer, and one
+declared hand per run. Hand levels, per-round resources and deck composition
+are booked from the planets, vouchers and consumables you record, and the
+Corrections section exists only for when a run drifts from what was recorded.
 
 ## Current limitations
 
 - Shop and run state are entered manually; the app does not read Balatro saves.
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Exact score contribution is modeled only for unambiguous flat-effect Jokers.
-  Conditional, random, copy, retrigger and most scaling effects are named but
-  deliberately excluded from the numeric estimate.
+- Exact score contribution is modeled for 40 of the 150 Jokers: flat effects,
+  effects that repeat per scoring card of a suit, face or rank, and effects that
+  scale with something the run tracks (money, discards, deck size, enhanced
+  cards). Rank shares assume ranks are evenly spread, since rank composition is
+  not tracked. Random, copy, retrigger, held-in-hand and time-scaling effects
+  are named but deliberately excluded from the numeric estimate.
+- Ratings and the score model both estimate a score contribution, so they are
+  blended on equal footing, but the weights behind the rating half
+  (`topShareOfTarget`, `ratingCurve`, `minBaselineShare`, `dollarsPerDoubling`)
+  are judgement calls, not values trained on played runs. See
+  [`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
+- The ranking prices one shop visit at a time. It does not model how an economy
+  build compounds, so a plan changes the advisor's reasons but not its numbers.
 - Boss-specific effects, tags, playing-card seals and exact card-by-card scoring
   are not simulated.
 - Perishable remaining rounds are not counted; the sticker is treated as a
   general flexibility penalty.
+- Jokers that scale with hands played since acquisition (Green Joker, Ice
+  Cream) are rated on their base value only. Supernova and Obelisk are nudged
+  by whether you declared a hand, not by how often you played it.
 - Unusual card-price modifiers may require correcting the displayed card price
   manually. Pack and voucher discounts are not modeled yet.
 
@@ -49,13 +73,23 @@ Node.js 24 is used in CI. The supported local range is Node 20.19 through 26.
 ```sh
 npm ci
 npm run dev
+npm run lint
 npm test
+npm run test:e2e
 npm run build
 ```
 
-The production build runs strict TypeScript checking before Vite. Tests cover
+CI runs ESLint, then catalog validation, then the tests, then the production
+build — which itself revalidates the catalog and runs strict TypeScript checking
+before Vite — and finally the Playwright smoke test against the built output. Tests cover
 catalog integrity, persistence migrations, game rules, recommendation behavior
-and the main UI flows.
+and the main UI flows, plus a 300-scenario engine baseline that turns any change
+to shared machinery into a reviewable diff rather than a silent shift. The
+Playwright suite covers what jsdom cannot: that the built app boots in a real
+browser, that a run survives an actual reload, and that it still works offline.
+
+`npm run test:e2e` downloads its own browser by default; set
+`PLAYWRIGHT_CHROMIUM_PATH` to reuse one that is already installed.
 
 ## Deploy
 
@@ -67,14 +101,35 @@ worker.
 ## Architecture
 
 - `src/data/` — catalog data and structural validation tests.
+- `src/catalog/` — typed catalog lookups and the autocomplete search index.
 - `src/engine/` — pure recommendation, strategy, economy and scoring rules.
+- `src/engine/impact.ts` — the one axis every card is ranked on.
+- `src/engine/tuning.ts` — every tunable heuristic weight, in one annotated table.
 - `src/run/` — versioned local persistence and the transactional reducer.
 - `src/ui/` — mobile-first React screens and reusable controls.
+- `src/i18n/` — English and German UI wording behind a language switch.
+- `e2e/` — Playwright smoke tests against the production build.
 
 Keeping the engine pure makes recommendation scenarios easy to regression-test
 without rendering the UI.
 
 ## Data and calibration
+
+Every card is ranked by its estimated effect on your hand score, with costs held
+in dollars and converted once through a single stated exchange rate. Both the
+score model and the catalog ratings estimate that effect as a score
+contribution, measured against a baseline floored at a share of the blind you
+are building toward and capped at the final blind of a run. The design and its
+known weaknesses are in
+[`docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md`](docs/superpowers/specs/2026-09-17-score-multiplier-scale-design.md)
+and
+[`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
+
+Heuristic weights live in [`src/engine/tuning.ts`](src/engine/tuning.ts), separate
+from the game rules in `gameRules.ts`, `economy.ts` and `score.ts`. A game rule is
+right or wrong; a tuning weight is a judgement call about desirability. Change a
+weight there and prove the new behaviour in the scenario tests — the tuning tests
+only guard the table's shape, not whether a value is strategically sound.
 
 Catalog facts are transcribed from the community-maintained
 [Balatro Wiki](https://balatrogame.fandom.com/wiki/Balatro_Wiki). Stake score
@@ -87,6 +142,17 @@ Detailed attribution and license boundaries are recorded in
 When updating game data, record the Balatro version and source in the commit.
 The validation tests protect shape and completeness; they do not prove that a
 subjective rating is strategically optimal.
+
+## Language
+
+The interface is available in English and German, picked from the browser and
+changeable from the switch in the header. Joker, voucher, deck and poker hand
+names stay in English in both, because those are the words Balatro itself puts
+on screen.
+
+Advice text generated by the engine is English only. Those sentences are built
+by interpolating game terms across six engine modules, so translating them is a
+separate piece of work from a wording pass.
 
 ## Privacy
 

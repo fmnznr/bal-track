@@ -1,106 +1,51 @@
-import { HAND_TYPES } from '../types';
-import type { HandType, JokerDef, OwnedJoker, RunState } from '../types';
-
-export function totalPlays(run: RunState): number {
-  return HAND_TYPES.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0);
-}
-
-export function mostPlayedHand(run: RunState): HandType | null {
-  let best: HandType | null = null;
-  for (const hand of HAND_TYPES) {
-    const plays = run.handPlays[hand] ?? 0;
-    if (plays > 0 && (best === null || plays > run.handPlays[best])) best = hand;
-  }
-  return best;
-}
-
-export function playShare(run: RunState, hands: readonly HandType[]): number {
-  const total = totalPlays(run);
-  if (total === 0) return 0;
-  return hands.reduce((sum, hand) => sum + (run.handPlays[hand] ?? 0), 0) / total;
-}
-
-/** Below this many hands the statistic is noise, not a signal. */
-export const MIN_PLAYS = 8;
-
-/** Plays needed before the statistic counts at full weight (roughly 1.5 antes). */
-export const FULL_CONFIDENCE_PLAYS = 12;
-
-/** Ramps a signal in with sample size so one blind cannot rewrite the plan. */
-export function playConfidence(run: RunState): number {
-  const total = totalPlays(run);
-  if (total < MIN_PLAYS) return 0;
-  return Math.min(1, total / FULL_CONFIDENCE_PLAYS);
-}
+import type { JokerDef, RunState } from '../types';
+import { TUNING } from './tuning';
 
 export interface PlaySignal {
-  delta: number;
-  notes: string[];
+  multiplier: number;
+  reasons: string[];
 }
 
-/**
- * Where the joker is being judged. A shop copy starts fresh, so signals that
- * reward accumulated progress only apply to jokers you already own.
- */
-export type SignalContext = 'shop' | 'owned';
-
-const NEUTRAL: PlaySignal = { delta: 0, notes: [] };
+const NEUTRAL: PlaySignal = { multiplier: 1, reasons: [] };
 
 /**
- * Score adjustment from what the player actually does — hands played and the
- * per-round resource. Returns a neutral signal at default values so a fresh
- * run scores exactly as before.
+ * Score adjustment from how the player actually plays.
+ *
+ * This used to read per-hand play counters, which meant maintaining thirteen
+ * numbers by hand during a run. It now reads the single declared primary hand
+ * plus the per-round resources the app books itself from vouchers and the deck.
+ * The estimates are coarser in exchange: a declared hand tells us the player is
+ * consistent, not how many times they have played it.
+ *
+ * Returns a neutral signal when nothing has been declared, so a fresh run and
+ * an undeclared run both score exactly as they did before.
  */
-export function playSignalForJoker(
-  def: JokerDef,
-  run: RunState,
-  context: SignalContext = 'shop',
-  owned?: OwnedJoker,
-): PlaySignal {
-  const total = totalPlays(run);
-  const extraDiscards = run.discardsPerRound - 3;
-  const playsSinceAcquired = Math.max(0, total - (owned?.acquiredAtPlays ?? total));
-  const discardsSinceAcquired = Math.max(0, run.discardsUsed - (owned?.acquiredAtDiscards ?? run.discardsUsed));
+export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal {
+  const primary = run.primaryHand;
+  const extraDiscards = run.discardsPerRound - TUNING.play.baselineDiscardsPerRound;
 
   switch (def.id) {
-    case 'supernova': {
-      const best = mostPlayedHand(run);
-      if (!best || total < MIN_PLAYS) return NEUTRAL;
-      const plays = run.handPlays[best];
+    // Scales with repeat plays of one hand, so a declared plan is what makes it good.
+    case 'supernova':
+      if (!primary) return NEUTRAL;
       return {
-        delta: Math.min(3, plays * 0.15),
-        notes: [`Your most played hand (${best}) has ${plays} plays`],
+        multiplier: TUNING.play.consistentHand,
+        reasons: [`You build around ${primary}, so Supernova keeps climbing`],
       };
-    }
-    case 'obelisk': {
-      if (total < MIN_PLAYS) return NEUTRAL;
-      const best = mostPlayedHand(run);
-      const share = best ? run.handPlays[best] / total : 0;
-      if (share <= 0.6) return NEUTRAL;
+    // Wants the opposite: it rewards never repeating a hand.
+    case 'obelisk':
+      if (!primary) return NEUTRAL;
       return {
-        delta: -2,
-        notes: [`Obelisk wants hand variety, but ${Math.round(share * 100)}% of your hands are ${best}`],
+        multiplier: TUNING.play.varietyJoker,
+        reasons: [`Obelisk wants hand variety, but you build around ${primary}`],
       };
-    }
-    // Both only scale from the moment you own them — a shop copy starts fresh.
-    case 'green-joker':
-      if (context !== 'owned' || playsSinceAcquired === 0) return NEUTRAL;
-      return {
-        delta: Math.max(-2, Math.min(2, (playsSinceAcquired - discardsSinceAcquired) * 0.08)),
-        notes: [`Tracked since acquisition: ${playsSinceAcquired} hands, ${discardsSinceAcquired} discards`],
-      };
-    case 'ice-cream':
-      if (context !== 'owned' || playsSinceAcquired === 0) return NEUTRAL;
-      return {
-        delta: -Math.min(2, playsSinceAcquired * 0.08),
-        notes: [`Ice Cream has melted through ${playsSinceAcquired} hands since acquisition`],
-      };
-    case 'banner':
+    // Banner used to be here too. Its +30 Chips per discard is now modelled from
+    // the real discard count, so this would charge the same fact twice.
     case 'delayed-gratification': {
       if (extraDiscards === 0) return NEUTRAL;
       return {
-        delta: extraDiscards * 0.5,
-        notes: [`${run.discardsPerRound} discards per round`],
+        multiplier: TUNING.play.perExtraDiscard ** extraDiscards,
+        reasons: [`${run.discardsPerRound} discards per round`],
       };
     }
     default:

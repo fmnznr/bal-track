@@ -1,4 +1,4 @@
-import type { RunState } from '../types';
+import type { Edition, RunState } from '../types';
 
 export const STAKES = ['White', 'Red', 'Green', 'Black', 'Blue', 'Purple', 'Orange', 'Gold'] as const;
 
@@ -22,4 +22,17 @@ export function earnsInterest(run: Pick<RunState, 'deck'>): boolean {
 
 export function rentalUpkeep(stickers?: { rental?: boolean }): number {
   return stickers?.rental ? 3 : 0;
+}
+
+/**
+ * Jokers occupying a slot. Negative-edition jokers sit on the board without
+ * consuming one, so they never count towards the limit.
+ */
+export function usedJokerSlots(run: Pick<RunState, 'jokers'>): number {
+  return run.jokers.filter(j => j.edition !== 'negative').length;
+}
+
+/** Whether a joker of this edition still fits on the board. */
+export function hasFreeJokerSlot(run: Pick<RunState, 'jokers' | 'jokerSlots'>, edition: Edition): boolean {
+  return edition === 'negative' || usedJokerSlots(run) < run.jokerSlots;
 }

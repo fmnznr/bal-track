@@ -1,5 +1,7 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
+import { hasFreeJokerSlot } from '../../engine/gameRules';
 import { recommend } from '../../engine/recommend';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import type { Edition, ShopState } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
@@ -12,6 +14,7 @@ const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCo
 
 export default function ShopScreen() {
   const { store, dispatch } = useRun();
+  const t = useT();
   const run = store.current!;
   const shop = store.shopDraft ?? emptyShop;
   // Resolves against the render-time `shop`, not live reducer state: at most
@@ -20,7 +23,6 @@ export default function ShopScreen() {
     dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop) : [];
-  const usedJokerSlots = run.jokers.filter(j => j.edition !== 'negative').length;
   const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
   const voucherBlocked = Boolean(
     voucherDef
@@ -35,16 +37,16 @@ export default function ShopScreen() {
   return (
     <section className="screen">
       <div className="row">
-        <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
-        <NumberField label="Reroll $" value={shop.rerollCost} onChange={rerollCost => setShop(s => ({ ...s, rerollCost }))} />
+        <NumberField label={t('money')} value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
+        <NumberField label={t('rerollCost')} value={shop.rerollCost} onChange={rerollCost => setShop(s => ({ ...s, rerollCost }))} />
       </div>
 
-      <h3>Cards on offer</h3>
+      <h3>{t('cardsOnOffer')}</h3>
       <ul className="rows">
         {shop.cards.map((slot, i) => {
           const name = slot.kind === 'joker' ? getJoker(slot.jokerId)?.name : getConsumable(slot.consumableId)?.name;
           const hasRoom = slot.kind === 'joker'
-            ? slot.edition === 'negative' || usedJokerSlots < run.jokerSlots
+            ? hasFreeJokerSlot(run, slot.edition)
             : run.consumables.length < run.consumableSlots;
           const canBuy = slot.price <= run.money && hasRoom;
           return (
@@ -53,7 +55,7 @@ export default function ShopScreen() {
               {slot.kind === 'joker' && (
                 <select
                   value={slot.edition}
-                  aria-label={`${name} edition`}
+                  aria-label={t('editionOf', { name: name ?? '' })}
                   onChange={e =>
                     setShop(s => ({
                       ...s,
@@ -84,7 +86,7 @@ export default function ShopScreen() {
                 />
               )}
               <NumberField
-                label="$"
+                label={t('price')}
                 value={slot.price}
                 onChange={price =>
                   setShop(s => ({ ...s, cards: s.cards.map((c, j) => (j === i ? { ...c, price } : c)) }))
@@ -92,18 +94,18 @@ export default function ShopScreen() {
               />
               <button
                 disabled={!canBuy}
-                title={!hasRoom ? 'No free slot' : slot.price > run.money ? 'Not affordable' : undefined}
+                title={!hasRoom ? t('noRoom') : slot.price > run.money ? t('notAffordable') : undefined}
                 onClick={() => dispatch({ type: 'BUY_SHOP_CARD', index: i })}
               >
-                Bought
+                {t('bought')}
               </button>
-              <button className="ghost" aria-label={`remove ${name ?? 'card'}`} onClick={() => removeCard(i)}>✕</button>
+              <button className="ghost" aria-label={t('removeX', { name: name ?? '' })} onClick={() => removeCard(i)}>✕</button>
             </li>
           );
         })}
       </ul>
       <AutocompleteInput
-        placeholder="Add shop card…"
+        placeholder={t('addShopCard')}
         kinds={['shop-joker', 'tarot', 'planet', 'spectral']}
         onPick={item =>
           setShop(s =>
@@ -114,24 +116,26 @@ export default function ShopScreen() {
         }
       />
 
-      <h3>Voucher</h3>
+      <h3>{t('voucher')}</h3>
       {shop.voucherId ? (
         <div className="row">
           <span className="grow">{getVoucher(shop.voucherId)?.name}</span>
           <button
             disabled={voucherBlocked}
-            title={voucherDef?.requires && !run.vouchers.includes(voucherDef.requires) ? 'Base voucher not redeemed' : undefined}
+            title={voucherDef?.requires && !run.vouchers.includes(voucherDef.requires)
+              ? t('baseVoucherMissing')
+              : undefined}
             onClick={() => dispatch({ type: 'BUY_SHOP_VOUCHER' })}
           >
-            Redeemed
+            {t('redeemed')}
           </button>
-          <button className="ghost" aria-label="remove voucher" onClick={() => setShop(s => ({ ...s, voucherId: null }))}>✕</button>
+          <button className="ghost" aria-label={t('removeVoucher')} onClick={() => setShop(s => ({ ...s, voucherId: null }))}>✕</button>
         </div>
       ) : (
-        <AutocompleteInput placeholder="Add voucher…" kinds={['voucher']} onPick={item => setShop(s => ({ ...s, voucherId: item.id }))} />
+        <AutocompleteInput placeholder={t('addShopVoucher')} kinds={['voucher']} onPick={item => setShop(s => ({ ...s, voucherId: item.id }))} />
       )}
 
-      <h3>Booster packs</h3>
+      <h3>{t('boosterPacks')}</h3>
       <ul className="rows">
         {shop.packIds.map((id, i) => {
           const def = getPack(id);
@@ -141,30 +145,30 @@ export default function ShopScreen() {
               <span className="grow">{def.name}</span>
               <button
                 disabled={def.cost > run.money}
-                title={def.cost > run.money ? 'Not affordable' : undefined}
+                title={def.cost > run.money ? t('notAffordable') : undefined}
                 onClick={() => dispatch({ type: 'BUY_SHOP_PACK', index: i })}
               >
-                Bought ${def.cost}
+                {t('bought')} ${def.cost}
               </button>
-              <button className="ghost" aria-label={`remove ${def.name}`} onClick={() => removePack(i)}>✕</button>
+              <button className="ghost" aria-label={t('removeX', { name: def.name })} onClick={() => removePack(i)}>✕</button>
             </li>
           );
         })}
       </ul>
-      <AutocompleteInput placeholder="Add pack…" kinds={['pack']} onPick={item => setShop(s => ({ ...s, packIds: [...s.packIds, item.id] }))} />
-      <p className="muted">Bought a pack? Enter its contents on the Pack tab for pick advice.</p>
+      <AutocompleteInput placeholder={t('addPack')} kinds={['pack']} onPick={item => setShop(s => ({ ...s, packIds: [...s.packIds, item.id] }))} />
+      <p className="muted">{t('packHint')}</p>
 
       <div className="row">
         <button
           disabled={shop.rerollCost > run.money}
           onClick={() => dispatch({ type: 'REROLL_SHOP' })}
         >
-          Rerolled
+          {t('rerolled')}
         </button>
-        <button className="ghost" onClick={() => setShop(emptyShop)}>Clear shop</button>
+        <button className="ghost" onClick={() => setShop(emptyShop)}>{t('clearShop')}</button>
       </div>
 
-      <h3>Advice</h3>
+      <h3>{t('advice')}</h3>
       <RecommendationList recs={recs} />
     </section>
   );

@@ -1,10 +1,11 @@
+import { useT } from '../../i18n/I18nContext';
 import type { JokerStickers } from '../../types';
 
-const OPTIONS: { key: keyof JokerStickers; label: string }[] = [
-  { key: 'eternal', label: 'Eternal' },
-  { key: 'perishable', label: 'Perishable' },
-  { key: 'rental', label: 'Rental' },
-];
+const OPTIONS = [
+  { key: 'eternal' },
+  { key: 'perishable' },
+  { key: 'rental' },
+] as const satisfies readonly { key: keyof JokerStickers }[];
 
 export default function JokerStickerFields({
   stickers,
@@ -13,16 +14,17 @@ export default function JokerStickerFields({
   stickers?: JokerStickers;
   onChange: (stickers: JokerStickers) => void;
 }) {
+  const t = useT();
   return (
-    <div className="sticker-fields" aria-label="Joker stickers">
-      {OPTIONS.map(({ key, label }) => (
+    <div className="sticker-fields" aria-label={t('jokerStickers')}>
+      {OPTIONS.map(({ key }) => (
         <label key={key} className="sticker-toggle">
           <input
             type="checkbox"
             checked={Boolean(stickers?.[key])}
             onChange={event => onChange({ ...stickers, [key]: event.target.checked })}
           />
-          {label}
+          {t(key)}
         </label>
       ))}
     </div>

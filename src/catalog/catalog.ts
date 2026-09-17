@@ -4,6 +4,8 @@ import consumablesJson from '../data/consumables.json';
 import packsJson from '../data/packs.json';
 import type { ConsumableDef, JokerDef, PackDef, VoucherDef } from '../types';
 
+// Shape-checked by src/data/schema.ts: `npm run validate:catalog` parses this
+// file at build time, and tsc fails if the schema drifts from the type here.
 export const jokers = jokersJson as unknown as JokerDef[];
 export const vouchers = vouchersJson as unknown as VoucherDef[];
 export const consumables = consumablesJson as unknown as ConsumableDef[];

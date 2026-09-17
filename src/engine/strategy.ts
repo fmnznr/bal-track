@@ -3,8 +3,10 @@ import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
 import { maxSuitShare } from './deckSignals';
-import { playConfidence, playShare, totalPlays } from './playSignals';
+import { TUNING } from './tuning';
 
+// Shape-checked by src/data/schema.ts: `npm run validate:catalog` parses this
+// file at build time, and tsc fails if the schema drifts from the type here.
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
 
@@ -16,8 +18,8 @@ export function getArchetype(id: string): ArchetypeDef | undefined {
 }
 
 /** Top score needed before the advisor commits to / leans toward a plan. */
-export const COMMIT_THRESHOLD = 6;
-export const LEAN_THRESHOLD = 3;
+export const COMMIT_THRESHOLD = TUNING.strategy.commitThreshold;
+export const LEAN_THRESHOLD = TUNING.strategy.leanThreshold;
 
 export function adviseStrategy(run: RunState): StrategyAdvice {
   const deck = deckByName.get(run.deck);
@@ -36,7 +38,7 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
       if (def?.tags.some(t => arch.coreTags.includes(t))) tagHits += 1;
     }
     const keyOwned = arch.keyJokers.filter(id => ownedIds.has(id)).length;
-    score += tagHits * 2 + keyOwned * 1.5;
+    score += tagHits * TUNING.strategy.perTagHit + keyOwned * TUNING.strategy.perKeyJokerOwned;
     if (tagHits > 0) reasons.push(`${tagHits} of your jokers support this direction`);
     if (keyOwned > 0) reasons.push(`You already own ${keyOwned} key joker${keyOwned > 1 ? 's' : ''}`);
 
@@ -48,28 +50,23 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
 
     if (arch.id === 'flush') {
       const { suit, share } = maxSuitShare(run.deckProfile);
-      if (share > 0.4) {
-        score += 1.5;
+      if (share > TUNING.strategy.flushSuitShareAbove) {
+        score += TUNING.strategy.flushSuitShareBonus;
         reasons.push(`${Math.round(share * 100)}% of your deck is ${suit}`);
       }
     }
 
-    const confidence = playConfidence(run);
-    if (arch.hands.length > 0 && confidence > 0) {
-      const total = totalPlays(run);
-      const share = playShare(run, arch.hands);
-      const played = Math.round(share * total);
-      // Ramped by sample size: a single blind must not rewrite the plan.
-      const weight = share >= 0.5 ? 3.5 : share >= 0.3 ? 1.5 : 0;
-      if (weight > 0) {
-        score += weight * confidence;
-        reasons.push(`You played ${arch.name} in ${played} of ${total} hands (${Math.round(share * 100)}%)`);
-      }
+    // A declared hand is a deliberate statement of intent, so it counts at full
+    // weight immediately — unlike the play counters it replaced, it cannot be
+    // skewed by one unusual blind.
+    if (run.primaryHand && arch.hands.includes(run.primaryHand)) {
+      score += TUNING.strategy.declaredHandMatch;
+      reasons.push(`${run.primaryHand} is the hand you build around`);
     }
 
     const leveled = arch.hands.reduce((sum, hand) => sum + Math.max(0, run.handLevels[hand] - 1), 0);
     if (leveled > 0) {
-      score += Math.min(3, leveled * 0.75);
+      score += Math.min(TUNING.strategy.perLevelInvestedCap, leveled * TUNING.strategy.perLevelInvested);
       reasons.push('You already leveled the matching hands');
     }
 
