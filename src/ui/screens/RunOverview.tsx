@@ -3,6 +3,7 @@ import { getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
 import { usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import { HAND_TYPES } from '../../types';
 import type { Edition, HandType, Suit } from '../../types';
@@ -19,6 +20,7 @@ const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negat
 
 export default function RunOverview() {
   const { store, dispatch } = useRun();
+  const t = useT();
   const run = store.current!;
   const [conversion, setConversion] = useState<{ name: string; target: Suit } | null>(null);
   return (
@@ -26,7 +28,7 @@ export default function RunOverview() {
       <header className="row spread">
         <h2>{run.deck} Deck · {run.stake}</h2>
         <button className="ghost" onClick={() => dispatch({ type: 'UNDO' })} disabled={store.past.length === 0}>
-          Undo
+          {t('undo')}
         </button>
       </header>
 
@@ -34,14 +36,14 @@ export default function RunOverview() {
       <ScorePanel />
 
       <label className="primary-hand">
-        <span>Hand you build around</span>
+        <span>{t('primaryHand')}</span>
         <select
           value={run.primaryHand ?? ''}
           onChange={e =>
             dispatch({ type: 'SET_PRIMARY_HAND', hand: (e.target.value || null) as HandType | null })
           }
         >
-          <option value="">Not decided yet</option>
+          <option value="">{t('primaryHandNone')}</option>
           {HAND_TYPES.map(hand => (
             <option key={hand} value={hand}>{hand}</option>
           ))}
@@ -49,12 +51,12 @@ export default function RunOverview() {
       </label>
 
       <div className="row">
-        <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
-        <NumberField label="Ante" value={run.ante} min={0} onChange={ante => dispatch({ type: 'SET_ANTE', ante })} />
-        <NumberField label="Joker slots" value={run.jokerSlots} min={1} onChange={slots => dispatch({ type: 'SET_JOKER_SLOTS', slots })} />
+        <NumberField label={t('money')} value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
+        <NumberField label={t('ante')} value={run.ante} min={0} onChange={ante => dispatch({ type: 'SET_ANTE', ante })} />
+        <NumberField label={t('jokerSlots')} value={run.jokerSlots} min={1} onChange={slots => dispatch({ type: 'SET_JOKER_SLOTS', slots })} />
       </div>
 
-      <h3>Jokers ({usedJokerSlots(run)}/{run.jokerSlots})</h3>
+      <h3>{t('jokers')} ({usedJokerSlots(run)}/{run.jokerSlots})</h3>
       <ul className="rows">
         {run.jokers.map((owned, i) => {
           const def = getJoker(owned.jokerId);
@@ -64,7 +66,7 @@ export default function RunOverview() {
               <span className="pos">{i + 1}</span>
               <button
                 type="button"
-                aria-label={`move ${def.name} left`}
+                aria-label={t('moveLeft', { name: def.name })}
                 disabled={i === 0}
                 onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'left' })}
               >
@@ -72,7 +74,7 @@ export default function RunOverview() {
               </button>
               <button
                 type="button"
-                aria-label={`move ${def.name} right`}
+                aria-label={t('moveRight', { name: def.name })}
                 disabled={i === run.jokers.length - 1}
                 onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'right' })}
               >
@@ -81,7 +83,7 @@ export default function RunOverview() {
               <span className="grow">{def.name}</span>
               <select
                 value={owned.edition}
-                aria-label={`${def.name} edition`}
+                aria-label={t('editionOf', { name: def.name })}
                 onChange={e => dispatch({ type: 'SET_JOKER_EDITION', index: i, edition: e.target.value as Edition })}
               >
                 {EDITIONS.map(ed => (
@@ -94,10 +96,12 @@ export default function RunOverview() {
               />
               <button
                 disabled={owned.stickers?.eternal}
-                title={owned.stickers?.eternal ? 'Eternal jokers cannot be sold' : undefined}
+                title={owned.stickers?.eternal ? t('eternalCannotBeSold') : undefined}
                 onClick={() => dispatch({ type: 'SELL_JOKER', index: i })}
               >
-                {owned.stickers?.eternal ? 'Cannot sell' : `Sell $${sellValue(def.cost, owned.edition, owned.stickers)}`}
+                {owned.stickers?.eternal
+                  ? t('cannotSell')
+                  : `${t('sell')} $${sellValue(def.cost, owned.edition, owned.stickers)}`}
               </button>
             </li>
           );
@@ -105,24 +109,24 @@ export default function RunOverview() {
       </ul>
       <JokerOrderPanel />
       <AutocompleteInput
-        placeholder="Add joker…"
+        placeholder={t('addJoker')}
         kinds={['joker']}
         onPick={item => dispatch({ type: 'ADD_JOKER', jokerId: item.id, edition: 'base' })}
       />
 
-      <h3>Vouchers</h3>
+      <h3>{t('vouchers')}</h3>
       <ul className="rows">
         {run.vouchers.map((id, i) => (
           <li key={i}>{getVoucher(id)?.name ?? id}</li>
         ))}
       </ul>
       <AutocompleteInput
-        placeholder="Add redeemed voucher…"
+        placeholder={t('addVoucher')}
         kinds={['voucher']}
         onPick={item => dispatch({ type: 'REDEEM_VOUCHER', voucherId: item.id })}
       />
 
-      <h3>Consumables ({run.consumables.length}/{run.consumableSlots})</h3>
+      <h3>{t('consumables')} ({run.consumables.length}/{run.consumableSlots})</h3>
       <ul className="rows">
         {run.consumables.map((id, i) => {
           const def = getConsumable(id);
@@ -137,14 +141,14 @@ export default function RunOverview() {
                   dispatch({ type: 'USE_CONSUMABLE', index: i });
                 }}
               >
-                {def?.kind === 'planet' ? 'Use (+1 level)' : 'Used'}
+                {def?.kind === 'planet' ? t('usePlanet') : t('used')}
               </button>
             </li>
           );
         })}
       </ul>
       <AutocompleteInput
-        placeholder="Add consumable…"
+        placeholder={t('addConsumable')}
         kinds={['tarot', 'planet', 'spectral']}
         onPick={item => dispatch({ type: 'ADD_CONSUMABLE', consumableId: item.id })}
       />
@@ -153,19 +157,16 @@ export default function RunOverview() {
       )}
 
       <details>
-        <summary>Corrections</summary>
-        <p className="muted">
-          The app books these itself from vouchers, planets and used consumables. Adjust them only
-          when your run has drifted from what it recorded.
-        </p>
+        <summary>{t('corrections')}</summary>
+        <p className="muted">{t('correctionsNote')}</p>
         <div className="row">
           <NumberField
-            label="Hands per round"
+            label={t('handsPerRound')}
             value={run.handsPerRound}
             onChange={value => dispatch({ type: 'SET_HANDS_PER_ROUND', value })}
           />
           <NumberField
-            label="Discards per round"
+            label={t('discardsPerRound')}
             value={run.discardsPerRound}
             onChange={value => dispatch({ type: 'SET_DISCARDS_PER_ROUND', value })}
           />
@@ -173,7 +174,7 @@ export default function RunOverview() {
         {HAND_TYPES.map(hand => (
           <div className="row" key={hand}>
             <NumberField
-              label={`${hand} level`}
+              label={t('handLevel', { hand })}
               value={run.handLevels[hand]}
               min={1}
               onChange={level => dispatch({ type: 'SET_HAND_LEVEL', hand, level })}
@@ -184,11 +185,11 @@ export default function RunOverview() {
       </details>
 
       <div className="row">
-        <button className="primary" onClick={() => confirm('End this run as WON?') && dispatch({ type: 'END_RUN', result: 'won' })}>
-          Run won
+        <button className="primary" onClick={() => confirm(t('confirmWon')) && dispatch({ type: 'END_RUN', result: 'won' })}>
+          {t('runWon')}
         </button>
-        <button className="danger" onClick={() => confirm('End this run as LOST?') && dispatch({ type: 'END_RUN', result: 'lost' })}>
-          Run lost
+        <button className="danger" onClick={() => confirm(t('confirmLost')) && dispatch({ type: 'END_RUN', result: 'lost' })}>
+          {t('runLost')}
         </button>
       </div>
     </section>

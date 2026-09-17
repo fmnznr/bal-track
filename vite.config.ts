@@ -32,6 +32,8 @@ export default defineConfig({
     // jsdom implementation wins.
     execArgv: ['--no-experimental-webstorage'],
     setupFiles: './src/test-setup.ts',
-    exclude: [...configDefaults.exclude, '**/.claude/**'],
+    // e2e/ belongs to Playwright; vitest cannot run test.use() and would fail
+    // to collect it.
+    exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
   },
 });

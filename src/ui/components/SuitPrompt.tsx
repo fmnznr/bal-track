@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import { SUITS } from '../../types';
 import type { Suit } from '../../types';
@@ -11,24 +12,25 @@ interface Props {
 
 export default function SuitPrompt({ consumableName, target, onDone }: Props) {
   const { dispatch } = useRun();
+  const t = useT();
   const [from, setFrom] = useState<Partial<Record<Suit, number>>>({});
   const total = Object.values(from).reduce((a, b) => a + (b ?? 0), 0);
   const sources = SUITS.filter(s => s !== target);
   return (
     <div className="suit-prompt">
-      <p>
-        {consumableName}: converting {total}/3 cards to {target}. Tap the source suits:
-      </p>
+      <p>{t('convertingTo', { name: consumableName, done: total, suit: t(target) })}</p>
       <div className="row">
         {sources.map(suit => (
           <button
             key={suit}
             type="button"
-            aria-label={`from ${suit}`}
+            aria-label={t('fromSuit', { suit: t(suit) })}
             disabled={total >= 3}
             onClick={() => setFrom(f => ({ ...f, [suit]: (f[suit] ?? 0) + 1 }))}
           >
-            {from[suit] ? `from ${suit} (${from[suit]})` : `from ${suit}`}
+            {from[suit]
+              ? `${t('fromSuit', { suit: t(suit) })} (${from[suit]})`
+              : t('fromSuit', { suit: t(suit) })}
           </button>
         ))}
       </div>
@@ -42,10 +44,10 @@ export default function SuitPrompt({ consumableName, target, onDone }: Props) {
             onDone();
           }}
         >
-          Book conversion
+          {t('bookConversion')}
         </button>
         <button type="button" className="ghost" onClick={onDone}>
-          Skip (adjust manually)
+          {t('skipAdjustManually')}
         </button>
       </div>
     </div>

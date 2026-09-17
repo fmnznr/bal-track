@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import meta from '../../data/meta.json';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 
 export default function RunSetup({ onStarted }: { onStarted: () => void }) {
   const { dispatch } = useRun();
+  const t = useT();
   const [deck, setDeck] = useState('Red');
   const [stake, setStake] = useState('White');
   return (
     <section className="screen">
-      <h1>Bal-Track</h1>
-      <h2>New Run</h2>
-      <h3>Deck</h3>
+      <h1>{t('appName')}</h1>
+      <h2>{t('newRun')}</h2>
+      <h3>{t('deck')}</h3>
       <div className="chip-grid">
         {meta.decks.map(d => (
           <button key={d} aria-pressed={d === deck} className={d === deck ? 'chip active' : 'chip'} onClick={() => setDeck(d)}>
@@ -18,7 +20,7 @@ export default function RunSetup({ onStarted }: { onStarted: () => void }) {
           </button>
         ))}
       </div>
-      <h3>Stake</h3>
+      <h3>{t('stake')}</h3>
       <div className="chip-grid">
         {meta.stakes.map(s => (
           <button key={s} aria-pressed={s === stake} className={s === stake ? 'chip active' : 'chip'} onClick={() => setStake(s)}>
@@ -33,9 +35,9 @@ export default function RunSetup({ onStarted }: { onStarted: () => void }) {
           onStarted();
         }}
       >
-        Start Run
+        {t('startRun')}
       </button>
-      <p className="muted">Deck and stake starting rules are applied automatically; you can still correct counters on the Run screen.</p>
+      <p className="muted">{t('setupNote')}</p>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import { getConsumable, getJoker } from '../../catalog/catalog';
 import { hasFreeJokerSlot } from '../../engine/gameRules';
 import { recommendPackPick } from '../../engine/recommend';
 import { CONVERSION_TARGETS, hasProfileEffect } from '../../run/profileEffects';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import type { PackKind, Suit } from '../../types';
 import type { SearchKind } from '../../catalog/search';
@@ -26,6 +27,7 @@ function optionName(id: string): string {
 
 export default function PackScreen() {
   const { store, dispatch } = useRun();
+  const t = useT();
   const run = store.current!;
   const draft = store.packDraft ?? { kind: 'arcana' as PackKind, options: [] };
   const kind = draft.kind;
@@ -46,28 +48,28 @@ export default function PackScreen() {
     const joker = getJoker(id);
     if (joker) {
       if (!hasFreeJokerSlot(run, 'base')) {
-        setNote(`No free joker slot — sell a joker on the Run tab before taking ${joker.name}.`);
+        setNote(t('noFreeSlotNote', { name: joker.name }));
         return;
       }
       dispatch({ type: 'ADD_JOKER', jokerId: id, edition: 'base' });
-      setNote(`${joker.name} added to your jokers.`);
+      setNote(t('addedToJokers', { name: joker.name }));
     } else {
       const c = getConsumable(id);
       if (c?.kind === 'planet') {
         dispatch({ type: 'PLAY_PLANET', consumableId: id });
-        setNote(`${c.name} used — hand level raised.`);
+        setNote(t('planetUsedNote', { name: c.name }));
       } else if (id === 'the-soul') {
-        setNote('The Soul! Add your new legendary joker on the Run tab.');
+        setNote(t('theSoulNote'));
       } else if (c) {
         dispatch({ type: 'APPLY_CONSUMABLE', consumableId: id });
         const target = CONVERSION_TARGETS[id];
         if (target) {
           setConversion({ name: c.name, target });
-          setNote(`${c.name} — tell me which suits it converted.`);
+          setNote(t('tellSuitsNote', { name: c.name }));
         } else if (hasProfileEffect(id)) {
-          setNote(`${c.name} — deck profile updated.`);
+          setNote(t('profileUpdatedNote', { name: c.name }));
         } else {
-          setNote(`${c.name} — not tracked automatically, adjust the deck profile if needed.`);
+          setNote(t('notTrackedNote', { name: c.name }));
         }
       }
     }
@@ -76,7 +78,7 @@ export default function PackScreen() {
 
   return (
     <section className="screen">
-      <h3>Pack type</h3>
+      <h3>{t('packType')}</h3>
       <div className="chip-grid">
         {KINDS.map(k => (
           <button
@@ -94,31 +96,28 @@ export default function PackScreen() {
       </div>
 
       {kind === 'standard' ? (
-        <p className="muted">
-          Standard packs contain playing cards, which bal-track does not evaluate individually. Rule of thumb: take
-          cards with seals, editions or enhancements that fit your build; otherwise skipping is fine.
-        </p>
+        <p className="muted">{t('packStandardNote')}</p>
       ) : (
         <>
-          <h3>Options in the pack</h3>
+          <h3>{t('optionsInPack')}</h3>
           <ul className="rows">
             {options.map(id => (
               <li key={id}>{optionName(id)}</li>
             ))}
           </ul>
           <AutocompleteInput
-            placeholder="Add pack option…"
+            placeholder={t('addPackOption')}
             kinds={OPTION_KINDS[kind]}
             onPick={item => setOptions(current => (current.includes(item.id) ? current : [...current, item.id]))}
           />
 
-          <h3>Advice</h3>
+          <h3>{t('advice')}</h3>
           <RecommendationList recs={recs} />
           {recs.length > 0 && (
             <div className="rows">
               {options.map(id => (
                 <button key={id} onClick={() => take(id)}>
-                  Took {optionName(id)}
+                  {t('took', { name: optionName(id) })}
                 </button>
               ))}
             </div>
@@ -127,7 +126,7 @@ export default function PackScreen() {
           {conversion && (
             <SuitPrompt consumableName={conversion.name} target={conversion.target} onDone={() => setConversion(null)} />
           )}
-          <button className="ghost" onClick={() => { setOptions([]); setNote(null); }}>Clear</button>
+          <button className="ghost" onClick={() => { setOptions([]); setNote(null); }}>{t('clear')}</button>
         </>
       )}
     </section>

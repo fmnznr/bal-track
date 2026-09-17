@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { I18nProvider, useI18n } from './i18n/I18nContext';
+import { LANGUAGES } from './i18n/dictionary';
+import type { Language } from './i18n/dictionary';
 import { RunProvider, useRun } from './run/RunContext';
 import HistoryScreen from './ui/screens/HistoryScreen';
 import PackScreen from './ui/screens/PackScreen';
@@ -8,15 +11,34 @@ import ShopScreen from './ui/screens/ShopScreen';
 
 type Screen = 'run' | 'shop' | 'pack' | 'history';
 
-const TABS: { id: Screen; label: string }[] = [
-  { id: 'run', label: 'Run' },
-  { id: 'shop', label: 'Shop' },
-  { id: 'pack', label: 'Pack' },
-  { id: 'history', label: 'History' },
-];
+const TABS = [
+  { id: 'run', key: 'tabRun' },
+  { id: 'shop', key: 'tabShop' },
+  { id: 'pack', key: 'tabPack' },
+  { id: 'history', key: 'tabHistory' },
+] as const;
+
+function LanguagePicker() {
+  const { lang, setLang, t } = useI18n();
+  return (
+    <label className="lang-picker">
+      <span className="sr-only">{t('language')}</span>
+      <select
+        aria-label={t('language')}
+        value={lang}
+        onChange={e => setLang(e.target.value as Language)}
+      >
+        {LANGUAGES.map(code => (
+          <option key={code} value={code}>{code.toUpperCase()}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 function Shell() {
   const { store } = useRun();
+  const { t } = useI18n();
   const [screen, setScreen] = useState<Screen>('run');
 
   if (!store.current) {
@@ -24,15 +46,16 @@ function Shell() {
       return (
         <div className="app">
           <HistoryScreen />
-          <button className="primary" onClick={() => setScreen('run')}>New Run</button>
+          <button className="primary" onClick={() => setScreen('run')}>{t('newRun')}</button>
         </div>
       );
     }
     return (
       <div className="app">
+        <LanguagePicker />
         <RunSetup onStarted={() => setScreen('run')} />
         {store.finished.length > 0 && (
-          <button className="ghost" onClick={() => setScreen('history')}>History</button>
+          <button className="ghost" onClick={() => setScreen('history')}>{t('tabHistory')}</button>
         )}
       </div>
     );
@@ -40,17 +63,18 @@ function Shell() {
 
   return (
     <div className="app">
-      <nav className="tabs" aria-label="Run sections">
-        {TABS.map(t => (
+      <nav className="tabs" aria-label={t('runSections')}>
+        {TABS.map(tab => (
           <button
-            key={t.id}
-            aria-current={t.id === screen ? 'page' : undefined}
-            className={t.id === screen ? 'tab active' : 'tab'}
-            onClick={() => setScreen(t.id)}
+            key={tab.id}
+            aria-current={tab.id === screen ? 'page' : undefined}
+            className={tab.id === screen ? 'tab active' : 'tab'}
+            onClick={() => setScreen(tab.id)}
           >
-            {t.label}
+            {t(tab.key)}
           </button>
         ))}
+        <LanguagePicker />
       </nav>
       {screen === 'run' && <RunOverview />}
       {screen === 'shop' && <ShopScreen />}
@@ -62,8 +86,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <RunProvider>
-      <Shell />
-    </RunProvider>
+    <I18nProvider>
+      <RunProvider>
+        <Shell />
+      </RunProvider>
+    </I18nProvider>
   );
 }

@@ -9,6 +9,8 @@ import { stakeHas } from './gameRules';
 import { TUNING } from './tuning';
 import { faceShare, suitShare } from './deckSignals';
 
+// Shape-checked by src/data/schema.ts: `npm run validate:catalog` parses this
+// file at build time, and tsc fails if the schema drifts from the type here.
 const handValues = handValuesJson as unknown as HandValueDef[];
 const blinds = blindsJson as {
   anteBase: number[];

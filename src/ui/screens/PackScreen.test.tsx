@@ -42,9 +42,9 @@ it('books a suit conversion through the prompt', async () => {
   await userEvent.type(screen.getByPlaceholderText('Add pack option…'), 'sun');
   await userEvent.click(await screen.findByRole('button', { name: /The Sun/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Took The Sun' }));
-  await userEvent.click(screen.getByRole('button', { name: 'from diamonds' }));
-  await userEvent.click(screen.getByRole('button', { name: 'from diamonds' }));
-  await userEvent.click(screen.getByRole('button', { name: 'from clubs' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from Diamonds' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from Diamonds' }));
+  await userEvent.click(screen.getByRole('button', { name: 'from Clubs' }));
   await userEvent.click(screen.getByRole('button', { name: 'Book conversion' }));
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
   await userEvent.click(screen.getByText('Deck profile'));

@@ -229,3 +229,16 @@ details summary { cursor: pointer; color: var(--muted); padding: 8px 0; }
 .primary-hand { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
 .primary-hand > span { font-size: 0.85rem; color: var(--muted); }
 .primary-hand select { width: 100%; }
+
+/* Language switch: present but never competing with the run for attention. */
+.lang-picker { display: inline-flex; align-items: center; }
+.lang-picker select { padding: 4px 6px; min-height: 32px; font-size: 0.8rem; }
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

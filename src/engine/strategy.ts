@@ -5,6 +5,8 @@ import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyC
 import { maxSuitShare } from './deckSignals';
 import { TUNING } from './tuning';
 
+// Shape-checked by src/data/schema.ts: `npm run validate:catalog` parses this
+// file at build time, and tsc fails if the schema drifts from the type here.
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
 

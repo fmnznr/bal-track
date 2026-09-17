@@ -1,10 +1,12 @@
 import { adviseStrategy } from '../../engine/strategy';
+import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 
-const COMMITMENT_LABEL = { lean: 'Leaning', commit: 'Commit' } as const;
+const COMMITMENT_KEY = { lean: 'leaning', commit: 'commit' } as const;
 
 export default function StrategyPanel() {
   const { store } = useRun();
+  const t = useT();
   const run = store.current!;
   const advice = adviseStrategy(run);
   const top = advice.candidates[0];
@@ -12,9 +14,9 @@ export default function StrategyPanel() {
   return (
     <section className={`strategy strategy-${advice.commitment}`}>
       <div className="row spread">
-        <strong>Strategy</strong>
+        <strong>{t('strategy')}</strong>
         <span className={`commitment commitment-${advice.commitment}`}>
-          {advice.commitment === 'open' ? 'Open — stay flexible' : `${COMMITMENT_LABEL[advice.commitment]}: ${top.name}`}
+          {advice.commitment === 'open' ? t('open') : `${t(COMMITMENT_KEY[advice.commitment])}: ${top.name}`}
         </span>
       </div>
       {advice.commitment !== 'open' && top && (
@@ -24,10 +26,12 @@ export default function StrategyPanel() {
               <li key={i}>{reason}</li>
             ))}
           </ul>
-          {top.watchlist.length > 0 && <p className="muted">Look for: {top.watchlist.slice(0, 4).join(', ')}</p>}
+          {top.watchlist.length > 0 && (
+            <p className="muted">{t('lookFor')} {top.watchlist.slice(0, 4).join(', ')}</p>
+          )}
           {advice.candidates.length > 1 && (
             <details>
-              <summary>Other options</summary>
+              <summary>{t('otherOptions')}</summary>
               <ul className="strategy-reasons">
                 {advice.candidates.slice(1).map(c => (
                   <li key={c.archetypeId}>
