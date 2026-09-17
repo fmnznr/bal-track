@@ -40,9 +40,7 @@ describe('newRunState', () => {
 describe('reduce', () => {
   it('buys a joker and deducts the price', () => {
     const s = reduce(started(), { type: 'ADD_JOKER', jokerId: 'joker', edition: 'base', price: 2 });
-    expect(s.current?.jokers[0]).toMatchObject({
-      jokerId: 'joker', edition: 'base', acquiredAtPlays: 0, acquiredAtDiscards: 0,
-    });
+    expect(s.current?.jokers[0]).toMatchObject({ jokerId: 'joker', edition: 'base' });
     expect(s.current?.money).toBe(2);
   });
 
@@ -338,10 +336,10 @@ describe('joker order', () => {
   });
 });
 
-describe('hand play tracking', () => {
-  it('starts with zeroed play counters and deck-specific resources', () => {
+describe('primary hand and round resources', () => {
+  it('starts with no declared hand and deck-specific resources', () => {
     const red = newRunState('Red', 'White');
-    expect(red.handPlays['Flush']).toBe(0);
+    expect(red.primaryHand).toBeNull();
     expect(red.handsPerRound).toBe(4);
     expect(red.discardsPerRound).toBe(4);
     expect(newRunState('Blue', 'White').handsPerRound).toBe(5);
@@ -349,12 +347,25 @@ describe('hand play tracking', () => {
     expect(newRunState('Magic', 'White').discardsPerRound).toBe(3);
   });
 
-  it('edits counters with a floor of zero', () => {
+  it('declares and clears the primary hand', () => {
     let s = started();
-    s = reduce(s, { type: 'SET_HAND_PLAYS', hand: 'Flush', value: 7 });
+    s = reduce(s, { type: 'SET_PRIMARY_HAND', hand: 'Flush' });
+    expect(s.current?.primaryHand).toBe('Flush');
+    s = reduce(s, { type: 'SET_PRIMARY_HAND', hand: null });
+    expect(s.current?.primaryHand).toBeNull();
+  });
+
+  it('does not spend an undo step on re-picking the same hand', () => {
+    let s = reduce(started(), { type: 'SET_PRIMARY_HAND', hand: 'Flush' });
+    const steps = s.past.length;
+    s = reduce(s, { type: 'SET_PRIMARY_HAND', hand: 'Flush' });
+    expect(s.past).toHaveLength(steps);
+  });
+
+  it('edits round resources with a floor of zero', () => {
+    let s = started();
     s = reduce(s, { type: 'SET_HANDS_PER_ROUND', value: -2 });
     s = reduce(s, { type: 'SET_DISCARDS_PER_ROUND', value: 5 });
-    expect(s.current?.handPlays['Flush']).toBe(7);
     expect(s.current?.handsPerRound).toBe(0);
     expect(s.current?.discardsPerRound).toBe(5);
   });
@@ -369,15 +380,49 @@ describe('hand play tracking', () => {
     expect(s.current?.discardsPerRound).toBe(5);
   });
 
-  it('backfills the new fields on old saves including snapshots', () => {
+  it('backfills missing resource fields on old saves including snapshots', () => {
     const legacy = { ...newRunState('Blue', 'White') } as Record<string, unknown>;
-    delete legacy.handPlays;
     delete legacy.handsPerRound;
     delete legacy.discardsPerRound;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: legacy, past: [legacy], finished: [] }));
     const loaded = load();
-    expect(loaded?.current?.handPlays['Pair']).toBe(0);
     expect(loaded?.current?.handsPerRound).toBe(5);
     expect(loaded?.past[0]?.current?.discardsPerRound).toBe(3);
+  });
+});
+
+describe('v2 migration — play counters to a declared hand', () => {
+  function v2Run(plays: Record<string, number>) {
+    const base = { ...newRunState('Red', 'White') } as Record<string, unknown>;
+    delete base.primaryHand;
+    return {
+      ...base,
+      handPlays: plays,
+      discardsUsed: 4,
+      jokers: [{ jokerId: 'blueprint', edition: 'base', acquiredAtPlays: 3, acquiredAtDiscards: 1 }],
+    };
+  }
+
+  it('adopts the most played hand as the declared hand', () => {
+    const legacy = v2Run({ Flush: 9, Pair: 4 });
+    localStorage.setItem('bal-track:v2', JSON.stringify({ current: legacy, past: [legacy], finished: [] }));
+    const loaded = load();
+    expect(loaded?.current?.primaryHand).toBe('Flush');
+    expect(loaded?.past[0]?.current?.primaryHand).toBe('Flush');
+  });
+
+  it('declares nothing when the old run had too few plays to be a signal', () => {
+    const legacy = v2Run({ Flush: 3 });
+    localStorage.setItem('bal-track:v2', JSON.stringify({ current: legacy, past: [], finished: [] }));
+    expect(load()?.current?.primaryHand).toBeNull();
+  });
+
+  it('drops the retired per-joker acquisition counters', () => {
+    const legacy = v2Run({ Flush: 9 });
+    localStorage.setItem('bal-track:v2', JSON.stringify({ current: legacy, past: [], finished: [] }));
+    const joker = load()?.current?.jokers[0] as Record<string, unknown> | undefined;
+    expect(joker?.jokerId).toBe('blueprint');
+    expect(joker).not.toHaveProperty('acquiredAtPlays');
+    expect(joker).not.toHaveProperty('acquiredAtDiscards');
   });
 });

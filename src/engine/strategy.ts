@@ -3,7 +3,6 @@ import deckStrategyJson from '../data/deckStrategy.json';
 import { getJoker } from '../catalog/catalog';
 import type { ArchetypeDef, DeckStrategyDef, RunState, StrategyAdvice, StrategyCandidate } from '../types';
 import { maxSuitShare } from './deckSignals';
-import { playConfidence, playShare, totalPlays } from './playSignals';
 
 export const archetypes = archetypesJson as unknown as ArchetypeDef[];
 export const deckStrategies = deckStrategyJson as unknown as DeckStrategyDef[];
@@ -54,17 +53,12 @@ export function adviseStrategy(run: RunState): StrategyAdvice {
       }
     }
 
-    const confidence = playConfidence(run);
-    if (arch.hands.length > 0 && confidence > 0) {
-      const total = totalPlays(run);
-      const share = playShare(run, arch.hands);
-      const played = Math.round(share * total);
-      // Ramped by sample size: a single blind must not rewrite the plan.
-      const weight = share >= 0.5 ? 3.5 : share >= 0.3 ? 1.5 : 0;
-      if (weight > 0) {
-        score += weight * confidence;
-        reasons.push(`You played ${arch.name} in ${played} of ${total} hands (${Math.round(share * 100)}%)`);
-      }
+    // A declared hand is a deliberate statement of intent, so it counts at full
+    // weight immediately — unlike the play counters it replaced, it cannot be
+    // skewed by one unusual blind.
+    if (run.primaryHand && arch.hands.includes(run.primaryHand)) {
+      score += 3;
+      reasons.push(`${run.primaryHand} is the hand you build around`);
     }
 
     const leveled = arch.hands.reduce((sum, hand) => sum + Math.max(0, run.handLevels[hand] - 1), 0);

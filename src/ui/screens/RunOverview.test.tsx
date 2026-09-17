@@ -71,14 +71,23 @@ it('applies the suggested order in one tap', async () => {
   expect(screen.getByText(/Joker order looks good/)).toBeInTheDocument();
 });
 
-it('edits hand plays and the per-round resource', async () => {
+it('corrects the per-round resource', async () => {
   render(<App />);
-  await userEvent.click(screen.getByText('Hands'));
+  await userEvent.click(screen.getByText('Corrections'));
   expect(screen.getByLabelText('Hands per round')).toHaveDisplayValue('4');
   await userEvent.click(screen.getByRole('button', { name: 'increase Discards per round' }));
   expect(screen.getByLabelText('Discards per round')).toHaveDisplayValue('5');
-  await userEvent.click(screen.getByRole('button', { name: 'increase Flush played' }));
-  expect(screen.getByLabelText('Flush played')).toHaveDisplayValue('1');
+});
+
+it('declares the hand you build around and feeds it to the advice', async () => {
+  render(<App />);
+  const select = screen.getByLabelText('Hand you build around');
+  expect(select).toHaveDisplayValue('Not decided yet');
+
+  await userEvent.selectOptions(select, 'Flush');
+  expect(select).toHaveDisplayValue('Flush');
+  // The score estimate describes the declared hand from here on.
+  expect(screen.getByText(/Typical Flush/)).toBeInTheDocument();
 });
 
 it('shows the score estimate against the ante targets', async () => {

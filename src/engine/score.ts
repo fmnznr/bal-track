@@ -3,7 +3,6 @@ import blindsJson from '../data/blinds.json';
 import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
 import type { Edition, HandType, HandValueDef, RunState } from '../types';
-import { MIN_PLAYS, mostPlayedHand, totalPlays } from './playSignals';
 import { stakeHas } from './gameRules';
 
 const handValues = handValuesJson as unknown as HandValueDef[];
@@ -67,11 +66,9 @@ export function blindTargets(ante: number, deck?: string, stake = 'White'): { sm
   };
 }
 
-/** The hand the estimate should describe: what you play, else what you levelled. */
+/** The hand the estimate should describe: what you build around, else what you levelled. */
 export function referenceHand(run: RunState): HandType {
-  // Same noise floor as every other play-statistic signal.
-  const played = totalPlays(run) >= MIN_PLAYS ? mostPlayedHand(run) : null;
-  if (played) return played;
+  if (run.primaryHand) return run.primaryHand;
   let best: HandType = 'High Card';
   for (const hand of HAND_TYPES) {
     if (run.handLevels[hand] > run.handLevels[best]) best = hand;

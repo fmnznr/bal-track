@@ -224,3 +224,8 @@ details summary { cursor: pointer; color: var(--muted); padding: 8px 0; }
   border-left: 4px solid var(--panel-2);
   padding-left: 10px;
 }
+
+/* The single declared input that drives strategy and the score estimate. */
+.primary-hand { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.primary-hand > span { font-size: 0.85rem; color: var(--muted); }
+.primary-hand select { width: 100%; }

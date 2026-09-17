@@ -19,11 +19,16 @@ from modeled mechanics, a partial model or hand-curated heuristics.
 - Deck and cumulative Stake starting rules, including high-Stake Joker stickers.
 - Interest thresholds, Green Deck's no-interest economy and Rental upkeep.
 - Joker slots, editions, Eternal/Perishable/Rental stickers and sell values.
-- Strategy direction from Joker tags, deck profile and hands actually played.
+- Strategy direction from Joker tags, deck profile and the hand you build around.
 - Suit, face-card and enhancement counts with common consumable effects.
 - Joker trigger order, with a safe one-tap reorder suggestion.
 - Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
+
+Routine input is deliberately small: money, the cards on offer, and one
+declared hand per run. Hand levels, per-round resources and deck composition
+are booked from the planets, vouchers and consumables you record, and the
+Corrections section exists only for when a run drifts from what was recorded.
 
 ## Current limitations
 
@@ -36,6 +41,9 @@ from modeled mechanics, a partial model or hand-curated heuristics.
   are not simulated.
 - Perishable remaining rounds are not counted; the sticker is treated as a
   general flexibility penalty.
+- Jokers that scale with hands played since acquisition (Green Joker, Ice
+  Cream) are rated on their base value only. Supernova and Obelisk are nudged
+  by whether you declared a hand, not by how often you played it.
 - Unusual card-price modifiers may require correcting the displayed card price
   manually. Pack and voucher discounts are not modeled yet.
 

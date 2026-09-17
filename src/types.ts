@@ -87,9 +87,6 @@ export interface OwnedJoker {
   jokerId: string;
   edition: Edition;
   stickers?: JokerStickers;
-  /** Global play counters when this copy was acquired, for stateful estimates. */
-  acquiredAtPlays?: number;
-  acquiredAtDiscards?: number;
 }
 
 export interface RunState {
@@ -103,8 +100,12 @@ export interface RunState {
   vouchers: string[]; // voucher ids redeemed this run
   consumables: string[]; // consumable ids currently held
   handLevels: Record<HandType, number>; // all start at 1
-  handPlays: Record<HandType, number>;
-  discardsUsed: number;
+  /**
+   * The hand the player actually builds around, declared once instead of
+   * counted per play. Null until they decide — every signal reading it falls
+   * back to something sensible rather than demanding the input.
+   */
+  primaryHand: HandType | null;
   handsPerRound: number;
   discardsPerRound: number;
   deckProfile: DeckProfile;

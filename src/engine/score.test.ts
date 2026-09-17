@@ -27,13 +27,12 @@ describe('blindTargets', () => {
 });
 
 describe('referenceHand', () => {
-  it('prefers the most played hand, then the highest level, then High Card', () => {
+  it('prefers the declared hand, then the highest level, then High Card', () => {
     const base = runWith();
     expect(referenceHand(base)).toBe('High Card');
     const leveled = { ...base, handLevels: { ...base.handLevels, Flush: 4 } };
     expect(referenceHand(leveled)).toBe('Flush');
-    const played = { ...leveled, handPlays: { ...base.handPlays, Pair: 9 } };
-    expect(referenceHand(played)).toBe('Pair');
+    expect(referenceHand({ ...leveled, primaryHand: 'Pair' })).toBe('Pair');
   });
 });
 
@@ -130,12 +129,10 @@ describe('score — review fixes', () => {
     expect(blindTargets(Number.NaN).small).toBe(300);
   });
 
-  it('ignores a handful of recorded plays when picking the reference hand', () => {
+  it('lets a declared hand override the highest levelled one', () => {
     const base = runWith([], { handLevels: { ...newRunState('Magic', 'White').handLevels, Flush: 8 } });
-    const onePlay = { ...base, handPlays: { ...base.handPlays, 'Five of a Kind': 1 } };
-    expect(referenceHand(onePlay)).toBe('Flush');
-    const manyPlays = { ...base, handPlays: { ...base.handPlays, 'Five of a Kind': 9 } };
-    expect(referenceHand(manyPlays)).toBe('Five of a Kind');
+    expect(referenceHand(base)).toBe('Flush');
+    expect(referenceHand({ ...base, primaryHand: 'Five of a Kind' })).toBe('Five of a Kind');
   });
 
   it('values an average card at the real deck average', () => {

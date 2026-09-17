@@ -14,7 +14,12 @@ export default tseslint.config(
       // The engine reads catalog JSON through narrow casts at the module edge;
       // those are reviewed individually rather than banned outright.
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Leading underscore marks a binding that exists only to drop a field
+      // from an object via rest destructuring.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
     },
   },
   {

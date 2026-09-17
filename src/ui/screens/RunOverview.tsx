@@ -5,7 +5,7 @@ import { usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useRun } from '../../run/RunContext';
 import { HAND_TYPES } from '../../types';
-import type { Edition, Suit } from '../../types';
+import type { Edition, HandType, Suit } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
 import DeckProfileSection from '../components/DeckProfileSection';
 import JokerOrderPanel from '../components/JokerOrderPanel';
@@ -32,6 +32,21 @@ export default function RunOverview() {
 
       <StrategyPanel />
       <ScorePanel />
+
+      <label className="primary-hand">
+        <span>Hand you build around</span>
+        <select
+          value={run.primaryHand ?? ''}
+          onChange={e =>
+            dispatch({ type: 'SET_PRIMARY_HAND', hand: (e.target.value || null) as HandType | null })
+          }
+        >
+          <option value="">Not decided yet</option>
+          {HAND_TYPES.map(hand => (
+            <option key={hand} value={hand}>{hand}</option>
+          ))}
+        </select>
+      </label>
 
       <div className="row">
         <NumberField label="Money $" value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
@@ -138,7 +153,11 @@ export default function RunOverview() {
       )}
 
       <details>
-        <summary>Hands</summary>
+        <summary>Corrections</summary>
+        <p className="muted">
+          The app books these itself from vouchers, planets and used consumables. Adjust them only
+          when your run has drifted from what it recorded.
+        </p>
         <div className="row">
           <NumberField
             label="Hands per round"
@@ -150,11 +169,6 @@ export default function RunOverview() {
             value={run.discardsPerRound}
             onChange={value => dispatch({ type: 'SET_DISCARDS_PER_ROUND', value })}
           />
-          <NumberField
-            label="Discards used"
-            value={run.discardsUsed}
-            onChange={value => dispatch({ type: 'SET_DISCARDS_USED', value })}
-          />
         </div>
         {HAND_TYPES.map(hand => (
           <div className="row" key={hand}>
@@ -164,15 +178,10 @@ export default function RunOverview() {
               min={1}
               onChange={level => dispatch({ type: 'SET_HAND_LEVEL', hand, level })}
             />
-            <NumberField
-              label={`${hand} played`}
-              value={run.handPlays[hand]}
-              onChange={value => dispatch({ type: 'SET_HAND_PLAYS', hand, value })}
-            />
           </div>
         ))}
+        <DeckProfileSection />
       </details>
-      <DeckProfileSection />
 
       <div className="row">
         <button className="primary" onClick={() => confirm('End this run as WON?') && dispatch({ type: 'END_RUN', result: 'won' })}>
