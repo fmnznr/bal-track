@@ -39,7 +39,8 @@ export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal
         multiplier: TUNING.play.varietyJoker,
         reasons: [`Obelisk wants hand variety, but you build around ${primary}`],
       };
-    case 'banner':
+    // Banner used to be here too. Its +30 Chips per discard is now modelled from
+    // the real discard count, so this would charge the same fact twice.
     case 'delayed-gratification': {
       if (extraDiscards === 0) return NEUTRAL;
       return {

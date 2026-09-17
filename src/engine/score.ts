@@ -2,8 +2,11 @@ import handValuesJson from '../data/handValues.json';
 import blindsJson from '../data/blinds.json';
 import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
-import type { Edition, HandType, HandValueDef, JokerScore, RunState } from '../types';
+import type {
+  CardMatch, Edition, HandType, HandValueDef, JokerScore, RunCount, RunState, ScoreContribution,
+} from '../types';
 import { stakeHas } from './gameRules';
+import { faceShare, suitShare } from './deckSignals';
 
 const handValues = handValuesJson as unknown as HandValueDef[];
 const blinds = blindsJson as {
@@ -90,6 +93,92 @@ export interface ScoreEstimate {
   unmodeled: string[];
 }
 
+/** Ranks in a standard deck, for turning "each played 10 or 4" into a share. */
+const RANKS = 13;
+
+/**
+ * The share of the deck a per-card effect matches, which is also the expected
+ * share of a hand's scoring cards that trigger it.
+ */
+function matchShare(run: RunState, match: CardMatch): number {
+  switch (match.kind) {
+    case 'suit':
+      return suitShare(run.deckProfile, match.suit);
+    case 'face':
+      return faceShare(run.deckProfile);
+    case 'rank':
+      // The deck profile tracks suits and faces but not ranks, so ranks are
+      // assumed evenly spread. A deck stuffed with one rank scores better than
+      // this says.
+      return Math.min(1, Math.max(0, match.ranks / RANKS));
+  }
+}
+
+/** Counts a joker can scale with, read straight off the run. */
+function runCount(run: RunState, of: RunCount): number {
+  switch (of) {
+    case 'emptyJokerSlots':
+      return Math.max(0, run.jokerSlots - run.jokers.filter(j => j.edition !== 'negative').length);
+    case 'jokers':
+      return run.jokers.length;
+    case 'discardsPerRound':
+      return run.discardsPerRound;
+    case 'deckSize':
+      return run.deckProfile.deckSize;
+    case 'cardsRemovedFromDeck':
+      return Math.max(0, STANDARD_DECK_SIZE - run.deckProfile.deckSize);
+    case 'money':
+      return Math.max(0, run.money);
+    case 'steelCards':
+      return run.deckProfile.enhanced.steel;
+    case 'stoneCards':
+      return run.deckProfile.enhanced.stone;
+  }
+}
+
+/** A full Balatro deck, the baseline Erosion counts removals against. */
+const STANDARD_DECK_SIZE = 52;
+
+interface Repeated {
+  chips: number;
+  mult: number;
+  xmult: number;
+}
+
+const NOTHING: Repeated = { chips: 0, mult: 0, xmult: 1 };
+
+/**
+ * A contribution triggered once per matching card.
+ *
+ * Each trigger is a separate multiplication, so two scoring Kings under
+ * Triboulet are X2 then X2 again. A fractional expected count therefore becomes
+ * a fractional power, not a fractional factor.
+ */
+function perTrigger(part: ScoreContribution, count: number): Repeated {
+  if (count <= 0) return NOTHING;
+  return {
+    chips: (part.chips ?? 0) * count,
+    mult: (part.mult ?? 0) * count,
+    xmult: part.xmult !== undefined ? part.xmult ** count : 1,
+  };
+}
+
+/**
+ * A contribution that scales with a count rather than firing per card.
+ *
+ * These read as "X0.2 Mult for each Steel Card", which builds one multiplier of
+ * 1 + 0.2n rather than applying X0.2 n times. Getting this backwards would turn
+ * Steel Joker into a penalty.
+ */
+function perUnit(part: ScoreContribution, count: number): Repeated {
+  if (count <= 0) return NOTHING;
+  return {
+    chips: (part.chips ?? 0) * count,
+    mult: (part.mult ?? 0) * count,
+    xmult: part.xmult !== undefined ? 1 + part.xmult * count : 1,
+  };
+}
+
 /** A joker reduced to what the score model can actually read from it. */
 interface ScoringJoker {
   name: string;
@@ -129,6 +218,20 @@ function estimateWithBoard(run: RunState, hand: HandType, board: ScoringJoker[])
       chips += score.chips ?? 0;
       mult += score.mult ?? 0;
       mult *= score.xmult ?? 1;
+
+      if (score.perCard) {
+        const expected = def.scoringCards * matchShare(run, score.perCard.match);
+        const part = perTrigger(score.perCard, expected);
+        chips += part.chips;
+        mult += part.mult;
+        mult *= part.xmult;
+      }
+      if (score.perCount) {
+        const part = perUnit(score.perCount, runCount(run, score.perCount.of));
+        chips += part.chips;
+        mult += part.mult;
+        mult *= part.xmult;
+      }
       modeled.push(joker.name);
     } else {
       inactive.push(joker.name);

@@ -46,7 +46,8 @@ function scaleWithEnhanced(count: number, label: string): DeckSignal {
 }
 
 const ENHANCED_HOOKS: Record<string, (p: DeckProfile) => DeckSignal> = {
-  'steel-joker': p => scaleWithEnhanced(p.enhanced.steel, 'steel'),
+  // Steel Joker used to be here too. It is now modelled outright from the steel
+  // count, so a signal on top of that would charge the same fact twice.
   'glass-joker': p => scaleWithEnhanced(p.enhanced.glass, 'glass'),
   'drivers-license': p => {
     const total = Object.values(p.enhanced).reduce((a, b) => a + b, 0);

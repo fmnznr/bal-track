@@ -7,6 +7,7 @@ import { TUNING } from './tuning';
 const greedy = getJoker('greedy-joker')!;
 const photograph = getJoker('photograph')!;
 const steelJoker = getJoker('steel-joker')!;
+const glassJoker = getJoker('glass-joker')!;
 const driversLicense = getJoker('drivers-license')!;
 const blueprint = getJoker('blueprint')!;
 
@@ -43,13 +44,19 @@ describe('deckMultiplierForJoker', () => {
 
   it('scores enhanced specialists from real counts', () => {
     const p = initialDeckProfile('Red');
-    expect(deckMultiplierForJoker(steelJoker, p).multiplier).toBe(TUNING.deck.enhanced.noneYet);
-    const four = deckMultiplierForJoker(steelJoker, { ...p, enhanced: { ...p.enhanced, steel: 4 } });
+    expect(deckMultiplierForJoker(glassJoker, p).multiplier).toBe(TUNING.deck.enhanced.noneYet);
+    const four = deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 4 } });
     expect(four.multiplier).toBeCloseTo(TUNING.deck.enhanced.perMatchingCard ** 4);
     expect(four.multiplier).toBeGreaterThan(1);
     const sig = deckMultiplierForJoker(driversLicense, p);
     expect(sig.multiplier).toBe(TUNING.deck.enhanced.driversLicenseDead);
     expect(sig.reasons.join(' ')).toMatch(/0\/16 enhanced/);
+  });
+
+  it('leaves Steel Joker to the score model rather than signalling it twice', () => {
+    const p = initialDeckProfile('Red');
+    expect(deckMultiplierForJoker(steelJoker, { ...p, enhanced: { ...p.enhanced, steel: 6 } }))
+      .toEqual({ multiplier: 1, reasons: [] });
   });
 });
 
@@ -86,9 +93,9 @@ describe('deckMultiplierForJoker — review fixes', () => {
     expect(sig.reasons).toEqual([]);
   });
 
-  it('uses singular wording for one steel card', () => {
+  it('uses singular wording for one glass card', () => {
     const p = initialDeckProfile('Red');
-    const sig = deckMultiplierForJoker(getJoker('steel-joker')!, { ...p, enhanced: { ...p.enhanced, steel: 1 } });
-    expect(sig.reasons.join(' ')).toMatch(/1 steel card in your deck/);
+    const sig = deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 1 } });
+    expect(sig.reasons.join(' ')).toMatch(/1 glass card in your deck/);
   });
 });

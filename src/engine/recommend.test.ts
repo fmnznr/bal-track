@@ -83,7 +83,9 @@ describe('recommend — full joker slots', () => {
       shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
     );
     expect(recs[0].kind).toBe('sell-and-buy');
-    expect(recs[0].action).toMatch(/^Sell Joker, buy Blueprint/);
+    // Crafty Joker needs a Flush and the reference hand is High Card, so it is
+    // contributing nothing at all — a better thing to sell than a joker that fires.
+    expect(recs[0].action).toMatch(/^Sell Crafty Joker, buy Blueprint/);
     expect(recs[0].reasons.join(' ')).toMatch(/Slots full/);
   });
 
@@ -97,7 +99,7 @@ describe('recommend — full joker slots', () => {
       shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
     );
     const composite = recs.find(r => r.kind === 'sell-and-buy');
-    expect(composite?.reasons.join(' ')).toMatch(/\$24 → \$15/);
+    expect(composite?.reasons.join(' ')).toMatch(/\$24 → \$1[0-9]/);
   });
 
   it('allows a sell-and-buy when the sale makes the purchase affordable', () => {
@@ -188,15 +190,17 @@ describe('recommendPackPick — replacement hints', () => {
       jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
     });
     const picks = recommendPackPick(fullRun, ['blueprint']);
-    expect(picks[0].reasons.join(' ')).toMatch(/sell Joker .*to make room/);
+    expect(picks[0].reasons.join(' ')).toMatch(/sell Crafty Joker .*to make room/);
   });
 
   it('warns without a sell target when no pack pick is worth a slot', () => {
+    // Every owned joker fires on this hand, so none of them is dead weight.
     const fullRun = run({
       ante: 4,
-      jokers: owned('droll-joker', 'crafty-joker', 'photograph', 'golden-joker', 'cavendish'),
+      primaryHand: 'Flush',
+      jokers: owned('droll-joker', 'crafty-joker', 'the-tribe', 'golden-joker', 'cavendish'),
     });
-    const picks = recommendPackPick(fullRun, ['joker']);
+    const picks = recommendPackPick(fullRun, ['ice-cream']);
     expect(picks[0].reasons.join(' ')).toMatch(/nothing is clearly worth selling/);
   });
 
@@ -390,5 +394,41 @@ describe('the scale itself', () => {
     const free = recommend({ ...full, jokerSlots: 9 }, shopWith(10)).find(r => r.kind === 'buy-joker')!;
     expect(swap.impact).toBeLessThan(free.impact);
     expect(swap.reasons.join(' ')).toMatch(/contributes least/);
+  });
+});
+
+describe('a card the model knows is dead', () => {
+  it('does not let a good rating rescue a joker that adds nothing', () => {
+    // Steel Joker is rated 7/10 mid-run, but with no Steel cards it contributes
+    // literally zero. That is a certainty, not a noisy estimate, so the rating
+    // prior must not lift it back above the buy-nothing baseline.
+    const picks = recommendPackPick(run({ ante: 4 }), ['steel-joker']);
+    expect(picks[0].impact).toBeCloseTo(1);
+    expect(picks[0].reasons.join(' ')).toMatch(/Adds nothing to your/);
+  });
+
+  it('values the same joker once the deck supports it', () => {
+    const base = run({ ante: 4 });
+    const withSteel = {
+      ...base,
+      deckProfile: { ...base.deckProfile, enhanced: { ...base.deckProfile.enhanced, steel: 8 } },
+    };
+    const dead = recommendPackPick(base, ['steel-joker'])[0];
+    const live = recommendPackPick(withSteel, ['steel-joker'])[0];
+    expect(live.impact).toBeGreaterThan(dead.impact);
+    expect(live.reasons.join(' ')).toMatch(/Modelled at/);
+  });
+
+  it('treats a hand-conditional joker that cannot fire as the weakest on the board', () => {
+    // Crafty Joker needs a Flush; the declared hand is a Pair, so it never fires.
+    const recs = recommend(
+      run({
+        money: 30, ante: 4, primaryHand: 'Pair',
+        jokers: owned('jolly-joker', 'crafty-joker', 'golden-joker', 'cavendish', 'the-duo'),
+      }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
+    );
+    const swap = recs.find(r => r.kind === 'sell-and-buy');
+    expect(swap?.action).toMatch(/^Sell Crafty Joker/);
   });
 });

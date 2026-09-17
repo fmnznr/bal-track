@@ -33,13 +33,49 @@ export const SYNERGY_TAGS = [
 ] as const;
 export type SynergyTag = (typeof SYNERGY_TAGS)[number];
 
-/** Unconditional score contribution of a joker, if it has one. */
-export interface JokerScore {
+/**
+ * What a per-card effect matches among the cards a hand scores.
+ *
+ * Suit and face shares come from the tracked deck profile, so they follow a
+ * deck that has been converted or thinned. Rank shares assume the ranks are
+ * evenly spread, because the app does not track rank composition.
+ */
+export type CardMatch =
+  | { kind: 'suit'; suit: Suit }
+  | { kind: 'face' }
+  /** Matches this many of the thirteen ranks, e.g. 2 for "each played 10 or 4". */
+  | { kind: 'rank'; ranks: number };
+
+/** A contribution that repeats, once per matching card or per counted thing. */
+export interface ScoreContribution {
   chips?: number;
   mult?: number;
+  /** Compounds per repetition, so it is raised to the power of the count. */
   xmult?: number;
+}
+
+/**
+ * Things a joker can scale with that the run already tracks exactly, so the
+ * estimate needs no assumption at all.
+ */
+export type RunCount =
+  | 'emptyJokerSlots'
+  | 'jokers'
+  | 'discardsPerRound'
+  | 'deckSize'
+  | 'cardsRemovedFromDeck'
+  | 'money'
+  | 'steelCards'
+  | 'stoneCards';
+
+/** Score contribution of a joker, as far as it is modelled. */
+export interface JokerScore extends ScoreContribution {
   /** Only contributes when the estimated hand contains this. */
   requiresHand?: HandType;
+  /** Fires once per scoring card that matches; the count is an expectation. */
+  perCard?: ScoreContribution & { match: CardMatch };
+  /** Scales with something the run tracks, counted exactly. */
+  perCount?: ScoreContribution & { of: RunCount };
 }
 
 export interface JokerDef {

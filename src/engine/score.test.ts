@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newRunState } from '../run/runStore';
+import { initialDeckProfile, newRunState } from '../run/runStore';
 import { blindTargets, estimateHandScore, estimateJokerDelta, handContains, referenceHand } from './score';
 import type { RunState } from '../types';
 
@@ -139,5 +139,93 @@ describe('score — review fixes', () => {
     const standard = estimateHandScore(runWith(), 'High Card');
     // 5 base chips + one card worth ~7.3 on a standard 52-card deck
     expect(standard.chips).toBe(12);
+  });
+});
+
+describe('per-card and per-count score models', () => {
+  const deck = (over: Partial<ReturnType<typeof initialDeckProfile>> = {}) => ({
+    ...initialDeckProfile('Red'), ...over,
+  });
+  const withJokers = (ids: string[], over: Partial<RunState> = {}): RunState => ({
+    ...newRunState('Red', 'White'),
+    jokers: ids.map(jokerId => ({ jokerId, edition: 'base' as const })),
+    ...over,
+  });
+
+  it('takes a per-suit effect as an expectation over the tracked deck', () => {
+    // Flush scores 5 cards; a standard deck is a quarter diamonds, so Greedy
+    // Joker is expected to fire 1.25 times for +3 Mult each.
+    const run = withJokers(['greedy-joker']);
+    const bare = estimateHandScore({ ...run, jokers: [] }, 'Flush');
+    const withIt = estimateHandScore(run, 'Flush');
+    expect(withIt.mult - bare.mult).toBeCloseTo(5 * 0.25 * 3);
+    expect(withIt.modeled).toContain('Greedy Joker');
+  });
+
+  it('follows the deck when a suit is converted away or piled up', () => {
+    const run = withJokers(['greedy-joker']);
+    const none = estimateHandScore(
+      { ...run, deckProfile: deck({ suits: { hearts: 52, diamonds: 0, spades: 0, clubs: 0 } }) }, 'Flush');
+    const all = estimateHandScore(
+      { ...run, deckProfile: deck({ suits: { hearts: 0, diamonds: 52, spades: 0, clubs: 0 } }) }, 'Flush');
+    const bare = estimateHandScore({ ...run, jokers: [] }, 'Flush');
+    expect(none.mult).toBe(bare.mult);
+    expect(all.mult - bare.mult).toBeCloseTo(5 * 3);
+  });
+
+  it('spreads a rank effect evenly across the thirteen ranks', () => {
+    // "Each played 10 or 4" is two ranks of thirteen, over four scoring cards.
+    const run = withJokers(['walkie-talkie']);
+    const bare = estimateHandScore({ ...run, jokers: [] }, 'Two Pair');
+    const withIt = estimateHandScore(run, 'Two Pair');
+    const expected = 4 * (2 / 13);
+    expect(withIt.mult - bare.mult).toBeCloseTo(expected * 4);
+    // Chips are rounded to whole numbers before they are reported.
+    expect(withIt.chips - bare.chips).toBe(Math.round(expected * 10));
+  });
+
+  it('compounds a per-card xMult rather than adding it', () => {
+    // Triboulet is X2 per scoring King or Queen, and each trigger multiplies.
+    const run = withJokers(['triboulet']);
+    const bare = estimateHandScore({ ...run, jokers: [] }, 'Flush');
+    const withIt = estimateHandScore(run, 'Flush');
+    expect(withIt.mult).toBeCloseTo(bare.mult * 2 ** (5 * (2 / 13)), 1);
+  });
+
+  it('adds a per-count xMult into one multiplier instead of compounding it', () => {
+    // Steel Joker is X0.2 per steel card: six steel cards is X2.2, not X0.2^6.
+    const run = withJokers(['steel-joker'], {
+      deckProfile: deck({ enhanced: { ...initialDeckProfile('Red').enhanced, steel: 6 } }),
+    });
+    const bare = estimateHandScore({ ...run, jokers: [] }, 'Pair');
+    const withIt = estimateHandScore(run, 'Pair');
+    expect(withIt.mult).toBeCloseTo(bare.mult * (1 + 0.2 * 6));
+    expect(withIt.mult).toBeGreaterThan(bare.mult);
+  });
+
+  it('reads counts straight off the run', () => {
+    const bull = (money: number) =>
+      estimateHandScore(withJokers(['bull'], { money }), 'Pair').chips;
+    expect(bull(20) - bull(0)).toBe(2 * 20);
+
+    const abstract = (n: number) =>
+      estimateHandScore(withJokers(['abstract-joker', ...Array(n).fill('joker')]), 'Pair');
+    // Abstract Joker counts every joker including itself, Joker adds +4 Mult each.
+    expect(abstract(2).mult - abstract(1).mult).toBeCloseTo(3 + 4);
+  });
+
+  it('counts Erosion against cards removed from a full deck', () => {
+    const erosion = (deckSize: number) =>
+      estimateHandScore(withJokers(['erosion'], { deckProfile: deck({ deckSize }) }), 'Pair').mult;
+    expect(erosion(52)).toBeLessThan(erosion(45));
+    expect(erosion(45) - erosion(52)).toBeCloseTo(4 * 7);
+    // A deck larger than standard is not a penalty.
+    expect(erosion(60)).toBe(erosion(52));
+  });
+
+  it('counts a modelled joker as modeled, not unmodeled', () => {
+    const estimate = estimateHandScore(withJokers(['scary-face', 'blueprint']), 'Pair');
+    expect(estimate.modeled).toContain('Scary Face');
+    expect(estimate.unmodeled).toContain('Blueprint');
   });
 });

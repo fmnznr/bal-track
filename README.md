@@ -25,7 +25,8 @@ of the board — and disagree with.
 - Interest thresholds, Green Deck's no-interest economy and Rental upkeep.
 - Joker slots, editions, Eternal/Perishable/Rental stickers and sell values.
 - Strategy direction from Joker tags, deck profile and the hand you build around.
-- Suit, face-card and enhancement counts with common consumable effects.
+- Suit, face-card and enhancement counts with common consumable effects, which
+  feed the score estimate rather than only the heuristics.
 - Joker trigger order, with a safe one-tap reorder suggestion.
 - Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
@@ -39,9 +40,12 @@ Corrections section exists only for when a run drifts from what was recorded.
 
 - Shop and run state are entered manually; the app does not read Balatro saves.
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Exact score contribution is modeled only for unambiguous flat-effect Jokers.
-  Conditional, random, copy, retrigger and most scaling effects are named but
-  deliberately excluded from the numeric estimate.
+- Exact score contribution is modeled for 40 of the 150 Jokers: flat effects,
+  effects that repeat per scoring card of a suit, face or rank, and effects that
+  scale with something the run tracks (money, discards, deck size, enhanced
+  cards). Rank shares assume ranks are evenly spread, since rank composition is
+  not tracked. Random, copy, retrigger, held-in-hand and time-scaling effects
+  are named but deliberately excluded from the numeric estimate.
 - Where a Joker is modeled, that estimate is marginal — what the card does to
   your board right now — while the rating it is blended with is absolute. On an
   empty board every marginal effect looks enormous, so the blend leans on the

@@ -13,11 +13,12 @@ describe('playMultiplierForJoker', () => {
   const supernova = getJoker('supernova')!;
   const obelisk = getJoker('obelisk')!;
   const banner = getJoker('banner')!;
+  const delayed = getJoker('delayed-gratification')!;
   const blueprint = getJoker('blueprint')!;
 
   it('is neutral at default resources with no hand declared', () => {
     const fresh = runWith();
-    for (const def of [supernova, obelisk, banner, blueprint]) {
+    for (const def of [supernova, obelisk, delayed, blueprint]) {
       expect(playMultiplierForJoker(def, fresh), def.id).toEqual({ multiplier: 1, reasons: [] });
     }
   });
@@ -36,11 +37,16 @@ describe('playMultiplierForJoker', () => {
     expect(signal.reasons.join(' ')).toMatch(/variety/i);
   });
 
-  it('scales Banner with discards per round, independent of the declared hand', () => {
-    expect(playMultiplierForJoker(banner, runWith(null, { discardsPerRound: 5 })).multiplier)
+  it('scales Delayed Gratification with discards per round', () => {
+    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 5 })).multiplier)
       .toBeCloseTo(TUNING.play.perExtraDiscard ** 2);
-    expect(playMultiplierForJoker(banner, runWith(null, { discardsPerRound: 2 })).multiplier)
+    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 2 })).multiplier)
       .toBeCloseTo(TUNING.play.perExtraDiscard ** -1);
+  });
+
+  it('leaves Banner to the score model rather than signalling it twice', () => {
+    expect(playMultiplierForJoker(banner, runWith(null, { discardsPerRound: 5 })))
+      .toEqual({ multiplier: 1, reasons: [] });
   });
 
   it('ignores untouched jokers', () => {
@@ -50,6 +56,6 @@ describe('playMultiplierForJoker', () => {
   it('counts the Red deck extra discard as a real advantage', () => {
     const red = newRunState('Red', 'White');
     expect(red.discardsPerRound).toBe(4);
-    expect(playMultiplierForJoker(banner, red).multiplier).toBeCloseTo(TUNING.play.perExtraDiscard);
+    expect(playMultiplierForJoker(delayed, red).multiplier).toBeCloseTo(TUNING.play.perExtraDiscard);
   });
 });

@@ -105,17 +105,26 @@ export function jokerImpact(
   let evidence: Evidence;
 
   if (def.score) {
-    // Blended rather than taken straight: see TUNING.prior.modelWeight for why a
-    // marginal gain on the current board is not the whole story.
     const modelled = jokerScoreMultiplier(run, hand, def.score, edition);
     const prior = priorFromRating(def.rating[ctx.phase]) * jokerScoreMultiplier(run, hand, undefined, edition);
-    const w = TUNING.prior.modelWeight;
-    multiplier = modelled ** w * prior ** (1 - w);
     evidence = 'partial';
-    reasons.push(
-      `Modelled at ${formatMultiplier(modelled)} on your ${hand} right now,`
-      + ` tempered by its ${def.rating[ctx.phase]}/10 rating over a full run`,
-    );
+    if (modelled > 1) {
+      // Blended rather than taken straight: see TUNING.prior.modelWeight for why
+      // a marginal gain on the current board is not the whole story.
+      const w = TUNING.prior.modelWeight;
+      multiplier = modelled ** w * prior ** (1 - w);
+      reasons.push(
+        `Modelled at ${formatMultiplier(modelled)} on your ${hand} right now,`
+        + ` tempered by its ${def.rating[ctx.phase]}/10 rating over a full run`,
+      );
+    } else {
+      // The blend exists to temper an inflated marginal, not to rescue a card the
+      // model knows is dead. Steel Joker with no steel cards adds exactly nothing,
+      // and that is a certainty, not a noisy estimate — letting a 7/10 rating lift
+      // it back to "+68%" would be the model reporting the opposite of what it knows.
+      multiplier = modelled;
+      reasons.push(`Adds nothing to your ${hand} as your deck and board stand`);
+    }
   } else {
     const ability = priorFromRating(def.rating[ctx.phase]);
     const editionOnly = jokerScoreMultiplier(run, hand, undefined, edition);
