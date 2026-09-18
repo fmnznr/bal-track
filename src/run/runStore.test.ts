@@ -426,3 +426,78 @@ describe('v2 migration — play counters to a declared hand', () => {
     expect(joker).not.toHaveProperty('acquiredAtDiscards');
   });
 });
+
+describe('ending a run without a result', () => {
+  it('drops the run and records nothing in the history', () => {
+    let s = started();
+    s = reduce(s, { type: 'ADD_JOKER', jokerId: 'blueprint', edition: 'base' });
+    s = reduce(s, { type: 'ABANDON_RUN' });
+    expect(s.current).toBeNull();
+    expect(s.finished).toHaveLength(0);
+  });
+
+  it('clears the shop and pack drafts with it', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_SHOP_DRAFT', draft: { cards: [], voucherId: 'telescope', packIds: [], rerollCost: 5 } });
+    s = reduce(s, { type: 'SET_PACK_DRAFT', draft: { kind: 'celestial', options: ['jupiter'] } });
+    s = reduce(s, { type: 'ABANDON_RUN' });
+    expect(s.shopDraft).toBeNull();
+    expect(s.packDraft).toBeNull();
+  });
+
+  it('can be undone, jokers and all', () => {
+    let s = started();
+    s = reduce(s, { type: 'ADD_JOKER', jokerId: 'blueprint', edition: 'base' });
+    s = reduce(s, { type: 'ABANDON_RUN' });
+    s = reduce(s, { type: 'UNDO' });
+    expect(s.current?.jokers).toHaveLength(1);
+    expect(s.current?.deck).toBe('Red');
+  });
+
+  it('leaves an existing history untouched', () => {
+    let s = reduce(started(), { type: 'END_RUN', result: 'won' });
+    s = reduce(s, { type: 'START_RUN', deck: 'Blue', stake: 'White' });
+    s = reduce(s, { type: 'ABANDON_RUN' });
+    expect(s.finished).toHaveLength(1);
+    expect(s.finished[0].result).toBe('won');
+  });
+});
+
+describe('clearing the history', () => {
+  function withHistory(): StoreState {
+    let s = reduce(started(), { type: 'END_RUN', result: 'won' });
+    s = reduce(s, { type: 'START_RUN', deck: 'Blue', stake: 'White' });
+    return reduce(s, { type: 'END_RUN', result: 'lost' });
+  }
+
+  it('empties the finished runs', () => {
+    const s = reduce(withHistory(), { type: 'CLEAR_HISTORY' });
+    expect(s.finished).toEqual([]);
+  });
+
+  it('works between runs, when no run is active', () => {
+    // The reducer's "no active run" guard sits below this action on purpose:
+    // between runs is exactly when you would reach for it.
+    const between = withHistory();
+    expect(between.current).toBeNull();
+    expect(reduce(between, { type: 'CLEAR_HISTORY' }).finished).toEqual([]);
+  });
+
+  it('works during a run without disturbing it', () => {
+    let s = reduce(withHistory(), { type: 'START_RUN', deck: 'Black', stake: 'Gold' });
+    s = reduce(s, { type: 'CLEAR_HISTORY' });
+    expect(s.finished).toEqual([]);
+    expect(s.current).toMatchObject({ deck: 'Black', stake: 'Gold' });
+  });
+
+  it('can be undone', () => {
+    const s = reduce(reduce(withHistory(), { type: 'CLEAR_HISTORY' }), { type: 'UNDO' });
+    expect(s.finished).toHaveLength(2);
+  });
+
+  it('does nothing, and spends no undo step, on an empty history', () => {
+    const s = started();
+    const cleared = reduce(s, { type: 'CLEAR_HISTORY' });
+    expect(cleared).toBe(s);
+  });
+});

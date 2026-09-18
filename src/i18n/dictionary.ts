@@ -56,8 +56,10 @@ const en = {
   usePlanet: 'Use (+1 level)',
   runWon: 'Run won',
   runLost: 'Run lost',
+  abandonRun: 'Abandon run',
   confirmWon: 'End this run as WON?',
   confirmLost: 'End this run as LOST?',
+  confirmAbandon: 'Abandon this run without recording a result? It will not appear in your history.',
 
   // Corrections
   corrections: 'Corrections',
@@ -168,6 +170,8 @@ const en = {
   // History
   noFinishedRuns: 'No finished runs yet.',
   pastRuns: 'Past runs',
+  clearHistory: 'Clear history',
+  confirmClearHistory: 'Delete all {runs} finished runs? This cannot be undone once you start a new run.',
   historySummary: '{runs} runs · {wins} wins · {rate}% win rate',
   won: 'won',
   lost: 'lost',
@@ -215,8 +219,10 @@ const de: Phrases = {
   usePlanet: 'Benutzt (+1 Level)',
   runWon: 'Run gewonnen',
   runLost: 'Run verloren',
+  abandonRun: 'Run verwerfen',
   confirmWon: 'Diesen Run als GEWONNEN beenden?',
   confirmLost: 'Diesen Run als VERLOREN beenden?',
+  confirmAbandon: 'Diesen Run ohne Ergebnis verwerfen? Er taucht nicht im Verlauf auf.',
 
   corrections: 'Korrekturen',
   correctionsNote:
@@ -316,6 +322,8 @@ const de: Phrases = {
 
   noFinishedRuns: 'Noch keine beendeten Runs.',
   pastRuns: 'Frühere Runs',
+  clearHistory: 'Verlauf leeren',
+  confirmClearHistory: 'Alle {runs} beendeten Runs löschen? Sobald du einen neuen Run startest, lässt sich das nicht mehr rückgängig machen.',
   historySummary: '{runs} Runs · {wins} gewonnen · {rate}% Siegquote',
   won: 'gewonnen',
   lost: 'verloren',

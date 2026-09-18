@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from '../../App';
 import { STORAGE_KEY, newRunState } from '../../run/runStore';
 
@@ -94,4 +94,35 @@ it('shows the score estimate against the ante targets', async () => {
   render(<App />);
   expect(screen.getByText(/Typical/)).toBeInTheDocument();
   expect(screen.getByText(/targets/)).toBeInTheDocument();
+});
+
+it('abandons a run without recording a result, and offers an undo afterwards', async () => {
+  // beforeEach seeds an active run holding Golden Joker.
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  render(<App />);
+  expect(screen.getByText('Golden Joker')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Abandon run' }));
+  expect(confirmSpy).toHaveBeenCalledWith(expect.stringMatching(/not appear in your history/));
+  // Back on the setup screen, with nothing added to the history.
+  expect(screen.getByRole('button', { name: 'Start Run' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'History' })).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+  expect(screen.getByText('Golden Joker')).toBeInTheDocument();
+  confirmSpy.mockRestore();
+});
+
+it('clears the history from the history screen', async () => {
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Run won' }));
+
+  await userEvent.click(screen.getByRole('button', { name: 'History' }));
+  expect(screen.getByText(/1 runs · 1 wins/)).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Clear history' }));
+  expect(confirmSpy).toHaveBeenCalledWith(expect.stringMatching(/Delete all 1 finished runs/));
+  expect(screen.getByText('No finished runs yet.')).toBeInTheDocument();
+  confirmSpy.mockRestore();
 });

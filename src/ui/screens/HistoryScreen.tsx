@@ -2,7 +2,7 @@ import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 
 export default function HistoryScreen() {
-  const { store } = useRun();
+  const { store, dispatch } = useRun();
   const t = useT();
   if (store.finished.length === 0) {
     return (
@@ -15,7 +15,17 @@ export default function HistoryScreen() {
   const winRate = Math.round((wins / store.finished.length) * 100);
   return (
     <section className="screen">
-      <h2>{t('pastRuns')}</h2>
+      <header className="row spread">
+        <h2>{t('pastRuns')}</h2>
+        <button
+          className="ghost"
+          onClick={() =>
+            confirm(t('confirmClearHistory', { runs: store.finished.length }))
+            && dispatch({ type: 'CLEAR_HISTORY' })}
+        >
+          {t('clearHistory')}
+        </button>
+      </header>
       <p className="muted">
         {t('historySummary', { runs: store.finished.length, wins, rate: winRate })}
       </p>

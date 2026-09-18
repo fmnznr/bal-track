@@ -30,6 +30,8 @@ of the board — and disagree with.
 - Joker trigger order, with a safe one-tap reorder suggestion.
 - Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
+- Ending a run without a result, for when you restart rather than finish, and
+  clearing the run history outright.
 
 Routine input is deliberately small: money, the cards on offer, and one
 declared hand per run. Hand levels, per-round resources and deck composition

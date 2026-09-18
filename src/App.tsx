@@ -37,7 +37,7 @@ function LanguagePicker() {
 }
 
 function Shell() {
-  const { store } = useRun();
+  const { store, dispatch } = useRun();
   const { t } = useI18n();
   const [screen, setScreen] = useState<Screen>('run');
 
@@ -54,9 +54,16 @@ function Shell() {
       <div className="app">
         <LanguagePicker />
         <RunSetup onStarted={() => setScreen('run')} />
-        {store.finished.length > 0 && (
-          <button className="ghost" onClick={() => setScreen('history')}>{t('tabHistory')}</button>
-        )}
+        <div className="row">
+          {store.finished.length > 0 && (
+            <button className="ghost" onClick={() => setScreen('history')}>{t('tabHistory')}</button>
+          )}
+          {/* Ending or abandoning a run leaves you here, and the store still holds
+              the snapshot — without this the undo exists but cannot be reached. */}
+          {store.past.length > 0 && (
+            <button className="ghost" onClick={() => dispatch({ type: 'UNDO' })}>{t('undo')}</button>
+          )}
+        </div>
       </div>
     );
   }

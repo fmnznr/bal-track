@@ -54,6 +54,8 @@ export type RunAction =
   | { type: 'SET_DISCARDS_PER_ROUND'; value: number }
   | { type: 'SPEND'; amount: number }
   | { type: 'END_RUN'; result: 'won' | 'lost' }
+  | { type: 'ABANDON_RUN' }
+  | { type: 'CLEAR_HISTORY' }
   | { type: 'UNDO' }
   | { type: 'SET_SHOP_DRAFT'; draft: ShopState | null }
   | { type: 'SET_PACK_DRAFT'; draft: PackDraft | null }
@@ -181,6 +183,22 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     if (state.past.length === 0) return state;
     const previous = state.past[state.past.length - 1];
     return { ...state, ...previous, past: state.past.slice(0, -1) };
+  }
+
+  if (action.type === 'CLEAR_HISTORY') {
+    // Above the guard below on purpose: you most often want to clear the history
+    // between runs, and that guard would make this a silent no-op there.
+    if (state.finished.length === 0) return state;
+    return {
+      ...state,
+      finished: [],
+      past: [...state.past.slice(-49), {
+        current: state.current,
+        finished: state.finished,
+        shopDraft: state.shopDraft,
+        packDraft: state.packDraft,
+      }],
+    };
   }
 
   const run = state.current;
@@ -368,6 +386,10 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     case 'SPEND':
       if (action.amount < 0 || action.amount > run.money) return state;
       return push({ ...run, money: run.money - action.amount });
+    case 'ABANDON_RUN':
+      // Drops the run without recording a result. Nothing is appended to the
+      // history, because an abandoned run says nothing about winning or losing.
+      return push(null, { shopDraft: null, packDraft: null });
     case 'END_RUN':
       return push(null, {
         finished: [

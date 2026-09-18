@@ -191,6 +191,12 @@ export default function RunOverview() {
         <button className="danger" onClick={() => confirm(t('confirmLost')) && dispatch({ type: 'END_RUN', result: 'lost' })}>
           {t('runLost')}
         </button>
+        <button
+          className="ghost"
+          onClick={() => confirm(t('confirmAbandon')) && dispatch({ type: 'ABANDON_RUN' })}
+        >
+          {t('abandonRun')}
+        </button>
       </div>
     </section>
   );
