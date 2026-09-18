@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Bal-Track — Balatro Shop Advisor',
         short_name: 'Bal-Track',
         description: 'Manual Balatro run tracker with shop recommendations',
-        theme_color: '#1a1423',
-        background_color: '#14101b',
+        theme_color: '#21252e',
+        background_color: '#21252e',
         display: 'standalone',
         icons: [
           { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },

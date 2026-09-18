@@ -66,6 +66,7 @@ export default function RunOverview() {
               <span className="pos">{i + 1}</span>
               <button
                 type="button"
+                className="move"
                 aria-label={t('moveLeft', { name: def.name })}
                 disabled={i === 0}
                 onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'left' })}
@@ -74,6 +75,7 @@ export default function RunOverview() {
               </button>
               <button
                 type="button"
+                className="move"
                 aria-label={t('moveRight', { name: def.name })}
                 disabled={i === run.jokers.length - 1}
                 onClick={() => dispatch({ type: 'MOVE_JOKER', index: i, direction: 'right' })}
