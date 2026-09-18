@@ -64,3 +64,17 @@ it('sets a Rental shop joker to its fixed $1 price', async () => {
   expect(screen.getByText(/Buy Blueprint \(\$1\)/)).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Bought' })).toBeEnabled();
 });
+
+it('opens the pack tab on the bought pack after paying for it', async () => {
+  // Buying a pack is always followed by opening it, so the app makes that move
+  // instead of leaving you on a shop row you have just paid off.
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  await userEvent.type(screen.getByPlaceholderText('Add pack…'), 'celestial');
+  await userEvent.click((await screen.findAllByRole('button', { name: /^Celestial Pack/ }))[0]);
+  await userEvent.click(screen.getByRole('button', { name: 'Bought $4' }));
+
+  expect(screen.getByRole('button', { name: 'Pack' })).toHaveAttribute('aria-current', 'page');
+  expect(screen.getByRole('button', { name: 'celestial' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByPlaceholderText('Add pack option…')).toBeInTheDocument();
+});

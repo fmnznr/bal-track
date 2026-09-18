@@ -12,7 +12,12 @@ import RecommendationList from '../components/RecommendationList';
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCost: 5 };
 
-export default function ShopScreen() {
+interface Props {
+  /** Buying a pack means opening it next, so the shell follows you there. */
+  onPackBought: () => void;
+}
+
+export default function ShopScreen({ onPackBought }: Props) {
   const { store, dispatch } = useRun();
   const t = useT();
   const run = store.current!;
@@ -146,7 +151,10 @@ export default function ShopScreen() {
               <button
                 disabled={def.cost > run.money}
                 title={def.cost > run.money ? t('notAffordable') : undefined}
-                onClick={() => dispatch({ type: 'BUY_SHOP_PACK', index: i })}
+                onClick={() => {
+                  dispatch({ type: 'BUY_SHOP_PACK', index: i });
+                  onPackBought();
+                }}
               >
                 {t('bought')} ${def.cost}
               </button>

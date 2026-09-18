@@ -372,7 +372,13 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       if (!shop || !packId || !def || def.cost > run.money) return state;
       return push(
         { ...run, money: run.money - def.cost },
-        { shopDraft: { ...shop, packIds: shop.packIds.filter((_, i) => i !== action.index) } },
+        {
+          shopDraft: { ...shop, packIds: shop.packIds.filter((_, i) => i !== action.index) },
+          // The pack you just paid for is the one you are about to open, so the
+          // pack screen starts on its kind instead of asking you to pick it
+          // again. Any older draft is stale by now: that pack is long opened.
+          packDraft: { kind: def.kind, options: [] },
+        },
       );
     }
     case 'REROLL_SHOP': {

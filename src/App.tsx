@@ -84,7 +84,7 @@ function Shell() {
         <LanguagePicker />
       </nav>
       {screen === 'run' && <RunOverview />}
-      {screen === 'shop' && <ShopScreen />}
+      {screen === 'shop' && <ShopScreen onPackBought={() => setScreen('pack')} />}
       {screen === 'pack' && <PackScreen />}
       {screen === 'history' && <HistoryScreen />}
     </div>
