@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
 interface Props {
   label: string;
@@ -14,10 +14,16 @@ export default function NumberField({ label, value, min = 0, onChange }: Props) 
   // digit, so "24" cost two undos to take back.
   const [draft, setDraft] = useState(String(value));
   const [editing, setEditing] = useState(false);
-  useEffect(() => {
-    // Adopt outside changes (undo, auto-bookings) unless the user is mid-edit.
+  // Show whatever was actually stored whenever the field is not being edited:
+  // that covers outside changes (undo, auto-bookings) and an owner that refused
+  // the edit, in which case the typed text must not linger. Adjusted during
+  // render rather than in an effect, which React prefers — an effect would
+  // paint the stale text once and then immediately re-render over it.
+  const [seen, setSeen] = useState({ value, editing });
+  if (seen.value !== value || seen.editing !== editing) {
+    setSeen({ value, editing });
     if (!editing) setDraft(String(value));
-  }, [value, editing]);
+  }
 
   const commit = (raw: string) => {
     const next = Math.max(min, Number(raw) || 0);
