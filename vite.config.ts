@@ -10,6 +10,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // The manifest icons are precached on their own; these two are only
+      // referenced from the document head, so name them to keep the offline
+      // shell complete.
+      includeAssets: ['favicon.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Bal-Track — Balatro Shop Advisor',
         short_name: 'Bal-Track',
@@ -17,9 +21,12 @@ export default defineConfig({
         theme_color: '#21252e',
         background_color: '#21252e',
         display: 'standalone',
+        // The square icons keep their own margin; the maskable one holds the
+        // art inside the safe circle, because a launcher may crop to any shape.
         icons: [
-          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
     }),
