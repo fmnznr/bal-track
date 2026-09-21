@@ -7,15 +7,18 @@ import type { ReferenceCard } from './recognise';
 import { blank, drawCard } from './testing';
 
 /** A reference card drawn at atlas size, the way the build script makes one. */
-function reference(kind: ReferenceCard['kind'], cell: [number, number], face: [number, number, number], seed: number, ids = ['a-card']): ReferenceCard {
-  const art = blank(142, 190, [255, 255, 255]);
-  drawCard(art, 0, 0, 142, 190, face, seed);
-  return { kind, cell, ids, print: fingerprint(art, { x0: 0, y0: 0, x1: 142, y1: 190 }) };
+function reference(
+  kind: ReferenceCard['kind'], cell: [number, number], face: [number, number, number],
+  seed: number, ids = ['a-card'], w = 142, h = 190,
+): ReferenceCard {
+  const art = blank(w, h, [255, 255, 255]);
+  drawCard(art, 0, 0, w, h, face, seed);
+  return { kind, cell, ids, print: fingerprint(art, { x0: 0, y0: 0, x1: w, y1: h }) };
 }
 
 const RED = reference('joker', [0, 0], [200, 60, 60], 3);
 const BLUE = reference('joker', [0, 1], [60, 90, 200], 11);
-const GOLD = reference('tarot', [1, 0], [210, 180, 90], 21);
+const GOLD = reference('tarot', [1, 0], [210, 180, 90], 21, ['a-card'], 180, 296);
 const TABLE = [RED, BLUE, GOLD];
 
 /** The same card as the reference, drawn onto a screen at screenshot size. */
@@ -77,4 +80,14 @@ describe('recogniseIn', () => {
     expect(found.score).toBeLessThan(215);
     expect(found.margin).toBeGreaterThan(25);
   });
+});
+
+it('finds a pack whose outline broke, from the proportions a card can have', () => {
+  // A booster wrapper is narrower and taller than a joker. Where its light
+  // edge is interrupted, the blob comes back a fraction of its true height,
+  // and scaling it blindly never reaches the real card.
+  const screen = blank(1000, 700, [30, 90, 60]);
+  place(screen, 300, 200, 180, 296, GOLD, [210, 180, 90], 21);
+  const cutShort = { x0: 300, y0: 200, x1: 480, y1: 320 };
+  expect(recogniseIn(screen, [cutShort], TABLE).map(c => c.cell)).toEqual([[1, 0]]);
 });

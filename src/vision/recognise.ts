@@ -61,6 +61,9 @@ export interface DetectedCard {
 export const MAX_SCORE = 215;
 export const MIN_MARGIN = 25;
 
+/** Far enough above MAX_SCORE that no refinement would bring it back. */
+const HOPELESS = 260;
+
 interface Scored {
   score: number;
   margin: number;
@@ -118,6 +121,16 @@ function search(
   return winner;
 }
 
+/**
+ * Every card is drawn at one of four proportions: a joker is widest, then a
+ * tarot, a voucher, and a booster wrapper narrowest. A blob's width is the
+ * reliable half of its measurement — the left and right edges of a card are
+ * crisp — while its height is what a broken outline or a neighbouring panel
+ * cuts short. So rather than scaling a bad box blindly, try the heights those
+ * four proportions imply for the width that was found.
+ */
+const CARD_ASPECTS = [142 / 190, 126 / 186, 118 / 186, 114 / 186];
+
 const middle = (box: Box) => ({
   cx: (box.x0 + box.x1) / 2,
   cy: (box.y0 + box.y1) / 2,
@@ -126,9 +139,22 @@ const middle = (box: Box) => ({
 });
 
 export function refine(image: ImageLike, box: Box, table: readonly ReferenceCard[]): Scored | null {
-  const coarse = search(image, middle(box), [-14, 0, 14], [0.85, 1, 1.15], [0.85, 1, 1.3], table, null);
-  if (!coarse) return null;
-  return search(image, middle(coarse.box), [-6, 0, 6], [0.94, 1, 1.06], [0.94, 1, 1.06], table, coarse);
+  let best = search(image, middle(box), [-14, 0, 14], [0.85, 1, 1.15], [0.85, 1, 1.3], table, null);
+  const width = box.x1 - box.x0;
+  for (const aspect of CARD_ASPECTS) {
+    const height = width / aspect;
+    // Anchored on the top edge, which is where a cut-short box keeps its truth.
+    // One scale only: this pass proposes a shape, the fine pass below polishes
+    // it, and a full grid per aspect would triple the time a reading takes.
+    best = search(image, { cx: (box.x0 + box.x1) / 2, cy: box.y0 + height / 2, w: width, h: height },
+      [-10, 0, 10], [1], [1], table, best);
+  }
+  if (!best) return null;
+  // Most candidates are not cards at all — a panel, a button, a fanned hand.
+  // Polishing the framing of something that will be rejected either way is
+  // the bulk of a reading's cost, so stop here when nothing can save it.
+  if (best.score > HOPELESS) return best;
+  return search(image, middle(best.box), [-6, 0, 6], [0.94, 1, 1.06], [0.94, 1, 1.06], table, best);
 }
 
 const accepted = (s: Scored | null): s is Scored =>
@@ -162,8 +188,10 @@ function retryWithNeighbourSize(
   const w = near.box.x1 - near.box.x0;
   const h = near.box.y1 - near.box.y0;
   // Anchored on the top edge: a truncated box keeps its top and loses its foot.
+  // A wider net than the first pass uses: a box this badly cut is off-centre
+  // as well as short, and this runs only for candidates that already failed.
   return search(image, { cx: centreX, cy: box.y0 + h / 2, w, h },
-    [-10, 0, 10], [0.94, 1, 1.06], [0.94, 1, 1.06], table, null);
+    [-24, -12, 0, 12, 24], [0.94, 1, 1.06], [0.94, 1, 1.06], table, null);
 }
 
 function overlap(a: Box, b: Box): number {
