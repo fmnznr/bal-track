@@ -19,19 +19,18 @@ if (files.length === 0) {
 const { createServer } = await import('vite');
 const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const { findCandidates } = await server.ssrLoadModule('/src/vision/detect.ts');
-const { recogniseIn } = await server.ssrLoadModule('/src/vision/recognise.ts');
-const { parseTable } = await server.ssrLoadModule('/src/vision/table.ts');
-const table = parseTable(JSON.parse(readFileSync('src/vision/card-hashes.json', 'utf8')));
+const { readImage } = await server.ssrLoadModule('/src/vision/read.ts');
 
 for (const file of files) {
   const image = decodePng(readFileSync(file));
   const started = Date.now();
+  const { cards: found } = readImage(image);
   const boxes = findCandidates(image);
-  const found = recogniseIn(image, boxes, table);
   const name = file.split('/').pop();
   console.log(`${name}  ${image.width}x${image.height}  candidates ${boxes.length}  found ${found.length}  (${Date.now() - started} ms)`);
   for (const c of found) {
     console.log(`   ${c.kind.padEnd(8)} ${(c.ids.join(' / ') || '?').padEnd(22)}`
+      + `${(c.price === null ? '   -' : `$${c.price}`).padStart(5)}  `
       + `score ${String(c.score).padStart(4)}  margin ${String(c.margin).padStart(4)}`
       + `   box ${c.box.x0},${c.box.y0} ${c.box.x1 - c.box.x0}x${c.box.y1 - c.box.y0}`);
   }

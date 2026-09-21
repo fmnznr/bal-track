@@ -2,19 +2,19 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n/I18nContext';
-import type { ScreenshotReading } from '../../vision/read';
-import type { CardKind, DetectedCard } from '../../vision/recognise';
+import type { ReadCard, ScreenshotReading } from '../../vision/read';
+import type { CardKind } from '../../vision/recognise';
 import ScreenshotImport from './ScreenshotImport';
 
 afterEach(cleanup);
 
-function card(kind: CardKind, ids: string[], y: number): DetectedCard {
-  return { kind, cell: [0, 0], ids, box: { x0: 100, y0: y, x1: 280, y1: y + 244 }, score: 90, margin: 80 };
+function card(kind: CardKind, ids: string[], y: number, price: number | null = null): ReadCard {
+  return { kind, cell: [0, 0], ids, box: { x0: 100, y0: y, x1: 280, y1: y + 244 }, score: 90, margin: 80, price };
 }
 
-const reading = (cards: DetectedCard[]): ScreenshotReading => ({ cards, width: 2556, height: 1179 });
+const reading = (cards: ReadCard[]): ScreenshotReading => ({ cards, width: 2556, height: 1179 });
 
-function show(cards: DetectedCard[], onAdd = vi.fn(), kinds: CardKind[] = ['joker', 'tarot', 'voucher', 'pack']) {
+function show(cards: ReadCard[], onAdd = vi.fn(), kinds: CardKind[] = ['joker', 'tarot', 'voucher', 'pack']) {
   const read = vi.fn().mockResolvedValue(reading(cards));
   render(
     <I18nProvider>
@@ -37,20 +37,21 @@ it('offers what was recognised and adds only the ticked rows', async () => {
   await userEvent.click(screen.getByRole('checkbox', { name: /Arcana Pack/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
 
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'blueprint' }]);
+  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'blueprint', price: null }]);
 });
 
 it('leaves the cards you already own unticked', async () => {
   // The top of a Balatro screenshot is the jokers in play, not the shop.
-  const { onAdd } = show([card('joker', ['blueprint'], 44), card('joker', ['madness'], 500)]);
+  const { onAdd } = show([card('joker', ['blueprint'], 44), card('joker', ['madness'], 500, 7)]);
   await pick();
 
   expect(await screen.findByRole('checkbox', { name: /Blueprint/ })).not.toBeChecked();
+  expect(screen.getByText('$7')).toBeInTheDocument();
   expect(screen.getByRole('checkbox', { name: /Madness/ })).toBeChecked();
   expect(screen.getAllByText('owned?')).toHaveLength(1);
 
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'madness' }]);
+  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'madness', price: 7 }]);
 });
 
 it('asks which card when one sprite serves two', async () => {
@@ -62,7 +63,7 @@ it('asks which card when one sprite serves two', async () => {
   const choice = await screen.findByRole('combobox', { name: 'Which card?' });
   await userEvent.selectOptions(choice, 'wee-joker');
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'wee-joker' }]);
+  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'wee-joker', price: null }]);
 });
 
 it('keeps what does not belong on this tab out of the list, and says so', async () => {

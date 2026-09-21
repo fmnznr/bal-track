@@ -41,14 +41,16 @@ export default function ShopScreen({ onPackBought }: Props) {
 
   /** Everything confirmed from one screenshot lands in a single draft update,
       because setShop resolves against the shop as it was rendered. */
-  const addFromScreenshot = (found: { kind: CardKind; id: string }[]) =>
+  const addFromScreenshot = (found: { kind: CardKind; id: string; price: number | null }[]) =>
     setShop(s => {
       const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
-      for (const { kind, id } of found) {
+      for (const { kind, id, price } of found) {
+        // The price on the tag beats the catalog: a shop under Clearance Sale
+        // or Liquidation charges less than a card is listed at.
         if (kind === 'joker') {
-          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: getJoker(id)?.cost ?? 0 });
+          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: price ?? getJoker(id)?.cost ?? 0 });
         } else if (kind === 'tarot') {
-          next.cards.push({ kind: 'consumable', consumableId: id, price: getConsumable(id)?.cost ?? 0 });
+          next.cards.push({ kind: 'consumable', consumableId: id, price: price ?? getConsumable(id)?.cost ?? 0 });
         } else if (kind === 'voucher') {
           next.voucherId = id;
         } else {

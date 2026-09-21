@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { useT } from '../../i18n/I18nContext';
 import type { ReadScreenshot } from '../../vision/client';
-import type { CardKind, DetectedCard } from '../../vision/recognise';
+import type { ReadCard } from '../../vision/read';
+import type { CardKind } from '../../vision/recognise';
 
 /**
  * Reading a shop from a screenshot, with the player having the last word.
@@ -15,7 +16,7 @@ import type { CardKind, DetectedCard } from '../../vision/recognise';
 interface Props {
   /** What this screen can use: the shop takes everything, a pack only cards. */
   kinds: CardKind[];
-  onAdd: (cards: { kind: CardKind; id: string }[]) => void;
+  onAdd: (cards: { kind: CardKind; id: string; price: number | null }[]) => void;
   /** Injectable so tests need no worker, no canvas and no screenshot. */
   read: ReadScreenshot;
 }
@@ -24,7 +25,7 @@ interface Props {
 const OWNED_ABOVE = 0.3;
 
 interface Row {
-  card: DetectedCard;
+  card: ReadCard;
   id: string;
   take: boolean;
   owned: boolean;
@@ -114,6 +115,9 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
                 </label>
                 {/* The player is the one who knows which row of the screen a
                     card came from, so say what was assumed and let them fix it. */}
+                {/* The price comes off the tag above the card, so a shop with
+                    Clearance Sale prices is read as it really is. */}
+                {row.card.price !== null && <span className="muted">${row.card.price}</span>}
                 {row.owned && <span className="muted">{t('screenshotOwned')}</span>}
               </li>
             ))}
@@ -123,7 +127,7 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
             className="primary"
             disabled={rows.every(r => !r.take)}
             onClick={() => {
-              onAdd(rows.filter(r => r.take).map(r => ({ kind: r.card.kind, id: r.id })));
+              onAdd(rows.filter(r => r.take).map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price })));
               setRows(null);
             }}
           >

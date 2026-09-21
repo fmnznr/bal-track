@@ -73,3 +73,29 @@ export function scaled(image: ImageLike, width: number, height: number): ImageLi
   }
   return out;
 }
+
+/** Paint text the way the game's price tag does: gold pixel glyphs on a dark
+    tag. Scaled up from the shipped templates, so a test exercises the reader's
+    segmentation and scaling rather than a hand-drawn approximation. */
+export function drawPriceTag(
+  image: ImageLike, x: number, y: number, scale: number, text: string,
+  templates: { width: number; height: number; glyphs: Record<string, string> },
+  ink: RGB = [240, 176, 60],
+): void {
+  const gw = templates.width * scale;
+  const gh = templates.height * scale;
+  const gap = Math.max(2, Math.round(scale));
+  const width = [...text].length * (gw + gap) + gap * 4;
+  fillRect(image, x - gap * 2, y - gap * 2, width, gh + gap * 4, [46, 53, 56]);
+  [...text].forEach((char, i) => {
+    const bits = templates.glyphs[char];
+    if (!bits) throw new Error(`no template for ${char}`);
+    for (let row = 0; row < templates.height; row++) {
+      for (let col = 0; col < templates.width; col++) {
+        if (bits[row * templates.width + col] === '#') {
+          fillRect(image, x + i * (gw + gap) + col * scale, y + row * scale, scale, scale, ink);
+        }
+      }
+    }
+  });
+}

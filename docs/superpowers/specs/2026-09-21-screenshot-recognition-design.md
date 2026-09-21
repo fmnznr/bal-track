@@ -88,11 +88,15 @@ grouped into rows by vertical position: the top row is what the player owns, the
 rows below are what is on offer. The card's identity comes from the hash match
 alone, which is also what rejects playing cards and the deck back.
 
-**The price pill is part of recognition, not an extra.** Packs come in four
-colour variants per sort, and Jumbo and Mega resemble the normal size closely;
-margins there were 13. The price ($4 / $6 / $8) resolves it. Digits are read by
-the same template match against the game's own font, not by a general OCR
-engine.
+**The price tag is read, not assumed.** A shop under Clearance Sale or
+Liquidation charges less than a card's catalog cost, and the engine's whole
+judgement is whether a card is worth the dollars it takes. The tag above a
+card is gold pixel-font text on a dark plate; each glyph is normalised onto an
+8x12 grid and matched against eleven templates, which is why one set of
+templates serves every screen size. There is no OCR engine involved and none
+is warranted. An unreadable tag yields nothing rather than a guess, and the
+catalog price stands — which is also the right answer for the jokers already
+in play, since they carry no tag at all.
 
 ## What the built recogniser does
 
@@ -134,10 +138,15 @@ which would mean a second copy of the reference table in the bundle. The
 recogniser and its table are a separate chunk, loaded when a screenshot is
 first read: the initial bundle grows by 3.5 KB, the precache by 86 KB.
 
-Prices still come from the catalog rather than from the screenshot's price
-pill, so a shop with a discount voucher needs the price corrected by hand. The
-pill is the obvious next step, and it is also what would tell Jumbo and Mega
-packs apart from their normal-size siblings.
+Prices come off the tags: measured against two real shops, all eight were
+read correctly — $7 Madness, $3 Judgement, two $4 packs, the $10 Overstock
+voucher, $6 Reserved Parking, $9 Ride the Bus, $10 Planet Merchant — and the
+owned jokers, which have no tag, correctly returned nothing.
+
+The money you hold and the reroll cost are still typed by hand. Both are the
+same font on the same kind of plate, so they are within reach of the same
+reader; they sit in the left panel rather than above a card, so they need a
+place to look rather than a new method.
 
 ## Trade-off accepted
 

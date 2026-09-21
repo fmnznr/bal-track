@@ -8,11 +8,19 @@ import { findCandidates } from './detect';
 import type { ImageLike } from './fingerprint';
 import { recogniseIn } from './recognise';
 import type { DetectedCard } from './recognise';
+import { readPrice } from './price';
+import type { DigitTemplates } from './price';
 import { parseTable } from './table';
 import cardHashes from './card-hashes.json';
+import digits from './digits.json';
+
+/** A card the screenshot showed, with the price on its tag when there was a
+    readable one. Owned jokers carry no tag, and neither does a card whose tag
+    the reading could not settle — in both cases the catalog price stands. */
+export type ReadCard = DetectedCard & { price: number | null };
 
 export interface ScreenshotReading {
-  cards: DetectedCard[];
+  cards: ReadCard[];
   width: number;
   height: number;
 }
@@ -21,8 +29,9 @@ let table: ReturnType<typeof parseTable> | null = null;
 
 export function readImage(image: ImageLike): ScreenshotReading {
   table ??= parseTable(cardHashes as Parameters<typeof parseTable>[0]);
+  const found = recogniseIn(image, findCandidates(image), table);
   return {
-    cards: recogniseIn(image, findCandidates(image), table),
+    cards: found.map(card => ({ ...card, price: readPrice(image, card.box, digits as DigitTemplates) })),
     width: image.width,
     height: image.height,
   };
