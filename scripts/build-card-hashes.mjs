@@ -67,6 +67,14 @@ const { createServer } = await import('vite');
 const server = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
 const { fingerprint } = await server.ssrLoadModule('/src/vision/fingerprint.ts');
 
+/** Which card sits in which cell — derived from the game's own definitions,
+    never from the artwork. Cells the file does not mention hold no card: the
+    legendaries' soul faces, locked placeholders, a duplicated sprite. */
+const ids = new Map(
+  JSON.parse(readFileSync('src/vision/card-ids.json', 'utf8')).cards
+    .map(c => [`${c.kind} ${c.cell[0]} ${c.cell[1]}`, c.ids]),
+);
+
 const cards = [];
 for (const { kind, file, cols } of ATLASES) {
   const image = decodePng(readFileSync(join(folder, file)));
@@ -82,11 +90,12 @@ for (const { kind, file, cols } of ATLASES) {
       const art = cellOnWhite(image, c * cellW, r * cellH, cellW, cellH);
       if (!art) continue;
       const print = fingerprint(art, { x0: 0, y0: 0, x1: art.width, y1: art.height });
-      cards.push({ kind, cell: [r, c], id: null, print });
+      cards.push({ kind, cell: [r, c], ids: ids.get(`${kind} ${r} ${c}`) ?? [], print });
       used++;
     }
   }
-  console.log(`${file}: ${cols}x${rows} cells of ${cellW}x${cellH}, ${used} with art`);
+  const named = cards.filter(c => c.kind === kind && c.ids.length > 0).length;
+  console.log(`${file}: ${cols}x${rows} cells of ${cellW}x${cellH}, ${used} with art, ${named} of them a card`);
 }
 await server.close();
 
@@ -104,7 +113,7 @@ const out = 'src/vision/card-hashes.json';
 writeFileSync(out, `${JSON.stringify({
   version: 1,
   colourBytes: cards[0].print.colour.length,
-  cards: cards.map(({ kind, cell, id }) => ({ kind, cell, id })),
+  cards: cards.map(({ kind, cell, ids }) => ({ kind, cell, ids })),
   prints: blob.toString('base64'),
 })}\n`);
 console.log(`${cards.length} cards -> ${out} (${(readFileSync(out).length / 1024).toFixed(1)} KB)`);

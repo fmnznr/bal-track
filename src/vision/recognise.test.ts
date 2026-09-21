@@ -7,10 +7,10 @@ import type { ReferenceCard } from './recognise';
 import { blank, drawCard } from './testing';
 
 /** A reference card drawn at atlas size, the way the build script makes one. */
-function reference(kind: ReferenceCard['kind'], cell: [number, number], face: [number, number, number], seed: number): ReferenceCard {
+function reference(kind: ReferenceCard['kind'], cell: [number, number], face: [number, number, number], seed: number, ids = ['a-card']): ReferenceCard {
   const art = blank(142, 190, [255, 255, 255]);
   drawCard(art, 0, 0, 142, 190, face, seed);
-  return { kind, cell, id: null, print: fingerprint(art, { x0: 0, y0: 0, x1: 142, y1: 190 }) };
+  return { kind, cell, ids, print: fingerprint(art, { x0: 0, y0: 0, x1: 142, y1: 190 }) };
 }
 
 const RED = reference('joker', [0, 0], [200, 60, 60], 3);
@@ -24,7 +24,16 @@ function place(screen: ImageLike, x: number, y: number, w: number, h: number, ca
   return card;
 }
 
+/** A sprite the game draws but no card uses: a legendary's soul face. */
+const DECORATION = reference('joker', [9, 2], [140, 140, 140], 55, []);
+
 describe('recogniseIn', () => {
+  it('stays silent about a sprite that belongs to no card', () => {
+    const screen = blank(1000, 600, [30, 90, 60]);
+    drawCard(screen, 100, 100, 182, 244, [140, 140, 140], 55);
+    expect(recogniseIn(screen, findCandidates(screen), [...TABLE, DECORATION])).toEqual([]);
+  });
+
   it('names the cards it knows and stays quiet about the rest', () => {
     const screen = blank(1000, 600, [30, 90, 60]);
     place(screen, 100, 100, 182, 244, RED, [200, 60, 60], 3);

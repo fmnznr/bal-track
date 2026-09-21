@@ -21,17 +21,23 @@ export type CardKind = 'joker' | 'tarot' | 'voucher' | 'pack';
 
 export interface ReferenceCard {
   kind: CardKind;
-  /** Cell in the source atlas, until the catalog mapping exists. */
+  /** Cell in the source atlas. */
   cell: [number, number];
-  /** Catalog id once known. */
-  id: string | null;
+  /**
+   * The catalog ids drawn from this sprite. Usually one; two where the game
+   * draws two cards from one cell, as it does for Joker and Wee Joker; none
+   * for a cell that holds no card, such as a legendary's soul face — matching
+   * one of those is a reason to report nothing, not to name the nearest card.
+   */
+  ids: string[];
   print: Fingerprint;
 }
 
 export interface DetectedCard {
   kind: CardKind;
   cell: [number, number];
-  id: string | null;
+  /** One id normally; two when the sprite is shared and the player must pick. */
+  ids: string[];
   box: Box;
   /** Distance to the best match: lower is better, 0 would be identical. */
   score: number;
@@ -126,11 +132,14 @@ export function refine(image: ImageLike, box: Box, table: readonly ReferenceCard
 }
 
 const accepted = (s: Scored | null): s is Scored =>
-  s !== null && s.score < MAX_SCORE && s.margin > MIN_MARGIN;
+  // A sprite that belongs to no card is a match worth having and a result
+  // worth discarding: it is how a soul face or a locked placeholder stops
+  // being mistaken for the card whose fingerprint is next closest.
+  s !== null && s.card.ids.length > 0 && s.score < MAX_SCORE && s.margin > MIN_MARGIN;
 
 function present(s: Scored): DetectedCard {
   return {
-    kind: s.card.kind, cell: s.card.cell, id: s.card.id,
+    kind: s.card.kind, cell: s.card.cell, ids: s.card.ids,
     box: s.box, score: Math.round(s.score), margin: Math.round(s.margin),
   };
 }

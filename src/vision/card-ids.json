@@ -1,0 +1,2656 @@
+{
+"note": "Which card sits in which atlas cell. Derived from the game's own definitions (the pos field of each entry in game.lua), not guessed from the artwork: a confident wrong name is the one failure mode the recogniser refuses. A cell carries more than one id where the game draws two cards from one sprite, and cells that hold no card at all (the legendaries' soul faces, locked placeholders) are simply absent.",
+"cards": [
+{
+"kind": "joker",
+"cell": [
+0,
+0
+],
+"ids": [
+"joker",
+"wee-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+1
+],
+"ids": [
+"chaos-the-clown"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+2
+],
+"ids": [
+"jolly-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+3
+],
+"ids": [
+"zany-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+4
+],
+"ids": [
+"mad-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+5
+],
+"ids": [
+"crazy-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+6
+],
+"ids": [
+"droll-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+7
+],
+"ids": [
+"half-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+8
+],
+"ids": [
+"merry-andy"
+]
+},
+{
+"kind": "joker",
+"cell": [
+0,
+9
+],
+"ids": [
+"stone-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+0
+],
+"ids": [
+"juggler"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+1
+],
+"ids": [
+"drunkard"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+2
+],
+"ids": [
+"acrobat"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+3
+],
+"ids": [
+"sock-and-buskin"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+4
+],
+"ids": [
+"mime"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+5
+],
+"ids": [
+"credit-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+6
+],
+"ids": [
+"greedy-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+7
+],
+"ids": [
+"lusty-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+8
+],
+"ids": [
+"wrathful-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+1,
+9
+],
+"ids": [
+"gluttonous-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+0
+],
+"ids": [
+"troubadour"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+1
+],
+"ids": [
+"banner"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+2
+],
+"ids": [
+"mystic-summit"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+3
+],
+"ids": [
+"marble-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+4
+],
+"ids": [
+"loyalty-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+5
+],
+"ids": [
+"hack"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+6
+],
+"ids": [
+"misprint"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+7
+],
+"ids": [
+"steel-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+8
+],
+"ids": [
+"raised-fist"
+]
+},
+{
+"kind": "joker",
+"cell": [
+2,
+9
+],
+"ids": [
+"golden-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+0
+],
+"ids": [
+"blueprint"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+1
+],
+"ids": [
+"glass-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+2
+],
+"ids": [
+"scary-face"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+3
+],
+"ids": [
+"abstract-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+4
+],
+"ids": [
+"delayed-gratification"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+5
+],
+"ids": [
+"golden-ticket"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+6
+],
+"ids": [
+"pareidolia"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+7
+],
+"ids": [
+"cartomancer"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+8
+],
+"ids": [
+"even-steven"
+]
+},
+{
+"kind": "joker",
+"cell": [
+3,
+9
+],
+"ids": [
+"odd-todd"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+0
+],
+"ids": [
+"scholar"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+1
+],
+"ids": [
+"business-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+2
+],
+"ids": [
+"supernova"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+3
+],
+"ids": [
+"mr-bones"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+4
+],
+"ids": [
+"seeing-double"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+5
+],
+"ids": [
+"the-duo"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+6
+],
+"ids": [
+"the-trio"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+7
+],
+"ids": [
+"the-family"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+8
+],
+"ids": [
+"the-order"
+]
+},
+{
+"kind": "joker",
+"cell": [
+4,
+9
+],
+"ids": [
+"the-tribe"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+0
+],
+"ids": [
+"8-ball"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+1
+],
+"ids": [
+"fibonacci"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+2
+],
+"ids": [
+"joker-stencil"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+3
+],
+"ids": [
+"space-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+4
+],
+"ids": [
+"matador"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+5
+],
+"ids": [
+"ceremonial-dagger"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+6
+],
+"ids": [
+"showman"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+7
+],
+"ids": [
+"fortune-teller"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+8
+],
+"ids": [
+"hit-the-road"
+]
+},
+{
+"kind": "joker",
+"cell": [
+5,
+9
+],
+"ids": [
+"swashbuckler"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+0
+],
+"ids": [
+"flower-pot"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+1
+],
+"ids": [
+"ride-the-bus"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+2
+],
+"ids": [
+"shoot-the-moon"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+4
+],
+"ids": [
+"smeared-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+5
+],
+"ids": [
+"oops-all-6s"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+6
+],
+"ids": [
+"four-fingers"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+7
+],
+"ids": [
+"gros-michel"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+8
+],
+"ids": [
+"stuntman"
+]
+},
+{
+"kind": "joker",
+"cell": [
+6,
+9
+],
+"ids": [
+"hanging-chad"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+0
+],
+"ids": [
+"drivers-license"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+1
+],
+"ids": [
+"invisible-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+2
+],
+"ids": [
+"astronomer"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+3
+],
+"ids": [
+"burnt-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+4
+],
+"ids": [
+"dusk"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+5
+],
+"ids": [
+"throwback"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+6
+],
+"ids": [
+"the-idol"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+7
+],
+"ids": [
+"brainstorm"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+8
+],
+"ids": [
+"satellite"
+]
+},
+{
+"kind": "joker",
+"cell": [
+7,
+9
+],
+"ids": [
+"rough-gem"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+0
+],
+"ids": [
+"bloodstone"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+1
+],
+"ids": [
+"arrowhead"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+2
+],
+"ids": [
+"onyx-agate"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+3
+],
+"ids": [
+"canio"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+4
+],
+"ids": [
+"triboulet"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+5
+],
+"ids": [
+"yorick"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+6
+],
+"ids": [
+"chicot"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+7
+],
+"ids": [
+"perkeo"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+8
+],
+"ids": [
+"certificate"
+]
+},
+{
+"kind": "joker",
+"cell": [
+8,
+9
+],
+"ids": [
+"bootstraps"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+0
+],
+"ids": [
+"egg"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+1
+],
+"ids": [
+"burglar"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+2
+],
+"ids": [
+"blackboard"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+3
+],
+"ids": [
+"runner"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+4
+],
+"ids": [
+"ice-cream"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+5
+],
+"ids": [
+"dna"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+6
+],
+"ids": [
+"splash"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+7
+],
+"ids": [
+"blue-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+8
+],
+"ids": [
+"sixth-sense"
+]
+},
+{
+"kind": "joker",
+"cell": [
+10,
+9
+],
+"ids": [
+"constellation"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+0
+],
+"ids": [
+"hiker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+1
+],
+"ids": [
+"faceless-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+2
+],
+"ids": [
+"green-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+3
+],
+"ids": [
+"superposition"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+4
+],
+"ids": [
+"to-do-list"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+5
+],
+"ids": [
+"cavendish"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+6
+],
+"ids": [
+"card-sharp"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+7
+],
+"ids": [
+"red-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+8
+],
+"ids": [
+"madness"
+]
+},
+{
+"kind": "joker",
+"cell": [
+11,
+9
+],
+"ids": [
+"square-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+0
+],
+"ids": [
+"seance"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+1
+],
+"ids": [
+"riff-raff"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+2
+],
+"ids": [
+"vampire"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+3
+],
+"ids": [
+"shortcut"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+4
+],
+"ids": [
+"hologram"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+5
+],
+"ids": [
+"vagabond"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+6
+],
+"ids": [
+"baron"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+7
+],
+"ids": [
+"cloud-9"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+8
+],
+"ids": [
+"rocket"
+]
+},
+{
+"kind": "joker",
+"cell": [
+12,
+9
+],
+"ids": [
+"obelisk"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+0
+],
+"ids": [
+"midas-mask"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+1
+],
+"ids": [
+"luchador"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+2
+],
+"ids": [
+"photograph"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+3
+],
+"ids": [
+"gift-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+4
+],
+"ids": [
+"turtle-bean"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+5
+],
+"ids": [
+"erosion"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+6
+],
+"ids": [
+"reserved-parking"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+7
+],
+"ids": [
+"mail-in-rebate"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+8
+],
+"ids": [
+"to-the-moon"
+]
+},
+{
+"kind": "joker",
+"cell": [
+13,
+9
+],
+"ids": [
+"hallucination"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+0
+],
+"ids": [
+"sly-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+1
+],
+"ids": [
+"wily-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+2
+],
+"ids": [
+"clever-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+3
+],
+"ids": [
+"devious-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+4
+],
+"ids": [
+"crafty-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+5
+],
+"ids": [
+"lucky-cat"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+6
+],
+"ids": [
+"baseball-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+7
+],
+"ids": [
+"bull"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+8
+],
+"ids": [
+"diet-cola"
+]
+},
+{
+"kind": "joker",
+"cell": [
+14,
+9
+],
+"ids": [
+"trading-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+0
+],
+"ids": [
+"flash-card"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+1
+],
+"ids": [
+"popcorn"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+2
+],
+"ids": [
+"ramen"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+3
+],
+"ids": [
+"seltzer"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+4
+],
+"ids": [
+"spare-trousers"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+5
+],
+"ids": [
+"campfire"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+6
+],
+"ids": [
+"smiley-face"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+7
+],
+"ids": [
+"ancient-joker"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+8
+],
+"ids": [
+"walkie-talkie"
+]
+},
+{
+"kind": "joker",
+"cell": [
+15,
+9
+],
+"ids": [
+"castle"
+]
+},
+{
+"kind": "pack",
+"cell": [
+0,
+0
+],
+"ids": [
+"arcana-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+0,
+1
+],
+"ids": [
+"arcana-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+0,
+2
+],
+"ids": [
+"arcana-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+0,
+3
+],
+"ids": [
+"arcana-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+1,
+0
+],
+"ids": [
+"celestial-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+1,
+1
+],
+"ids": [
+"celestial-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+1,
+2
+],
+"ids": [
+"celestial-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+1,
+3
+],
+"ids": [
+"celestial-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+2,
+0
+],
+"ids": [
+"arcana-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+2,
+1
+],
+"ids": [
+"arcana-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+2,
+2
+],
+"ids": [
+"arcana-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+2,
+3
+],
+"ids": [
+"arcana-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+3,
+0
+],
+"ids": [
+"celestial-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+3,
+1
+],
+"ids": [
+"celestial-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+3,
+2
+],
+"ids": [
+"celestial-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+3,
+3
+],
+"ids": [
+"celestial-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+4,
+0
+],
+"ids": [
+"spectral-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+4,
+1
+],
+"ids": [
+"spectral-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+4,
+2
+],
+"ids": [
+"spectral-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+4,
+3
+],
+"ids": [
+"spectral-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+6,
+0
+],
+"ids": [
+"standard-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+6,
+1
+],
+"ids": [
+"standard-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+6,
+2
+],
+"ids": [
+"standard-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+6,
+3
+],
+"ids": [
+"standard-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+7,
+0
+],
+"ids": [
+"standard-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+7,
+1
+],
+"ids": [
+"standard-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+7,
+2
+],
+"ids": [
+"standard-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+7,
+3
+],
+"ids": [
+"standard-mega"
+]
+},
+{
+"kind": "pack",
+"cell": [
+8,
+0
+],
+"ids": [
+"buffoon-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+8,
+1
+],
+"ids": [
+"buffoon-normal"
+]
+},
+{
+"kind": "pack",
+"cell": [
+8,
+2
+],
+"ids": [
+"buffoon-jumbo"
+]
+},
+{
+"kind": "pack",
+"cell": [
+8,
+3
+],
+"ids": [
+"buffoon-mega"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+0
+],
+"ids": [
+"the-fool"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+1
+],
+"ids": [
+"the-magician"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+2
+],
+"ids": [
+"the-high-priestess"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+3
+],
+"ids": [
+"the-empress"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+4
+],
+"ids": [
+"the-emperor"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+5
+],
+"ids": [
+"the-hierophant"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+6
+],
+"ids": [
+"the-lovers"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+7
+],
+"ids": [
+"the-chariot"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+8
+],
+"ids": [
+"justice"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+0,
+9
+],
+"ids": [
+"the-hermit"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+0
+],
+"ids": [
+"the-wheel-of-fortune"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+1
+],
+"ids": [
+"strength"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+2
+],
+"ids": [
+"the-hanged-man"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+3
+],
+"ids": [
+"death"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+4
+],
+"ids": [
+"temperance"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+5
+],
+"ids": [
+"the-devil"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+6
+],
+"ids": [
+"the-tower"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+7
+],
+"ids": [
+"the-star"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+8
+],
+"ids": [
+"the-moon"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+1,
+9
+],
+"ids": [
+"the-sun"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+0
+],
+"ids": [
+"judgement"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+1
+],
+"ids": [
+"the-world"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+2
+],
+"ids": [
+"the-soul"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+3
+],
+"ids": [
+"eris"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+8
+],
+"ids": [
+"ceres"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+2,
+9
+],
+"ids": [
+"planet-x"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+0
+],
+"ids": [
+"mercury"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+1
+],
+"ids": [
+"venus"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+2
+],
+"ids": [
+"earth"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+3
+],
+"ids": [
+"mars"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+4
+],
+"ids": [
+"jupiter"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+5
+],
+"ids": [
+"saturn"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+6
+],
+"ids": [
+"uranus"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+7
+],
+"ids": [
+"neptune"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+8
+],
+"ids": [
+"pluto"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+3,
+9
+],
+"ids": [
+"black-hole"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+0
+],
+"ids": [
+"familiar"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+1
+],
+"ids": [
+"grim"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+2
+],
+"ids": [
+"incantation"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+3
+],
+"ids": [
+"talisman"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+4
+],
+"ids": [
+"aura"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+5
+],
+"ids": [
+"wraith"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+6
+],
+"ids": [
+"sigil"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+7
+],
+"ids": [
+"ouija"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+8
+],
+"ids": [
+"ectoplasm"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+4,
+9
+],
+"ids": [
+"immolate"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+0
+],
+"ids": [
+"ankh"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+1
+],
+"ids": [
+"deja-vu"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+2
+],
+"ids": [
+"hex"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+3
+],
+"ids": [
+"trance"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+4
+],
+"ids": [
+"medium"
+]
+},
+{
+"kind": "tarot",
+"cell": [
+5,
+5
+],
+"ids": [
+"cryptid"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+0
+],
+"ids": [
+"overstock"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+1
+],
+"ids": [
+"tarot-merchant"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+2
+],
+"ids": [
+"planet-merchant"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+3
+],
+"ids": [
+"clearance-sale"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+4
+],
+"ids": [
+"hone"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+5
+],
+"ids": [
+"grabber"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+6
+],
+"ids": [
+"wasteful"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+0,
+7
+],
+"ids": [
+"blank"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+0
+],
+"ids": [
+"overstock-plus"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+1
+],
+"ids": [
+"tarot-tycoon"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+2
+],
+"ids": [
+"planet-tycoon"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+3
+],
+"ids": [
+"liquidation"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+4
+],
+"ids": [
+"glow-up"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+5
+],
+"ids": [
+"nacho-tong"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+6
+],
+"ids": [
+"recyclomancy"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+1,
+7
+],
+"ids": [
+"antimatter"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+0
+],
+"ids": [
+"reroll-surplus"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+1
+],
+"ids": [
+"seed-money"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+2
+],
+"ids": [
+"crystal-ball"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+3
+],
+"ids": [
+"telescope"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+4
+],
+"ids": [
+"magic-trick"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+5
+],
+"ids": [
+"hieroglyph"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+6
+],
+"ids": [
+"directors-cut"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+2,
+7
+],
+"ids": [
+"paint-brush"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+0
+],
+"ids": [
+"reroll-glut"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+1
+],
+"ids": [
+"money-tree"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+2
+],
+"ids": [
+"omen-globe"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+3
+],
+"ids": [
+"observatory"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+4
+],
+"ids": [
+"illusion"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+5
+],
+"ids": [
+"petroglyph"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+6
+],
+"ids": [
+"retcon"
+]
+},
+{
+"kind": "voucher",
+"cell": [
+3,
+7
+],
+"ids": [
+"palette"
+]
+}
+]
+}

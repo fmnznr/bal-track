@@ -74,6 +74,15 @@ screen, purple and animated while a pack is open, and gold behind a sell
 overlay; a background-colour filter already failed on the pack screen in the
 spike, which is precisely the screen with the most to gain.
 
+**Which card sits in which cell is read, not guessed.** The game's own
+definitions carry each card's atlas position, and `src/vision/card-ids.json`
+is that table: 265 cells, every one of the 150 jokers, 52 consumables, 32
+vouchers and 15 pack sorts covered. Sixteen cells hold sprites that are not
+cards — the legendaries' soul faces, locked placeholders, a duplicated
+drawing — and they stay in the reference table without a name, so that
+matching one of them reports nothing rather than handing back the card whose
+fingerprint happened to be next closest.
+
 **Position classifies the slot, the match classifies the card.** Cards are
 grouped into rows by vertical position: the top row is what the player owns, the
 rows below are what is on offer. The card's identity comes from the hash match
@@ -132,7 +141,6 @@ English; a second table can be added later for ~25 KB.
   real cases: four of them in one shop matched correctly but with margins of
   25-48, against 89-195 elsewhere. If a misread ever happens, it starts here.
 - Stickers (Eternal, Perishable, Rental) overlay the card. Untested.
-- The atlas cell that each reference belongs to is known; which joker sits in
-  that cell is not. Every entry ships with `id: null` until the mapping is
-  derived from the game's own definitions rather than guessed by eye — a
-  confident wrong name is the one failure mode this design refuses.
+- One cell names two cards: the game draws Joker and Wee Joker from the same
+  sprite, so a match there is genuinely ambiguous and the player has to pick.
+  That is the only such case in the catalog.

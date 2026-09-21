@@ -31,7 +31,7 @@ for (const file of files) {
   const name = file.split('/').pop();
   console.log(`${name}  ${image.width}x${image.height}  candidates ${boxes.length}  found ${found.length}  (${Date.now() - started} ms)`);
   for (const c of found) {
-    console.log(`   ${c.kind.padEnd(8)} r${c.cell[0]}c${c.cell[1]}`.padEnd(24)
+    console.log(`   ${c.kind.padEnd(8)} ${(c.ids.join(' / ') || '?').padEnd(22)}`
       + `score ${String(c.score).padStart(4)}  margin ${String(c.margin).padStart(4)}`
       + `   box ${c.box.x0},${c.box.y0} ${c.box.x1 - c.box.x0}x${c.box.y1 - c.box.y0}`);
   }

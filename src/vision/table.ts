@@ -11,7 +11,7 @@ import type { CardKind, ReferenceCard } from './recognise';
 interface TableFile {
   version: number;
   colourBytes: number;
-  cards: { kind: CardKind; cell: [number, number]; id: string | null }[];
+  cards: { kind: CardKind; cell: [number, number]; ids: string[] }[];
   /** base64: per card, 16 little-endian hash words followed by the colour bytes. */
   prints: string;
 }
@@ -42,6 +42,6 @@ export function parseTable(file: TableFile): ReferenceCard[] {
     const hash = new Uint32Array(HASH_BYTES / 4);
     for (let w = 0; w < hash.length; w++) hash[w] = view.getUint32(at + w * 4, true);
     const print: Fingerprint = { hash, colour: bytes.slice(at + HASH_BYTES, at + perCard) };
-    return { kind: card.kind, cell: card.cell, id: card.id, print };
+    return { kind: card.kind, cell: card.cell, ids: card.ids, print };
   });
 }

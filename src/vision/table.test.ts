@@ -12,6 +12,15 @@ describe('the shipped card table', () => {
     expect(table.filter(c => c.kind === 'joker').length).toBeGreaterThan(140);
   });
 
+  it('names the card in all but the decorative cells', () => {
+    const table = parseTable(file);
+    const named = table.filter(c => c.ids.length > 0);
+    // The nine joker cells without a card are the legendaries' soul faces, a
+    // lock, a card back and one duplicated sprite.
+    expect(table.length - named.length).toBe(16);
+    expect(named.every(c => c.ids.every(id => /^[a-z0-9-]+$/.test(id)))).toBe(true);
+  });
+
   it('gives every card a full fingerprint', () => {
     for (const card of parseTable(file)) {
       expect(card.print.hash).toHaveLength(16);
