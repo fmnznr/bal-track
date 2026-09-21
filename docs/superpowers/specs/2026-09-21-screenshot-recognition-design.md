@@ -96,8 +96,10 @@ Measured over the same ten screenshots, running the shipped TypeScript:
 | Blind, blind choice, play | every uncovered joker and consumable |
 | Run Info dialog | nothing, correctly |
 | Sell overlay | the two consumables; the covered jokers are not guessed at |
+| Shop with a Holographic joker | 7 of 7, the tinted card included |
+| Opened Buffoon pack | 4 of 4, on the pack's animated orange field |
 
-No false positive in any of the ten. 371-1301 ms per screenshot in Node,
+No false positive in any of the twelve. 371-1301 ms per screenshot in Node,
 dominated by the refinement search.
 
 Thresholds come from that run rather than from taste: across 170 refined
@@ -121,9 +123,16 @@ English; a second table can be added later for ~25 KB.
 - The detector's crop precision is the one number that decides the feature's
   quality. Target: tight crops that reproduce the 78-138 score band on jokers,
   not the 192-220 band.
-- Editions (Foil, Holographic, Polychrome) tint the card and therefore the
-  colour signature. Untested — no such card appeared in the spike screenshots.
-  The gradient hash is expected to carry the match and the tint to identify the
-  edition, which would make it a feature rather than a problem.
+- Editions behave as hoped, on one sample: a Holographic Ride the Bus matched
+  its plain reference at 176 where the untinted card scores about 95, and kept
+  a margin of 89. The tint costs roughly 80 points and the gradient hash
+  carries the match, so a tint could identify the edition rather than defeat
+  the match. One card is not a calibration, and Polychrome is untested.
+- The jokers that share a drawing and differ mainly in colour are the tightest
+  real cases: four of them in one shop matched correctly but with margins of
+  25-48, against 89-195 elsewhere. If a misread ever happens, it starts here.
 - Stickers (Eternal, Perishable, Rental) overlay the card. Untested.
-- Jokers inside an opened Buffoon pack — the pack background case — untested.
+- The atlas cell that each reference belongs to is known; which joker sits in
+  that cell is not. Every entry ships with `id: null` until the mapping is
+  derived from the game's own definitions rather than guessed by eye — a
+  confident wrong name is the one failure mode this design refuses.
