@@ -115,6 +115,30 @@ Thresholds come from that run rather than from taste: across 170 refined
 candidates, everything that really was a card scored 52-207, and the best
 non-card — a playing card in a fanned hand — scored 225. The cut sits at 215.
 
+## How it reaches the run
+
+The shop and pack screens each carry a "Read a screenshot" control. What comes
+back is a list to confirm, not a change to the run: every recognised card is a
+ticked row the player can untick, and only what is still ticked is added. A
+wrong joker would skew every recommendation after it, and the cost of catching
+one here is a single tap.
+
+Two things the reading knows, the list says out loud. Cards in the top third of
+a screenshot are the jokers already in play rather than the shop's offer, so
+they arrive unticked and labelled. And where one sprite serves two cards, the
+row becomes a choice rather than a guess.
+
+Reading runs in a worker: it takes one to two seconds on this hardware, and an
+interface frozen that long reads as a crash. There is no same-thread fallback,
+which would mean a second copy of the reference table in the bundle. The
+recogniser and its table are a separate chunk, loaded when a screenshot is
+first read: the initial bundle grows by 3.5 KB, the precache by 86 KB.
+
+Prices still come from the catalog rather than from the screenshot's price
+pill, so a shop with a discount voucher needs the price corrected by hand. The
+pill is the obvious next step, and it is also what would tell Jumbo and Mega
+packs apart from their normal-size siblings.
+
 ## Trade-off accepted
 
 Recognition is offered for the shop and the pack-opening screen only. Screens

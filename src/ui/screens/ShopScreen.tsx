@@ -4,10 +4,13 @@ import { recommend } from '../../engine/recommend';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import type { Edition, ShopState } from '../../types';
+import { readScreenshot } from '../../vision/client';
+import type { CardKind } from '../../vision/recognise';
 import AutocompleteInput from '../components/AutocompleteInput';
 import JokerStickerFields from '../components/JokerStickerFields';
 import NumberField from '../components/NumberField';
 import RecommendationList from '../components/RecommendationList';
+import ScreenshotImport from '../components/ScreenshotImport';
 
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCost: 5 };
@@ -36,6 +39,25 @@ export default function ShopScreen({ onPackBought }: Props) {
         || (voucherDef.requires && !run.vouchers.includes(voucherDef.requires))),
   );
 
+  /** Everything confirmed from one screenshot lands in a single draft update,
+      because setShop resolves against the shop as it was rendered. */
+  const addFromScreenshot = (found: { kind: CardKind; id: string }[]) =>
+    setShop(s => {
+      const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
+      for (const { kind, id } of found) {
+        if (kind === 'joker') {
+          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: getJoker(id)?.cost ?? 0 });
+        } else if (kind === 'tarot') {
+          next.cards.push({ kind: 'consumable', consumableId: id, price: getConsumable(id)?.cost ?? 0 });
+        } else if (kind === 'voucher') {
+          next.voucherId = id;
+        } else {
+          next.packIds.push(id);
+        }
+      }
+      return next;
+    });
+
   const removeCard = (i: number) => setShop(s => ({ ...s, cards: s.cards.filter((_, j) => j !== i) }));
   const removePack = (i: number) => setShop(s => ({ ...s, packIds: s.packIds.filter((_, j) => j !== i) }));
 
@@ -45,6 +67,12 @@ export default function ShopScreen({ onPackBought }: Props) {
         <NumberField label={t('money')} value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
         <NumberField label={t('rerollCost')} value={shop.rerollCost} onChange={rerollCost => setShop(s => ({ ...s, rerollCost }))} />
       </div>
+
+      <ScreenshotImport
+        kinds={['joker', 'tarot', 'voucher', 'pack']}
+        read={readScreenshot}
+        onAdd={addFromScreenshot}
+      />
 
       <h3>{t('cardsOnOffer')}</h3>
       <ul className="rows">

@@ -1,7 +1,20 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from '../../App';
+
+// The recogniser needs a canvas and a worker, neither of which jsdom has; the
+// screen's job is what happens to a reading, not how one is produced.
+vi.mock('../../vision/client', () => ({
+  readScreenshot: vi.fn().mockResolvedValue({
+    width: 2556,
+    height: 1179,
+    cards: [
+      { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80 },
+      { kind: 'pack', cell: [0, 3], ids: ['arcana-normal'], box: { x0: 400, y0: 800, x1: 580, y1: 1110 }, score: 140, margin: 60 },
+    ],
+  }),
+}));
 import { STORAGE_KEY, newRunState } from '../../run/runStore';
 
 beforeEach(() => {
@@ -77,4 +90,21 @@ it('opens the pack tab on the bought pack after paying for it', async () => {
   expect(screen.getByRole('button', { name: 'Pack' })).toHaveAttribute('aria-current', 'page');
   expect(screen.getByRole('button', { name: 'celestial' })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByPlaceholderText('Add pack option…')).toBeInTheDocument();
+});
+
+it('fills the shop from a screenshot once the reading is confirmed', async () => {
+  // The reading itself is tested in the vision module; what matters here is
+  // that a confirmed card becomes a real offer with its catalog price, and
+  // that nothing enters the draft before the confirmation.
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  const input = document.querySelector('input[type=file]') as HTMLInputElement;
+  await userEvent.upload(input, new File(['x'], 'shop.png', { type: 'image/png' }));
+
+  expect(await screen.findByRole('checkbox', { name: /Blueprint/ })).toBeInTheDocument();
+  expect(screen.queryByText(/Buy Blueprint/)).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
+  expect(screen.getByText(/Buy Blueprint/)).toBeInTheDocument();
+  expect(screen.getByText('Arcana Pack')).toBeInTheDocument();
 });

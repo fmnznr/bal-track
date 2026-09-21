@@ -7,8 +7,10 @@ import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import type { PackKind, Suit } from '../../types';
 import type { SearchKind } from '../../catalog/search';
+import { readScreenshot } from '../../vision/client';
 import AutocompleteInput from '../components/AutocompleteInput';
 import RecommendationList from '../components/RecommendationList';
+import ScreenshotImport from '../components/ScreenshotImport';
 import SuitPrompt from '../components/SuitPrompt';
 
 const OPTION_KINDS: Record<PackKind, SearchKind[]> = {
@@ -105,6 +107,14 @@ export default function PackScreen() {
               <li key={id}>{optionName(id)}</li>
             ))}
           </ul>
+          <ScreenshotImport
+            kinds={['joker', 'tarot']}
+            read={readScreenshot}
+            onAdd={found => setOptions(current => [
+              ...current,
+              ...found.map(f => f.id).filter(id => !current.includes(id)),
+            ])}
+          />
           <AutocompleteInput
             placeholder={t('addPackOption')}
             kinds={OPTION_KINDS[kind]}
