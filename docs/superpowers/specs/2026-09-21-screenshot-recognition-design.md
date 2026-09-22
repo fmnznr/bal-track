@@ -115,9 +115,15 @@ Measured over the same ten screenshots, running the shipped TypeScript:
 No false positive in any of the twelve. 371-1301 ms per screenshot in Node,
 dominated by the refinement search.
 
-Thresholds come from that run rather than from taste: across 170 refined
-candidates, everything that really was a card scored 52-207, and the best
+Thresholds come from those runs rather than from taste: across twenty-four
+screenshots, everything that really was a card scored 52-210, and the best
 non-card — a playing card in a fanned hand — scored 225. The cut sits at 215.
+
+The distance to the runner-up is only a second opinion, and it has to stay
+low. The jokers that share a drawing and differ mainly in colour keep 17-30
+points of daylight by their nature, because their runner-up is always a
+sibling; asking for 25 threw four real cards away across ten screenshots taken
+on the phone and caught nothing false in exchange.
 
 ## How it reaches the run
 

@@ -59,7 +59,7 @@ export interface DetectedCard {
  * plausible — the atlas does contain duplicate sprites.
  */
 export const MAX_SCORE = 215;
-export const MIN_MARGIN = 25;
+export const MIN_MARGIN = 15;
 
 /** Far enough above MAX_SCORE that no refinement would bring it back. */
 const HOPELESS = 260;

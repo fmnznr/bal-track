@@ -78,7 +78,7 @@ describe('recogniseIn', () => {
     expect(Math.abs(found.box.x0 - 100)).toBeLessThan(20);
     expect(Math.abs(found.box.y0 - 100)).toBeLessThan(20);
     expect(found.score).toBeLessThan(215);
-    expect(found.margin).toBeGreaterThan(25);
+    expect(found.margin).toBeGreaterThan(15);
   });
 });
 
