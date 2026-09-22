@@ -149,10 +149,20 @@ read correctly — $7 Madness, $3 Judgement, two $4 packs, the $10 Overstock
 voucher, $6 Reserved Parking, $9 Ride the Bus, $10 Planet Merchant — and the
 owned jokers, which have no tag, correctly returned nothing.
 
-The money you hold and the reroll cost are still typed by hand. Both are the
-same font on the same kind of plate, so they are within reach of the same
-reader; they sit in the left panel rather than above a card, so they need a
-place to look rather than a new method.
+The money you hold and the reroll cost are read too, so a screenshot now fills
+a shop without a number left to type. They need no new method, only somewhere
+to look: money is the largest gold amount in the status column that is not
+sitting above a card, and the reroll cost is the number on the one strongly
+green button. Glyphs are grouped into words from their own connected strokes
+rather than from rows of the image, because the column stacks a sign, a plate
+and two counters that share rows with each other; the grouping also asks for a
+similar glyph height, which is what keeps the "Options" button out of the
+money.
+
+Measured on twenty-one screenshots: the money read correctly in every one that
+shows the column — $2, $5, $8, $14, $29, $52 among them — and returned nothing
+for the one where a dialog covers it. The reroll cost read $5 on each of the
+four shop screenshots and nothing on the seventeen screens that have no shop.
 
 ## Trade-off accepted
 

@@ -8,6 +8,8 @@ import { findCandidates } from './detect';
 import type { ImageLike } from './fingerprint';
 import { recogniseIn } from './recognise';
 import type { DetectedCard } from './recognise';
+import { readHud } from './panel';
+import type { Hud } from './panel';
 import { readPrice } from './price';
 import type { DigitTemplates } from './price';
 import { parseTable } from './table';
@@ -21,6 +23,8 @@ export type ReadCard = DetectedCard & { price: number | null };
 
 export interface ScreenshotReading {
   cards: ReadCard[];
+  /** The money in hand and the reroll cost, where the screenshot showed them. */
+  hud: Hud;
   width: number;
   height: number;
 }
@@ -30,8 +34,10 @@ let table: ReturnType<typeof parseTable> | null = null;
 export function readImage(image: ImageLike): ScreenshotReading {
   table ??= parseTable(cardHashes as Parameters<typeof parseTable>[0]);
   const found = recogniseIn(image, findCandidates(image), table);
+  const templates = digits as DigitTemplates;
   return {
-    cards: found.map(card => ({ ...card, price: readPrice(image, card.box, digits as DigitTemplates) })),
+    cards: found.map(card => ({ ...card, price: readPrice(image, card.box, templates) })),
+    hud: readHud(image, templates, found.map(card => card.box)),
     width: image.width,
     height: image.height,
   };

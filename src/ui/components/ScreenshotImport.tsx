@@ -13,10 +13,18 @@ import type { CardKind } from '../../vision/recognise';
  * every recommendation that follows, so the cost of a wrong guess is one
  * unticked row rather than a ruined run.
  */
+export interface Confirmed {
+  cards: { kind: CardKind; id: string; price: number | null }[];
+  money: number | null;
+  rerollCost: number | null;
+}
+
 interface Props {
   /** What this screen can use: the shop takes everything, a pack only cards. */
   kinds: CardKind[];
-  onAdd: (cards: { kind: CardKind; id: string; price: number | null }[]) => void;
+  /** Whether the money and reroll cost in the status column are of use here. */
+  hud?: boolean;
+  onAdd: (confirmed: Confirmed) => void;
   /** Injectable so tests need no worker, no canvas and no screenshot. */
   read: ReadScreenshot;
 }
@@ -24,12 +32,10 @@ interface Props {
 /** Cards this high up the screenshot are the ones already owned, not on offer. */
 const OWNED_ABOVE = 0.3;
 
-interface Row {
-  card: ReadCard;
-  id: string;
-  take: boolean;
-  owned: boolean;
-}
+type Row =
+  | { type: 'card'; card: ReadCard; id: string; take: boolean; owned: boolean }
+  /** The two numbers the status column shows rather than a card. */
+  | { type: 'money' | 'reroll'; value: number; take: boolean };
 
 export function cardName(kind: CardKind, id: string): string {
   const def = kind === 'joker' ? getJoker(id)
@@ -39,7 +45,7 @@ export function cardName(kind: CardKind, id: string): string {
   return def?.name ?? id;
 }
 
-export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
+export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Props) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +60,19 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
       const reading = await read(file);
       const usable = reading.cards.filter(c => kinds.includes(c.kind));
       setSkipped(reading.cards.length - usable.length);
-      setRows(usable.map(card => {
-        const owned = card.box.y0 < reading.height * OWNED_ABOVE;
-        return { card, id: card.ids[0], take: !owned, owned };
-      }));
+      const values: Row[] = hud
+        ? [
+          ...(reading.hud.money !== null ? [{ type: 'money' as const, value: reading.hud.money, take: true }] : []),
+          ...(reading.hud.rerollCost !== null ? [{ type: 'reroll' as const, value: reading.hud.rerollCost, take: true }] : []),
+        ]
+        : [];
+      setRows([
+        ...values,
+        ...usable.map((card): Row => {
+          const owned = card.box.y0 < reading.height * OWNED_ABOVE;
+          return { type: 'card' as const, card, id: card.ids[0], take: !owned, owned };
+        }),
+      ]);
     } catch {
       setError(t('screenshotFailed'));
     } finally {
@@ -65,8 +80,11 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
     }
   };
 
-  const update = (index: number, change: Partial<Row>) =>
+  const update = (index: number, change: { take?: boolean; id?: string }) =>
     setRows(current => current && current.map((row, i) => (i === index ? { ...row, ...change } : row)));
+
+  const rowKey = (row: Row, i: number) =>
+    (row.type === 'card' ? `${row.card.box.x0}-${row.card.box.y0}` : `${row.type}-${i}`);
 
   return (
     <div className="screenshot-import">
@@ -92,14 +110,16 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
         <>
           <ul className="rows">
             {rows.map((row, i) => (
-              <li key={`${row.card.box.x0}-${row.card.box.y0}`} className="row">
+              <li key={rowKey(row, i)} className="row">
                 <label className="grow sticker-toggle">
                   <input
                     type="checkbox"
                     checked={row.take}
                     onChange={e => update(i, { take: e.target.checked })}
                   />
-                  {row.card.ids.length > 1 ? (
+                  {row.type !== 'card' ? (
+                    <span>{row.type === 'money' ? t('money') : t('rerollCost')}</span>
+                  ) : row.card.ids.length > 1 ? (
                     <select
                       aria-label={t('whichCard')}
                       value={row.id}
@@ -113,12 +133,11 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
                     <span>{cardName(row.card.kind, row.id)}</span>
                   )}
                 </label>
-                {/* The player is the one who knows which row of the screen a
-                    card came from, so say what was assumed and let them fix it. */}
                 {/* The price comes off the tag above the card, so a shop with
                     Clearance Sale prices is read as it really is. */}
-                {row.card.price !== null && <span className="muted">${row.card.price}</span>}
-                {row.owned && <span className="muted">{t('screenshotOwned')}</span>}
+                {row.type === 'card' && row.card.price !== null && <span className="muted">${row.card.price}</span>}
+                {row.type !== 'card' && <span className="muted">${row.value}</span>}
+                {row.type === 'card' && row.owned && <span className="muted">{t('screenshotOwned')}</span>}
               </li>
             ))}
           </ul>
@@ -127,7 +146,18 @@ export default function ScreenshotImport({ kinds, onAdd, read }: Props) {
             className="primary"
             disabled={rows.every(r => !r.take)}
             onClick={() => {
-              onAdd(rows.filter(r => r.take).map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price })));
+              const taken = rows.filter(r => r.take);
+              const value = (type: 'money' | 'reroll') => {
+                const row = taken.find(r => r.type === type);
+                return row && row.type !== 'card' ? row.value : null;
+              };
+              onAdd({
+                cards: taken
+                  .filter(r => r.type === 'card')
+                  .map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price })),
+                money: value('money'),
+                rerollCost: value('reroll'),
+              });
               setRows(null);
             }}
           >

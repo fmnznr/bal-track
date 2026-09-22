@@ -9,6 +9,7 @@ vi.mock('../../vision/client', () => ({
   readScreenshot: vi.fn().mockResolvedValue({
     width: 2556,
     height: 1179,
+    hud: { money: 29, rerollCost: 6 },
     cards: [
       { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80 },
       { kind: 'pack', cell: [0, 3], ids: ['arcana-normal'], box: { x0: 400, y0: 800, x1: 580, y1: 1110 }, score: 140, margin: 60 },
@@ -107,4 +108,8 @@ it('fills the shop from a screenshot once the reading is confirmed', async () =>
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
   expect(screen.getByText(/Buy Blueprint/)).toBeInTheDocument();
   expect(screen.getByText('Arcana Pack')).toBeInTheDocument();
+  // The status column is part of the shop too: what you hold and what a
+  // reroll costs decide whether any of it is affordable.
+  expect(screen.getByLabelText('Money $')).toHaveDisplayValue('29');
+  expect(screen.getByLabelText('Reroll $')).toHaveDisplayValue('6');
 });

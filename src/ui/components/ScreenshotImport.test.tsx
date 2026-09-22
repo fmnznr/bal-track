@@ -12,13 +12,20 @@ function card(kind: CardKind, ids: string[], y: number, price: number | null = n
   return { kind, cell: [0, 0], ids, box: { x0: 100, y0: y, x1: 280, y1: y + 244 }, score: 90, margin: 80, price };
 }
 
-const reading = (cards: ReadCard[]): ScreenshotReading => ({ cards, width: 2556, height: 1179 });
+type Hud = ScreenshotReading['hud'];
+const NO_HUD: Hud = { money: null, rerollCost: null };
 
-function show(cards: ReadCard[], onAdd = vi.fn(), kinds: CardKind[] = ['joker', 'tarot', 'voucher', 'pack']) {
-  const read = vi.fn().mockResolvedValue(reading(cards));
+const reading = (cards: ReadCard[], hud: Hud = NO_HUD): ScreenshotReading =>
+  ({ cards, hud, width: 2556, height: 1179 });
+
+function show(
+  cards: ReadCard[], onAdd = vi.fn(), kinds: CardKind[] = ['joker', 'tarot', 'voucher', 'pack'],
+  hud: Hud = NO_HUD,
+) {
+  const read = vi.fn().mockResolvedValue(reading(cards, hud));
   render(
     <I18nProvider>
-      <ScreenshotImport kinds={kinds} read={read} onAdd={onAdd} />
+      <ScreenshotImport kinds={kinds} hud read={read} onAdd={onAdd} />
     </I18nProvider>,
   );
   return { onAdd };
@@ -37,7 +44,7 @@ it('offers what was recognised and adds only the ticked rows', async () => {
   await userEvent.click(screen.getByRole('checkbox', { name: /Arcana Pack/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
 
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'blueprint', price: null }]);
+  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'blueprint', price: null }], money: null, rerollCost: null });
 });
 
 it('leaves the cards you already own unticked', async () => {
@@ -51,7 +58,7 @@ it('leaves the cards you already own unticked', async () => {
   expect(screen.getAllByText('owned?')).toHaveLength(1);
 
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'madness', price: 7 }]);
+  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'madness', price: 7 }], money: null, rerollCost: null });
 });
 
 it('asks which card when one sprite serves two', async () => {
@@ -63,7 +70,7 @@ it('asks which card when one sprite serves two', async () => {
   const choice = await screen.findByRole('combobox', { name: 'Which card?' });
   await userEvent.selectOptions(choice, 'wee-joker');
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith([{ kind: 'joker', id: 'wee-joker', price: null }]);
+  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'wee-joker', price: null }], money: null, rerollCost: null });
 });
 
 it('keeps what does not belong on this tab out of the list, and says so', async () => {

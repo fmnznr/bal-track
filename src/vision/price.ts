@@ -26,6 +26,33 @@ const SIDE_SLACK = 20;
 /** A glyph may differ in at most this share of cells and still be that glyph. */
 const MAX_GLYPH_ERROR = 0.18;
 
+export interface Mask {
+  bits: boolean[];
+  width: number;
+  height: number;
+}
+
+export type Ink = (r: number, g: number, b: number) => boolean;
+
+/** The gold Balatro prints money and prices in. */
+export const GOLD: Ink = (r, g, b) => r > 170 && g > 110 && g < 215 && b < 120 && r - b > 80;
+
+/** The near-white of button labels. */
+export const WHITE: Ink = (r, g, b) => r > 200 && g > 200 && b > 190;
+
+export function inkMask(image: ImageLike, box: Box, ink: Ink): Mask {
+  const width = box.x1 - box.x0;
+  const height = box.y1 - box.y0;
+  const bits = new Array<boolean>(width * height);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = ((box.y0 + y) * image.width + box.x0 + x) * 4;
+      bits[y * width + x] = ink(image.data[i], image.data[i + 1], image.data[i + 2]);
+    }
+  }
+  return { bits, width, height };
+}
+
 function goldMask(image: ImageLike, box: Box): { bits: boolean[]; width: number; height: number } {
   const width = box.x1 - box.x0;
   const height = box.y1 - box.y0;
@@ -40,12 +67,6 @@ function goldMask(image: ImageLike, box: Box): { bits: boolean[]; width: number;
     }
   }
   return { bits, width, height };
-}
-
-interface Mask {
-  bits: boolean[];
-  width: number;
-  height: number;
 }
 
 function trimRows(mask: Mask): Mask {
@@ -65,7 +86,7 @@ function trimRows(mask: Mask): Mask {
 }
 
 /** Columns that hold ink, grouped into glyphs. */
-function columnRuns(mask: Mask, minWidth = 2): [number, number][] {
+export function columnRuns(mask: Mask, minWidth = 2): [number, number][] {
   const runs: [number, number][] = [];
   let start: number | null = null;
   for (let x = 0; x <= mask.width; x++) {
@@ -83,7 +104,7 @@ function columnRuns(mask: Mask, minWidth = 2): [number, number][] {
 }
 
 /** A glyph on a fixed grid, so one template serves every screen size. */
-function normalise(mask: Mask, from: number, to: number, w: number, h: number): boolean[] {
+export function normalise(mask: Mask, from: number, to: number, w: number, h: number): boolean[] {
   let top = 0;
   let bottom = mask.height;
   const rowHas = (y: number) => {
@@ -119,7 +140,7 @@ export function glyphToString(cells: readonly boolean[]): string {
   return cells.map(on => (on ? '#' : '.')).join('');
 }
 
-function classify(cells: readonly boolean[], templates: DigitTemplates): string | null {
+export function classify(cells: readonly boolean[], templates: DigitTemplates): string | null {
   let best: string | null = null;
   let bestWrong = Infinity;
   for (const [label, bits] of Object.entries(templates.glyphs)) {

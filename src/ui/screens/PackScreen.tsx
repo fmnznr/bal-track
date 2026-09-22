@@ -110,9 +110,9 @@ export default function PackScreen() {
           <ScreenshotImport
             kinds={['joker', 'tarot']}
             read={readScreenshot}
-            onAdd={found => setOptions(current => [
+            onAdd={({ cards }) => setOptions(current => [
               ...current,
-              ...found.map(f => f.id).filter(id => !current.includes(id)),
+              ...cards.map(c => c.id).filter(id => !current.includes(id)),
             ])}
           />
           <AutocompleteInput

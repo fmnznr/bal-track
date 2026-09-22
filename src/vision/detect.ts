@@ -35,12 +35,12 @@ function scan(image: ImageLike, keep: (r: number, g: number, b: number) => boole
   return mask;
 }
 
-interface Blob extends Box {
+export interface Blob extends Box {
   pixels: number;
 }
 
 /** Flood fill, iterative — a recursive fill overflows on a full-screen blob. */
-function blobs(mask: boolean[], w: number, h: number): Blob[] {
+function blobs(mask: boolean[], w: number, h: number, minSamples = MIN_BLOB): Blob[] {
   const seen = new Uint8Array(mask.length);
   const found: Blob[] = [];
   const stack: number[] = [];
@@ -71,7 +71,7 @@ function blobs(mask: boolean[], w: number, h: number): Blob[] {
         }
       }
     }
-    if (n >= MIN_BLOB) {
+    if (n >= minSamples) {
       found.push(...splitWide(mask, w, {
         x0: minX * STEP, y0: minY * STEP,
         x1: (maxX + 1) * STEP, y1: (maxY + 1) * STEP,
@@ -131,6 +131,17 @@ function cardShaped(b: Blob): boolean {
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[sorted.length >> 1];
+}
+
+/** Connected regions of whatever a caller calls foreground. Shared with the
+    panel reader, which hunts for the one green button rather than for cards. */
+export function findBlobs(
+  image: ImageLike, keep: (r: number, g: number, b: number) => boolean, minPixels = MIN_BLOB * STEP * STEP,
+): Blob[] {
+  // Glyphs are far smaller than cards, so the floor has to be a parameter
+  // rather than the card-sized constant this file uses for its own work.
+  const minSamples = Math.max(1, Math.round(minPixels / (STEP * STEP)));
+  return blobs(scan(image, keep), Math.ceil(image.width / STEP), Math.ceil(image.height / STEP), minSamples);
 }
 
 function byLightOutline(image: ImageLike): Blob[] {

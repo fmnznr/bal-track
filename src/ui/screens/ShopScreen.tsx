@@ -5,12 +5,12 @@ import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
 import type { Edition, ShopState } from '../../types';
 import { readScreenshot } from '../../vision/client';
-import type { CardKind } from '../../vision/recognise';
 import AutocompleteInput from '../components/AutocompleteInput';
 import JokerStickerFields from '../components/JokerStickerFields';
 import NumberField from '../components/NumberField';
 import RecommendationList from '../components/RecommendationList';
 import ScreenshotImport from '../components/ScreenshotImport';
+import type { Confirmed } from '../components/ScreenshotImport';
 
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCost: 5 };
@@ -41,10 +41,12 @@ export default function ShopScreen({ onPackBought }: Props) {
 
   /** Everything confirmed from one screenshot lands in a single draft update,
       because setShop resolves against the shop as it was rendered. */
-  const addFromScreenshot = (found: { kind: CardKind; id: string; price: number | null }[]) =>
+  const addFromScreenshot = ({ cards, money, rerollCost }: Confirmed) => {
+    if (money !== null) dispatch({ type: 'SET_MONEY', money });
     setShop(s => {
       const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
-      for (const { kind, id, price } of found) {
+      if (rerollCost !== null) next.rerollCost = rerollCost;
+      for (const { kind, id, price } of cards) {
         // The price on the tag beats the catalog: a shop under Clearance Sale
         // or Liquidation charges less than a card is listed at.
         if (kind === 'joker') {
@@ -59,6 +61,7 @@ export default function ShopScreen({ onPackBought }: Props) {
       }
       return next;
     });
+  };
 
   const removeCard = (i: number) => setShop(s => ({ ...s, cards: s.cards.filter((_, j) => j !== i) }));
   const removePack = (i: number) => setShop(s => ({ ...s, packIds: s.packIds.filter((_, j) => j !== i) }));
@@ -72,6 +75,7 @@ export default function ShopScreen({ onPackBought }: Props) {
 
       <ScreenshotImport
         kinds={['joker', 'tarot', 'voucher', 'pack']}
+        hud
         read={readScreenshot}
         onAdd={addFromScreenshot}
       />
