@@ -29,6 +29,18 @@ export interface Fingerprint {
 }
 
 const HASH_SIDE = 16; // 16x16 samples -> 256 horizontal + 256 vertical bits
+
+/**
+ * How many pixels each cell of the grid averages, per side.
+ *
+ * The search tries a crop hundreds of times, so it uses the cheap setting: a
+ * card fills tens of thousands of pixels and averaging all of them is most of
+ * the cost of a reading. The decision to accept a card is made once, and takes
+ * the careful setting — a few points of noise there would cost real cards at
+ * the threshold.
+ */
+export const SEARCH_SAMPLES = 5;
+export const EXACT_SAMPLES = 64;
 const COLOUR_SIDE = 6;
 
 /**
@@ -37,7 +49,7 @@ const COLOUR_SIDE = 6;
  * what keeps a card's fingerprint the same whether it was screenshotted at
  * 182px wide or 244.
  */
-function resample(image: ImageLike, box: Box, outW: number, outH: number): Float32Array {
+function resample(image: ImageLike, box: Box, outW: number, outH: number, samples: number): Float32Array {
   const out = new Float32Array(outW * outH * 3);
   const w = box.x1 - box.x0;
   const h = box.y1 - box.y0;
@@ -51,10 +63,12 @@ function resample(image: ImageLike, box: Box, outW: number, outH: number): Float
       const sx1 = box.x0 + ((ox + 1) * w) / outW;
       const x0 = Math.max(0, Math.floor(sx0));
       const x1 = Math.min(image.width, Math.max(x0 + 1, Math.ceil(sx1)));
+      const stepY = Math.max(1, Math.floor((y1 - y0) / samples));
+      const stepX = Math.max(1, Math.floor((x1 - x0) / samples));
       let r = 0, g = 0, b = 0, n = 0;
-      for (let y = y0; y < y1; y++) {
+      for (let y = y0; y < y1; y += stepY) {
         let i = (y * image.width + x0) * 4;
-        for (let x = x0; x < x1; x++, i += 4) {
+        for (let x = x0; x < x1; x += stepX, i += 4 * stepX) {
           r += image.data[i];
           g += image.data[i + 1];
           b += image.data[i + 2];
@@ -74,9 +88,9 @@ function luma(rgb: Float32Array, i: number): number {
   return 0.299 * rgb[i] + 0.587 * rgb[i + 1] + 0.114 * rgb[i + 2];
 }
 
-export function fingerprint(image: ImageLike, box: Box): Fingerprint {
+export function fingerprint(image: ImageLike, box: Box, samples = SEARCH_SAMPLES): Fingerprint {
   const side = HASH_SIDE + 1;
-  const grid = resample(image, box, side, side);
+  const grid = resample(image, box, side, side, samples);
   const hash = new Uint32Array(16);
   let bit = 0;
   const set = (on: boolean) => {
@@ -91,7 +105,7 @@ export function fingerprint(image: ImageLike, box: Box): Fingerprint {
     }
   }
 
-  const small = resample(image, box, COLOUR_SIDE, COLOUR_SIDE);
+  const small = resample(image, box, COLOUR_SIDE, COLOUR_SIDE, samples);
   const colour = new Uint8Array(small.length);
   for (let i = 0; i < small.length; i++) colour[i] = Math.round(small[i]);
   return { hash, colour };

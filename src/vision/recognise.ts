@@ -14,7 +14,7 @@
  * recommendation that follows it, so the caller shows what was found and the
  * player confirms it.
  */
-import { distance, fingerprint } from './fingerprint';
+import { distance, EXACT_SAMPLES, fingerprint } from './fingerprint';
 import type { Box, Fingerprint, ImageLike } from './fingerprint';
 
 export type CardKind = 'joker' | 'tarot' | 'voucher' | 'pack';
@@ -71,8 +71,10 @@ interface Scored {
   card: ReferenceCard;
 }
 
-function best(image: ImageLike, box: Box, table: readonly ReferenceCard[]): Scored | null {
-  const print = fingerprint(image, box);
+function best_(
+  image: ImageLike, box: Box, table: readonly ReferenceCard[], samples?: number,
+): Scored | null {
+  const print = fingerprint(image, box, samples);
   let first: ReferenceCard | null = null;
   let bestScore = Infinity;
   let second = Infinity;
@@ -112,7 +114,7 @@ function search(
             y1: Math.round(centre.cy + dy + h / 2),
           };
           if (box.x0 < 0 || box.y0 < 0 || box.x1 > image.width || box.y1 > image.height) continue;
-          const scored = best(image, box, table);
+          const scored = best_(image, box, table);
           if (scored && (winner === null || scored.score < winner.score)) winner = scored;
         }
       }
@@ -138,8 +140,16 @@ const middle = (box: Box) => ({
   h: box.y1 - box.y0,
 });
 
+/** Beyond this, no framing would rescue the candidate — and most candidates
+    are a piece of panel, so one look saves the whole search. */
+const NOT_A_CARD = 330;
+
 export function refine(image: ImageLike, box: Box, table: readonly ReferenceCard[]): Scored | null {
-  let best = search(image, middle(box), [-14, 0, 14], [0.85, 1, 1.15], [0.85, 1, 1.3], table, null);
+  const glance = best_(image, box, table);
+  if (glance && glance.score > NOT_A_CARD) return glance;
+  // Offsets first, shape second: the aspect pass below proposes the shapes a
+  // card can have, so the opening grid only has to find roughly where it sits.
+  let best = search(image, middle(box), [-14, 0, 14], [1], [0.9, 1, 1.15], table, null);
   const width = box.x1 - box.x0;
   for (const aspect of CARD_ASPECTS) {
     const height = width / aspect;
@@ -155,6 +165,11 @@ export function refine(image: ImageLike, box: Box, table: readonly ReferenceCard
   // the bulk of a reading's cost, so stop here when nothing can save it.
   if (best.score > HOPELESS) return best;
   return search(image, middle(best.box), [-6, 0, 6], [0.94, 1, 1.06], [0.94, 1, 1.06], table, best);
+}
+
+/** The search hurries; the verdict does not. */
+function verify(image: ImageLike, scored: Scored | null, table: readonly ReferenceCard[]): Scored | null {
+  return scored ? best_(image, scored.box, table, EXACT_SAMPLES) : null;
 }
 
 const accepted = (s: Scored | null): s is Scored =>
@@ -215,12 +230,12 @@ function bestPerCard(found: readonly Scored[]): Scored[] {
 export function recogniseIn(
   image: ImageLike, boxes: readonly Box[], table: readonly ReferenceCard[],
 ): DetectedCard[] {
-  const scored = boxes.map(box => ({ box, result: refine(image, box, table) }));
+  const scored = boxes.map(box => ({ box, result: verify(image, refine(image, box, table), table) }));
   const taken = bestPerCard(scored.map(s => s.result).filter(accepted));
   const out = [...taken];
   for (const { box, result } of scored) {
     if (accepted(result)) continue;
-    const second = retryWithNeighbourSize(image, box, taken, table);
+    const second = verify(image, retryWithNeighbourSize(image, box, taken, table), table);
     if (accepted(second) && out.every(k => overlap(second.box, k.box) < 0.4)) out.push(second);
   }
   return out

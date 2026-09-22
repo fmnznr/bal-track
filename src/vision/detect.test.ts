@@ -55,3 +55,19 @@ describe('findCandidates', () => {
     expect(findCandidates(blank(900, 500, [30, 90, 60]))).toEqual([]);
   });
 });
+
+it('covers a row of overlapping cards, not just its ends', () => {
+  // Six jokers on a phone screen touch each other, and where cards overlap
+  // there is no gap to split at — so the row is covered with card-sized boxes
+  // instead, and the matcher decides which of them landed on something.
+  const screen = blank(1400, 500, [30, 90, 60]);
+  const overlap = 130;
+  for (let i = 0; i < 6; i++) drawCard(screen, 200 + i * overlap, 100, 180, 244, [190, 60 + i * 20, 60], i + 1);
+  const boxes = findCandidates(screen);
+  // Every card needs a candidate near enough that the refinement, which may
+  // shift a box by a fraction of a card, can settle on it.
+  const centres = [0, 1, 2, 3, 4, 5].map(i => 200 + i * overlap + 90);
+  const covered = centres.filter(cx =>
+    boxes.some(b => Math.abs((b.x0 + b.x1) / 2 - cx) < 50));
+  expect(covered).toHaveLength(6);
+});

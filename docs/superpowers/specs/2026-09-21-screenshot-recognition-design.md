@@ -138,8 +138,13 @@ a screenshot are the jokers already in play rather than the shop's offer, so
 they arrive unticked and labelled. And where one sprite serves two cards, the
 row becomes a choice rather than a guess.
 
-Reading runs in a worker: it takes one to two seconds on this hardware, and an
-interface frozen that long reads as a crash. There is no same-thread fallback,
+Reading runs in a worker: it takes one to three seconds on this hardware, and
+an interface frozen that long reads as a crash. Covering wide blobs multiplies
+the candidates, so the search compares crops sampled coarsely — a handful of
+pixels per cell of the hash grid rather than all of them — while the decision
+to accept a card is taken once, on a carefully sampled crop. Searching cheaply
+and deciding carefully is what keeps both the speed and the margin at the
+threshold. There is no same-thread fallback,
 which would mean a second copy of the reference table in the bundle. The
 recogniser and its table are a separate chunk, loaded when a screenshot is
 first read: the initial bundle grows by 3.5 KB, the precache by 86 KB.

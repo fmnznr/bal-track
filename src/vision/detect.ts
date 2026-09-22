@@ -17,6 +17,9 @@
  */
 import type { Box, ImageLike } from './fingerprint';
 
+/** A joker is the widest card there is, per unit of height. */
+const WIDEST_CARD = 142 / 190;
+
 /** Sample every other pixel: cards are hundreds of pixels tall. */
 const STEP = 2;
 const MIN_BLOB = 200;
@@ -72,49 +75,37 @@ function blobs(mask: boolean[], w: number, h: number, minSamples = MIN_BLOB): Bl
       }
     }
     if (n >= minSamples) {
-      found.push(...splitWide(mask, w, {
+      found.push({
         x0: minX * STEP, y0: minY * STEP,
         x1: (maxX + 1) * STEP, y1: (maxY + 1) * STEP,
         pixels: n * STEP * STEP,
-      }));
+      });
     }
   }
   return found;
 }
 
 /**
- * Cards standing side by side can come back as one blob, and a price pill
- * bridging two of them is enough to join them. A card is a solid column of
- * foreground, so the gap between two of them shows up as a valley in the
- * column profile — split there, and keep splitting while the piece is still
- * too wide to be a card.
+ * A row of cards is one blob as often as it is several. They overlap in hand,
+ * a price pill bridges two of them in the shop, and six jokers on a phone
+ * screen touch each other outright — and where cards overlap there is no gap
+ * to split at, so looking for one finds nothing.
+ *
+ * Instead a blob too wide to be a single card is covered with card-sized boxes
+ * at half-card steps. Most land on nothing and are rejected by their score;
+ * the ones that land on a card are what the refinement needs to start from.
  */
-function splitWide(mask: boolean[], maskW: number, b: Blob, depth = 0): Blob[] {
-  const w = b.x1 - b.x0;
-  const h = b.y1 - b.y0;
-  if (depth >= 2 || w / h < 0.9) return [b];
-  const cols = w / STEP;
-  const profile = new Array<number>(cols).fill(0);
-  for (let y = b.y0 / STEP; y < b.y1 / STEP; y++) {
-    for (let c = 0; c < cols; c++) {
-      if (mask[y * maskW + b.x0 / STEP + c]) profile[c]++;
-    }
+function slideAcross(b: Blob, cardHeight: number): Blob[] {
+  const width = Math.round(cardHeight * WIDEST_CARD);
+  if (b.x1 - b.x0 <= width * 1.35) return [b];
+  const step = Math.max(8, Math.round(width * 0.45));
+  const out: Blob[] = [];
+  for (let x = b.x0; x <= b.x1 - width; x += step) {
+    out.push({ ...b, x0: x, x1: x + width });
   }
-  const margin = Math.round(cols * 0.25);
-  let cut = -1;
-  let lowest = Infinity;
-  for (let c = margin; c < cols - margin; c++) {
-    if (profile[c] < lowest) {
-      lowest = profile[c];
-      cut = c;
-    }
-  }
-  if (cut < 0 || lowest > 0.35 * (h / STEP)) return [b];
-  const at = b.x0 + cut * STEP;
-  return [
-    ...splitWide(mask, maskW, { ...b, x1: at, pixels: b.pixels / 2 }, depth + 1),
-    ...splitWide(mask, maskW, { ...b, x0: at, pixels: b.pixels / 2 }, depth + 1),
-  ];
+  const last = b.x1 - width;
+  if (out.length === 0 || out[out.length - 1].x0 < last) out.push({ ...b, x0: last, x1: b.x1 });
+  return out;
 }
 
 function cardShaped(b: Blob): boolean {
@@ -125,12 +116,23 @@ function cardShaped(b: Blob): boolean {
   // swallows the price pill above a card or stops short where an edge is
   // interrupted, and the refinement step can recover from either. Handing it
   // a candidate it never sees cannot be recovered from.
-  return h >= MIN_CARD_HEIGHT && w / h > 0.45 && w / h < 1.25;
+  return h >= MIN_CARD_HEIGHT && w / h > 0.45;
 }
 
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[sorted.length >> 1];
+/**
+ * How tall a card is on this screen, taken as the pixel-weighted median of the
+ * blobs. Weighting matters: a screenshot is full of small bright fragments,
+ * and a plain median follows them rather than the cards.
+ */
+function cardHeight(blobs: readonly Blob[]): number {
+  const sorted = [...blobs].sort((a, b) => (a.y1 - a.y0) - (b.y1 - b.y0));
+  const total = sorted.reduce((sum, b) => sum + b.pixels, 0);
+  let seen = 0;
+  for (const b of sorted) {
+    seen += b.pixels;
+    if (seen * 2 >= total) return b.y1 - b.y0;
+  }
+  return sorted[sorted.length - 1].y1 - sorted[sorted.length - 1].y0;
 }
 
 /** Connected regions of whatever a caller calls foreground. Shared with the
@@ -199,13 +201,17 @@ function overlap(a: Box, b: Box): number {
  * is what hides the packs.
  */
 export function findCandidates(image: ImageLike): Box[] {
-  const shaped = [...byLightOutline(image), ...byBackgroundContrast(image)].filter(cardShaped);
-  if (shaped.length === 0) return [];
-  const typical = median(shaped.map(b => b.y1 - b.y0));
+  const blobs = [...byLightOutline(image), ...byBackgroundContrast(image)].filter(cardShaped);
+  if (blobs.length === 0) return [];
+  const typical = cardHeight(blobs);
+  // A booster wrapper is a quarter taller than a joker, and a blob may be a
+  // fragment of one, so the window is wide — but not so wide that a scrap of
+  // interface counts as a card.
+  const shaped = blobs.flatMap(b => slideAcross(b, typical));
   const kept: Box[] = [];
   for (const b of shaped) {
     const h = b.y1 - b.y0;
-    if (h < 0.85 * typical || h > 1.6 * typical) continue;
+    if (h < 0.75 * typical || h > 1.6 * typical) continue;
     const box = { x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1 };
     // Only near-identical boxes are dropped here. Two cues framing the same
     // card differently is useful — the better framing wins after refinement.
