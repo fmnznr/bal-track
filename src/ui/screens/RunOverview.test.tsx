@@ -126,3 +126,32 @@ it('clears the history from the history screen', async () => {
   expect(screen.getByText('No finished runs yet.')).toBeInTheDocument();
   confirmSpy.mockRestore();
 });
+
+it('adds a sixth joker to a full board when it is Negative', async () => {
+  // A Negative joker takes no slot, which is the whole point of it — but the
+  // edition could only be set after adding, and a full board refuses the add.
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    current: {
+      ...newRunState('Red', 'White'),
+      jokerSlots: 2,
+      jokers: [
+        { jokerId: 'joker', edition: 'base', stickers: {} },
+        { jokerId: 'blueprint', edition: 'base', stickers: {} },
+      ],
+    },
+    past: [], finished: [],
+  }));
+  render(<App />);
+
+  const add = screen.getByPlaceholderText('Add joker…');
+  await userEvent.type(add, 'madness');
+  await userEvent.click(await screen.findByRole('button', { name: /Madness/ }));
+  expect(screen.getByText(/No free joker slot/)).toBeInTheDocument();
+  expect(screen.queryByText('Madness')).not.toBeInTheDocument();
+
+  await userEvent.selectOptions(
+    screen.getByRole('combobox', { name: 'Edition of the joker being added' }), 'negative');
+  await userEvent.type(add, 'madness');
+  await userEvent.click(await screen.findByRole('button', { name: /Madness/ }));
+  expect(screen.getByText('Madness')).toBeInTheDocument();
+});

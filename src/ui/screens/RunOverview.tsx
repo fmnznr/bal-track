@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
-import { usedJokerSlots } from '../../engine/gameRules';
+import { hasFreeJokerSlot, usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
@@ -23,6 +23,11 @@ export default function RunOverview() {
   const t = useT();
   const run = store.current!;
   const [conversion, setConversion] = useState<{ name: string; target: Suit } | null>(null);
+  /** The edition a joker being added has. A Negative one takes no slot, so it
+      is the only way to add a sixth joker to a five-slot board — and picking
+      the edition after adding is too late, the board is already full. */
+  const [addEdition, setAddEdition] = useState<Edition>('base');
+  const [addRefused, setAddRefused] = useState(false);
   return (
     <section className="screen">
       <header className="row spread">
@@ -110,11 +115,33 @@ export default function RunOverview() {
         })}
       </ul>
       <JokerOrderPanel />
+      <div className="row">
+        <label className="sticker-toggle">
+          {t('edition')}
+          <select
+            aria-label={t('editionOfNew')}
+            value={addEdition}
+            onChange={e => setAddEdition(e.target.value as Edition)}
+          >
+            {EDITIONS.map(ed => (
+              <option key={ed} value={ed}>{ed}</option>
+            ))}
+          </select>
+        </label>
+      </div>
       <AutocompleteInput
         placeholder={t('addJoker')}
         kinds={['joker']}
-        onPick={item => dispatch({ type: 'ADD_JOKER', jokerId: item.id, edition: 'base' })}
+        onPick={item => {
+          if (!hasFreeJokerSlot(run, addEdition)) {
+            setAddRefused(true);
+            return;
+          }
+          setAddRefused(false);
+          dispatch({ type: 'ADD_JOKER', jokerId: item.id, edition: addEdition });
+        }}
       />
+      {addRefused && <p className="muted">{t('noSlotUseNegative')}</p>}
 
       <h3>{t('vouchers')}</h3>
       <ul className="rows">
