@@ -238,7 +238,28 @@ export function recogniseIn(
     const second = verify(image, retryWithNeighbourSize(image, box, taken, table), table);
     if (accepted(second) && out.every(k => overlap(second.box, k.box) < 0.4)) out.push(second);
   }
-  return out
-    .map(present)
-    .sort((a, b) => a.box.y0 - b.box.y0 || a.box.x0 - b.box.x0);
+  return inReadingOrder(out.map(present));
+}
+
+/**
+ * Left to right, row by row — the order the jokers are in on the board.
+ *
+ * Sorting by the top edge alone does not give that: Balatro's cards sway, so
+ * the tops of one row differ by a few pixels and a strict sort interleaves
+ * them. Joker order decides which multiplier applies to what, so a scrambled
+ * board is worse than no board.
+ */
+function inReadingOrder(cards: readonly DetectedCard[]): DetectedCard[] {
+  const rows: DetectedCard[][] = [];
+  for (const card of [...cards].sort((a, b) => a.box.y0 - b.box.y0)) {
+    const height = card.box.y1 - card.box.y0;
+    const centre = (card.box.y0 + card.box.y1) / 2;
+    const row = rows.find(r => {
+      const other = r[0];
+      return Math.abs((other.box.y0 + other.box.y1) / 2 - centre) < 0.5 * height;
+    });
+    if (row) row.push(card);
+    else rows.push([card]);
+  }
+  return rows.flatMap(row => row.sort((a, b) => a.box.x0 - b.box.x0));
 }

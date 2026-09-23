@@ -91,3 +91,29 @@ it('finds a pack whose outline broke, from the proportions a card can have', () 
   const cutShort = { x0: 300, y0: 200, x1: 480, y1: 320 };
   expect(recogniseIn(screen, [cutShort], TABLE).map(c => c.cell)).toEqual([[1, 0]]);
 });
+
+it('returns a row left to right even when the cards sway', () => {
+  // Balatro's cards bob up and down a few pixels, so sorting by the top edge
+  // interleaves a row. Joker order decides which multiplier applies to what.
+  const screen = blank(1200, 800, [30, 90, 60]);
+  const sway = [6, 0, 10, 2];
+  const order = [RED, BLUE, GOLD, RED];
+  const faces: [number, number, number][] = [[200, 60, 60], [60, 90, 200], [210, 180, 90], [200, 60, 60]];
+  const seeds = [3, 11, 21, 3];
+  const boxes = order.map((_, i) => {
+    const x = 60 + i * 220;
+    const y = 80 + sway[i];
+    drawCard(screen, x, y, 182, 244, faces[i], seeds[i]);
+    return { x0: x, y0: y, x1: x + 182, y1: y + 244 };
+  });
+  // and one more card in a second row
+  drawCard(screen, 300, 480, 182, 244, [60, 90, 200], 11);
+  boxes.push({ x0: 300, y0: 480, x1: 482, y1: 724 });
+
+  const found = recogniseIn(screen, boxes, TABLE);
+  expect(found).toHaveLength(5);
+  const row = found.slice(0, 4).map(c => c.box.x0);
+  expect(row).toEqual([...row].sort((a, b) => a - b));
+  // The card from the row below comes after the whole row above it.
+  expect(found[4].box.y0).toBeGreaterThan(found[3].box.y0);
+});
