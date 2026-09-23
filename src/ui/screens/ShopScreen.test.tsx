@@ -12,6 +12,7 @@ vi.mock('../../vision/client', () => ({
     hud: { money: 29, rerollCost: 6 },
     cards: [
       { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80 },
+      { kind: 'joker', cell: [0, 1], ids: ['madness'], box: { x0: 100, y0: 44, x1: 280, y1: 288 }, score: 95, margin: 70 },
       { kind: 'pack', cell: [0, 3], ids: ['arcana-normal'], box: { x0: 400, y0: 800, x1: 580, y1: 1110 }, score: 140, margin: 60 },
     ],
   }),
@@ -112,4 +113,20 @@ it('fills the shop from a screenshot once the reading is confirmed', async () =>
   // reroll costs decide whether any of it is affordable.
   expect(screen.getByLabelText('Money $')).toHaveDisplayValue('29');
   expect(screen.getByLabelText('Reroll $')).toHaveDisplayValue('6');
+});
+
+it('puts the jokers you already hold into the run rather than the offer', async () => {
+  // A joker at the top of the screenshot is on your board; the engine cannot
+  // judge a shop without knowing what it is judging against.
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  const input = document.querySelector('input[type=file]') as HTMLInputElement;
+  await userEvent.upload(input, new File(['x'], 'shop.png', { type: 'image/png' }));
+  await screen.findByRole('button', { name: 'Add ticked cards' });
+  await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
+
+  // Madness sat at the top, so it is now owned and not on offer.
+  expect(screen.queryByText(/Buy Madness/)).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  expect(screen.getByText('Madness')).toBeInTheDocument();
 });

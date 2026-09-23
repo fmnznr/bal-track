@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { hasFreeJokerSlot } from '../../engine/gameRules';
 import { recommend } from '../../engine/recommend';
@@ -22,6 +23,8 @@ interface Props {
 
 export default function ShopScreen({ onPackBought }: Props) {
   const { store, dispatch } = useRun();
+  /** Jokers a reading could not place because the board is full. */
+  const [refused, setRefused] = useState(0);
   const t = useT();
   const run = store.current!;
   const shop = store.shopDraft ?? emptyShop;
@@ -43,10 +46,27 @@ export default function ShopScreen({ onPackBought }: Props) {
       because setShop resolves against the shop as it was rendered. */
   const addFromScreenshot = ({ cards, money, rerollCost }: Confirmed) => {
     if (money !== null) dispatch({ type: 'SET_MONEY', money });
+
+    // What the screenshot showed you already holding goes into the run, not
+    // into the offer: the engine needs your board to judge anything at all.
+    const held = cards.filter(c => c.target === 'owned');
+    let free = held.filter(c => c.kind === 'joker').length;
+    for (const { kind, id } of held) {
+      if (kind === 'joker') {
+        if (!hasFreeJokerSlot(run, 'base')) continue;
+        dispatch({ type: 'ADD_JOKER', jokerId: id, edition: 'base' });
+        free--;
+      } else {
+        dispatch({ type: 'ADD_CONSUMABLE', consumableId: id });
+      }
+    }
+    setRefused(free > 0 ? free : 0);
+
     setShop(s => {
       const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
       if (rerollCost !== null) next.rerollCost = rerollCost;
-      for (const { kind, id, price } of cards) {
+      for (const { kind, id, price, target } of cards) {
+        if (target === 'owned') continue;
         // The price on the tag beats the catalog: a shop under Clearance Sale
         // or Liquidation charges less than a card is listed at.
         if (kind === 'joker') {
@@ -79,6 +99,7 @@ export default function ShopScreen({ onPackBought }: Props) {
         read={readScreenshot}
         onAdd={addFromScreenshot}
       />
+      {refused > 0 && <p className="muted">{t('screenshotNoSlots', { count: String(refused) })}</p>}
 
       <h3>{t('cardsOnOffer')}</h3>
       <ul className="rows">

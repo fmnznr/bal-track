@@ -44,21 +44,45 @@ it('offers what was recognised and adds only the ticked rows', async () => {
   await userEvent.click(screen.getByRole('checkbox', { name: /Arcana Pack/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
 
-  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'blueprint', price: null }], money: null, rerollCost: null });
+  expect(onAdd).toHaveBeenCalledWith({
+    cards: [{ kind: 'joker', id: 'blueprint', price: null, target: 'shop' }],
+    money: null, rerollCost: null,
+  });
 });
 
-it('leaves the cards you already own unticked', async () => {
-  // The top of a Balatro screenshot is the jokers in play, not the shop.
+it('sends what sat at the top of the screen into the run, not the shop', async () => {
+  // The top of a Balatro screenshot is the jokers in play; the same card lower
+  // down is one on sale, and the two belong in different places.
   const { onAdd } = show([card('joker', ['blueprint'], 44), card('joker', ['madness'], 500, 7)]);
   await pick();
 
-  expect(await screen.findByRole('checkbox', { name: /Blueprint/ })).not.toBeChecked();
+  expect(await screen.findByRole('combobox', { name: 'Where Blueprint belongs' })).toHaveValue('owned');
+  expect(screen.getByRole('combobox', { name: 'Where Madness belongs' })).toHaveValue('shop');
   expect(screen.getByText('$7')).toBeInTheDocument();
-  expect(screen.getByRole('checkbox', { name: /Madness/ })).toBeChecked();
-  expect(screen.getAllByText('owned?')).toHaveLength(1);
 
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'madness', price: 7 }], money: null, rerollCost: null });
+  expect(onAdd).toHaveBeenCalledWith({
+    cards: [
+      { kind: 'joker', id: 'blueprint', price: null, target: 'owned' },
+      { kind: 'joker', id: 'madness', price: 7, target: 'shop' },
+    ],
+    money: null,
+    rerollCost: null,
+  });
+});
+
+it('lets a card be moved to the other side when the guess is wrong', async () => {
+  const { onAdd } = show([card('joker', ['blueprint'], 44)]);
+  await pick();
+
+  await userEvent.selectOptions(
+    await screen.findByRole('combobox', { name: 'Where Blueprint belongs' }), 'shop');
+  await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
+  expect(onAdd).toHaveBeenCalledWith({
+    cards: [{ kind: 'joker', id: 'blueprint', price: null, target: 'shop' }],
+    money: null,
+    rerollCost: null,
+  });
 });
 
 it('asks which card when one sprite serves two', async () => {
@@ -70,7 +94,10 @@ it('asks which card when one sprite serves two', async () => {
   const choice = await screen.findByRole('combobox', { name: 'Which card?' });
   await userEvent.selectOptions(choice, 'wee-joker');
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
-  expect(onAdd).toHaveBeenCalledWith({ cards: [{ kind: 'joker', id: 'wee-joker', price: null }], money: null, rerollCost: null });
+  expect(onAdd).toHaveBeenCalledWith({
+    cards: [{ kind: 'joker', id: 'wee-joker', price: null, target: 'shop' }],
+    money: null, rerollCost: null,
+  });
 });
 
 it('keeps what does not belong on this tab out of the list, and says so', async () => {

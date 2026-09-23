@@ -13,8 +13,11 @@ import type { CardKind } from '../../vision/recognise';
  * every recommendation that follows, so the cost of a wrong guess is one
  * unticked row rather than a ruined run.
  */
+/** Where a confirmed card belongs: the shop's offer, or the run itself. */
+export type CardTarget = 'shop' | 'owned';
+
 export interface Confirmed {
-  cards: { kind: CardKind; id: string; price: number | null }[];
+  cards: { kind: CardKind; id: string; price: number | null; target: CardTarget }[];
   money: number | null;
   rerollCost: number | null;
 }
@@ -29,11 +32,14 @@ interface Props {
   read: ReadScreenshot;
 }
 
+/** Only these can be held; a pack or a voucher is bought and gone. */
+const canBeOwned = (kind: CardKind) => kind === 'joker' || kind === 'tarot';
+
 /** Cards this high up the screenshot are the ones already owned, not on offer. */
 const OWNED_ABOVE = 0.3;
 
 type Row =
-  | { type: 'card'; card: ReadCard; id: string; take: boolean; owned: boolean }
+  | { type: 'card'; card: ReadCard; id: string; take: boolean; target: CardTarget }
   /** The two numbers the status column shows rather than a card. */
   | { type: 'money' | 'reroll'; value: number; take: boolean };
 
@@ -68,10 +74,15 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
         : [];
       setRows([
         ...values,
-        ...usable.map((card): Row => {
-          const owned = card.box.y0 < reading.height * OWNED_ABOVE;
-          return { type: 'card' as const, card, id: card.ids[0], take: !owned, owned };
-        }),
+        ...usable.map((card): Row => ({
+          type: 'card' as const,
+          card,
+          id: card.ids[0],
+          take: true,
+          // The top of a screenshot is what you already have, the rest is what
+          // the shop offers. Both are worth keeping, in different places.
+          target: card.box.y0 < reading.height * OWNED_ABOVE ? 'owned' : 'shop',
+        })),
       ]);
     } catch {
       setError(t('screenshotFailed'));
@@ -80,7 +91,7 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
     }
   };
 
-  const update = (index: number, change: { take?: boolean; id?: string }) =>
+  const update = (index: number, change: { take?: boolean; id?: string; target?: CardTarget }) =>
     setRows(current => current && current.map((row, i) => (i === index ? { ...row, ...change } : row)));
 
   const rowKey = (row: Row, i: number) =>
@@ -137,7 +148,19 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
                     Clearance Sale prices is read as it really is. */}
                 {row.type === 'card' && row.card.price !== null && <span className="muted">${row.card.price}</span>}
                 {row.type !== 'card' && <span className="muted">${row.value}</span>}
-                {row.type === 'card' && row.owned && <span className="muted">{t('screenshotOwned')}</span>}
+                {/* A joker at the top of the screenshot is one you hold; the
+                    same card lower down is one on sale. The reading guesses
+                    from where it sat, and you correct it here. */}
+                {row.type === 'card' && canBeOwned(row.card.kind) && (
+                  <select
+                    aria-label={t('screenshotWhere', { name: cardName(row.card.kind, row.id) })}
+                    value={row.target}
+                    onChange={e => update(i, { target: e.target.value as CardTarget })}
+                  >
+                    <option value="shop">{t('screenshotOnOffer')}</option>
+                    <option value="owned">{t('screenshotInRun')}</option>
+                  </select>
+                )}
               </li>
             ))}
           </ul>
@@ -154,7 +177,7 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
               onAdd({
                 cards: taken
                   .filter(r => r.type === 'card')
-                  .map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price })),
+                  .map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price, target: r.target })),
                 money: value('money'),
                 rerollCost: value('reroll'),
               });

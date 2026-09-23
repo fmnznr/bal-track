@@ -135,8 +135,10 @@ one here is a single tap.
 
 Two things the reading knows, the list says out loud. Cards in the top third of
 a screenshot are the jokers already in play rather than the shop's offer, so
-they arrive unticked and labelled. And where one sprite serves two cards, the
-row becomes a choice rather than a guess.
+their row says so and sends them into the run instead — a shop cannot be judged
+without the board it is judged against — and the choice is a select, because
+the guess comes from where a card sat and not from what it is. And where one
+sprite serves two cards, the row becomes a choice rather than a guess.
 
 Reading runs in a worker: it takes one to three seconds on this hardware, and
 an interface frozen that long reads as a crash. Covering wide blobs multiplies
@@ -195,6 +197,15 @@ English; a second table can be added later for ~25 KB.
   real cases: four of them in one shop matched correctly but with margins of
   25-48, against 89-195 elsewhere. If a misread ever happens, it starts here.
 - Stickers (Eternal, Perishable, Rental) overlay the card. Untested.
+- **A Negative joker is not recognised.** The game redraws it dark — white card
+  to near-black, its line art to pale blue — and a hash built from "is this
+  side brighter than that one" sees a different picture: a Negative Hanging
+  Chad ranked last of 281 against its own sprite. Comparing the crop inverted
+  helps (520 to 371) but nowhere near a match, because the treatment recolours
+  rather than inverts. Since these appear in about every third run, and the
+  player is willing to type one, the gap is left open rather than papered over:
+  the alternative is a second, polarity-blind fingerprint, worth building only
+  if typing them becomes the annoyance.
 - One cell names two cards: the game draws Joker and Wee Joker from the same
   sprite, so a match there is genuinely ambiguous and the player has to pick.
   That is the only such case in the catalog.
