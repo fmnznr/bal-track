@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { MAX_DECISIONS, makeDecision } from './decisionLog';
 import { STORAGE_KEY, initialStore, load, newRunState, reduce, save } from './runStore';
 import type { StoreState } from './runStore';
 
@@ -610,5 +611,48 @@ describe('decision log', () => {
     save(s);
     expect(load()?.decisions).toHaveLength(1);
     expect(reduce(s, { type: 'CLEAR_DECISIONS' }).decisions).toEqual([]);
+  });
+});
+
+describe('the decision log and undo', () => {
+  it('drops the logged decision when the action is undone after a reload', () => {
+    // The snapshot has to carry how many decisions the action logged, or the
+    // log keeps a purchase the run no longer has.
+    let state = reduce(initialStore(), { type: 'START_RUN', deck: 'Red', stake: 'White' });
+    state = reduce(state, { type: 'SET_MONEY', money: 20 });
+    state = reduce(state, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 4 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+    state = reduce(state, { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(state.decisions).toHaveLength(1);
+
+    // Round-trip through storage, the way a reload does.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    const reloaded = load();
+    expect(reloaded.decisions).toHaveLength(1);
+
+    const undone = reduce(reloaded, { type: 'UNDO' });
+    expect(undone.current?.jokers).toHaveLength(0);
+    expect(undone.decisions).toHaveLength(0);
+  });
+
+  it('still drops it when the log is at its cap', () => {
+    // At the cap an append trims the oldest, so the log's length does not
+    // change — an undo that compared lengths would remove nothing.
+    let state = reduce(initialStore(), { type: 'START_RUN', deck: 'Red', stake: 'White' });
+    state = reduce(state, { type: 'SET_MONEY', money: 20 });
+    const filler = { ...makeDecision(state.current!, 'shop', [], -1) };
+    state = { ...state, decisions: Array.from({ length: MAX_DECISIONS }, () => filler) };
+    state = reduce(state, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'joker', edition: 'base', price: 4 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+    state = reduce(state, { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(state.decisions).toHaveLength(MAX_DECISIONS);
+
+    const undone = reduce(state, { type: 'UNDO' });
+    expect(undone.current?.jokers).toHaveLength(0);
+    expect(undone.decisions.at(-1)).toEqual(filler);
   });
 });

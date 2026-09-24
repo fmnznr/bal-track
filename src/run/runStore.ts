@@ -46,7 +46,13 @@ export interface UndoSnapshot {
    * Length of the decision log before this step. Undo trims the log back to it
    * rather than storing the log in every snapshot.
    */
-  decisionCount?: number;
+  /**
+   * How many decisions the action logged — one, or none. Counting what was
+   * added rather than where the log stood survives the log's own cap: once it
+   * holds MAX_DECISIONS, appending trims the oldest, the length stays put, and
+   * an absolute index would undo nothing.
+   */
+  decisionsAdded?: number;
 }
 
 export type RunAction =
@@ -230,12 +236,12 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
   }
   if (action.type === 'UNDO') {
     if (state.past.length === 0) return state;
-    const { decisionCount, ...previous } = state.past[state.past.length - 1];
+    const { decisionsAdded, ...previous } = state.past[state.past.length - 1];
     return {
       ...state,
       ...previous,
       past: state.past.slice(0, -1),
-      decisions: decisionCount === undefined ? state.decisions : state.decisions.slice(0, decisionCount),
+      decisions: decisionsAdded ? state.decisions.slice(0, -decisionsAdded) : state.decisions,
     };
   }
   if (action.type === 'CLEAR_DECISIONS') {
@@ -254,7 +260,6 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
         finished: state.finished,
         shopDraft: state.shopDraft,
         packDraft: state.packDraft,
-        decisionCount: state.decisions.length,
       }],
     };
   }
@@ -271,7 +276,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       finished: state.finished,
       shopDraft: state.shopDraft,
       packDraft: state.packDraft,
-      decisionCount: state.decisions.length,
+      // `logged` appends exactly one decision, so its presence is the count.
+      decisionsAdded: extra?.decisions ? 1 : 0,
     }],
   });
   /** The log with one more decision, judged against the run as it was before the action. */
@@ -628,7 +634,7 @@ export function load(): StoreState | null {
     const past = (parsed.past ?? []).flatMap(value => {
       // v1 stored bare RunState snapshots; v2 stores the entire transaction context.
       if (isRun(value)) {
-        return [{ current: withDefaults(value), finished, shopDraft, packDraft }];
+        return [{ current: withDefaults(value), finished, shopDraft, packDraft, decisionsAdded: 0 }];
       }
       if (!value || typeof value !== 'object') return [];
       const snapshot = value as Partial<UndoSnapshot>;
@@ -638,6 +644,9 @@ export function load(): StoreState | null {
         finished: Array.isArray(snapshot.finished) ? snapshot.finished : finished,
         shopDraft: snapshot.shopDraft ?? null,
         packDraft: snapshot.packDraft ?? null,
+        // Without this a reload leaves the log holding decisions whose action
+        // was undone — and the log exists to be read back later.
+        decisionsAdded: snapshot.decisionsAdded ?? 0,
       }];
     });
     return {
