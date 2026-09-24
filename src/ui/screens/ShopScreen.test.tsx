@@ -130,3 +130,16 @@ it('puts the jokers you already hold into the run rather than the offer', async 
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
   expect(screen.getByText('Madness')).toBeInTheDocument();
 });
+
+it('logs what you did against the advice and shows it in the history', async () => {
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  await userEvent.type(screen.getByPlaceholderText('Add shop card…'), 'cavendish');
+  await userEvent.click(await screen.findByRole('button', { name: /Cavendish/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Bought' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Left the shop' }));
+  await userEvent.click(screen.getByRole('button', { name: 'History' }));
+  expect(screen.getByText('Advice log')).toBeInTheDocument();
+  // Buying Cavendish, then leaving once the shop was empty: only the buy had a ranking.
+  expect(screen.getByText(/^1 decisions · top pick taken/)).toBeInTheDocument();
+});

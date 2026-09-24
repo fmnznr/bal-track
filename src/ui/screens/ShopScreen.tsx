@@ -245,6 +245,7 @@ export default function ShopScreen({ onPackBought }: Props) {
         >
           {t('rerolled')}
         </button>
+        <button className="ghost" onClick={() => dispatch({ type: 'LEAVE_SHOP' })}>{t('leftShop')}</button>
         <button className="ghost" onClick={() => setShop(emptyShop)}>{t('clearShop')}</button>
       </div>
 

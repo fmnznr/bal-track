@@ -539,3 +539,76 @@ describe('discounted shop purchases', () => {
     expect(s.current?.money).toBe(20); // $10 voucher at 25% off
   });
 });
+
+describe('decision log', () => {
+  const offer = {
+    cards: [
+      { kind: 'joker' as const, jokerId: 'joker', edition: 'base' as const, price: 2 },
+      { kind: 'joker' as const, jokerId: 'blueprint', edition: 'base' as const, price: 10 },
+    ],
+    voucherId: null,
+    packIds: ['arcana-normal'],
+    rerollCost: 5,
+  };
+  const shopping = () => {
+    let s = reduce(started(), { type: 'SET_MONEY', money: 30 });
+    s = reduce(s, { type: 'SET_SHOP_DRAFT', draft: offer });
+    return s;
+  };
+
+  it('gives every run an id and hands it to the result', () => {
+    const s = started();
+    expect(s.current?.id).toMatch(/\w+-\w+/);
+    const ended = reduce(s, { type: 'END_RUN', result: 'won' });
+    expect(ended.finished[0].runId).toBe(s.current?.id);
+  });
+
+  it('logs a shop buy against the ranking it was made from', () => {
+    const s = reduce(shopping(), { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(s.decisions).toHaveLength(1);
+    const d = s.decisions[0];
+    expect(d).toMatchObject({ context: 'shop', money: 30, runId: s.current?.id });
+    expect(d.options[d.chosen]).toMatchObject({ kind: 'buy-joker', refId: 'joker' });
+  });
+
+  it('takes the entry back with the undo', () => {
+    let s = reduce(shopping(), { type: 'BUY_SHOP_PACK', index: 0 });
+    expect(s.decisions).toHaveLength(1);
+    s = reduce(s, { type: 'UNDO' });
+    expect(s.decisions).toHaveLength(0);
+    expect(s.shopDraft?.packIds).toEqual(['arcana-normal']);
+  });
+
+  it('logs rerolling and leaving as choices too', () => {
+    let s = reduce(shopping(), { type: 'REROLL_SHOP' });
+    expect(s.decisions[0].options[s.decisions[0].chosen].kind).toBe('reroll');
+    s = reduce(s, { type: 'LEAVE_SHOP' });
+    expect(s.decisions[1].options[s.decisions[1].chosen].kind).toBe('skip');
+    expect(s.shopDraft).toBeNull();
+  });
+
+  it('takes a pack option in one step and logs it', () => {
+    let s = reduce(started(), { type: 'SET_PACK_DRAFT', draft: { kind: 'buffoon', options: ['joker', 'blueprint'] } });
+    s = reduce(s, { type: 'TAKE_PACK_OPTION', id: 'blueprint' });
+    expect(s.current?.jokers.map(j => j.jokerId)).toEqual(['blueprint']);
+    expect(s.packDraft?.options).toEqual(['joker']);
+    expect(s.decisions[0]).toMatchObject({ context: 'pack' });
+    expect(s.decisions[0].options[s.decisions[0].chosen].refId).toBe('blueprint');
+    s = reduce(s, { type: 'SKIP_PACK' });
+    expect(s.decisions[1].chosen).toBe(-1);
+    expect(s.packDraft?.options).toEqual([]);
+  });
+
+  it('levels the hand a planet from a pack names', () => {
+    let s = reduce(started(), { type: 'SET_PACK_DRAFT', draft: { kind: 'celestial', options: ['jupiter'] } });
+    s = reduce(s, { type: 'TAKE_PACK_OPTION', id: 'jupiter' });
+    expect(s.current?.handLevels.Flush).toBe(2);
+  });
+
+  it('survives a reload and clears on request', () => {
+    const s = reduce(shopping(), { type: 'BUY_SHOP_CARD', index: 0 });
+    save(s);
+    expect(load()?.decisions).toHaveLength(1);
+    expect(reduce(s, { type: 'CLEAR_DECISIONS' }).decisions).toEqual([]);
+  });
+});

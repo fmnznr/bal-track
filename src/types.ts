@@ -188,6 +188,8 @@ export interface OwnedJoker {
 }
 
 export interface RunState {
+  /** Ties logged decisions to the run's result. Absent on runs from before the log. */
+  id?: string;
   deck: string;
   stake: string;
   ante: number;

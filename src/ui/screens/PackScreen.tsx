@@ -48,34 +48,30 @@ export default function PackScreen() {
 
   const take = (id: string) => {
     const joker = getJoker(id);
+    if (joker && !hasFreeJokerSlot(run, 'base')) {
+      setNote(t('noFreeSlotNote', { name: joker.name }));
+      return;
+    }
+    // One step: the effect, the option leaving the pack, and the log entry.
+    dispatch({ type: 'TAKE_PACK_OPTION', id });
+    const c = getConsumable(id);
     if (joker) {
-      if (!hasFreeJokerSlot(run, 'base')) {
-        setNote(t('noFreeSlotNote', { name: joker.name }));
-        return;
-      }
-      dispatch({ type: 'ADD_JOKER', jokerId: id, edition: 'base' });
       setNote(t('addedToJokers', { name: joker.name }));
-    } else {
-      const c = getConsumable(id);
-      if (c?.kind === 'planet') {
-        dispatch({ type: 'PLAY_PLANET', consumableId: id });
-        setNote(t('planetUsedNote', { name: c.name }));
-      } else if (id === 'the-soul') {
-        setNote(t('theSoulNote'));
-      } else if (c) {
-        dispatch({ type: 'APPLY_CONSUMABLE', consumableId: id });
-        const target = CONVERSION_TARGETS[id];
-        if (target) {
-          setConversion({ name: c.name, target });
-          setNote(t('tellSuitsNote', { name: c.name }));
-        } else if (hasProfileEffect(id)) {
-          setNote(t('profileUpdatedNote', { name: c.name }));
-        } else {
-          setNote(t('notTrackedNote', { name: c.name }));
-        }
+    } else if (c?.kind === 'planet') {
+      setNote(t('planetUsedNote', { name: c.name }));
+    } else if (id === 'the-soul') {
+      setNote(t('theSoulNote'));
+    } else if (c) {
+      const target = CONVERSION_TARGETS[id];
+      if (target) {
+        setConversion({ name: c.name, target });
+        setNote(t('tellSuitsNote', { name: c.name }));
+      } else if (hasProfileEffect(id)) {
+        setNote(t('profileUpdatedNote', { name: c.name }));
+      } else {
+        setNote(t('notTrackedNote', { name: c.name }));
       }
     }
-    setOptions(current => current.filter(o => o !== id));
   };
 
   return (
@@ -136,7 +132,14 @@ export default function PackScreen() {
           {conversion && (
             <SuitPrompt consumableName={conversion.name} target={conversion.target} onDone={() => setConversion(null)} />
           )}
-          <button className="ghost" onClick={() => { setOptions([]); setNote(null); }}>{t('clear')}</button>
+          <div className="row">
+            {options.length > 0 && (
+              <button className="ghost" onClick={() => { dispatch({ type: 'SKIP_PACK' }); setNote(null); }}>
+                {t('skippedPack')}
+              </button>
+            )}
+            <button className="ghost" onClick={() => { setOptions([]); setNote(null); }}>{t('clear')}</button>
+          </div>
         </>
       )}
     </section>
