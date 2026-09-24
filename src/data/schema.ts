@@ -15,9 +15,9 @@
  * none of it reaches the shipped bundle.
  */
 import { z } from 'zod';
-import { ENHANCEMENT_TYPES, HAND_TYPES, SUITS, SYNERGY_TAGS } from '../types';
+import { ENHANCEMENT_TYPES, HAND_TYPES, RANKS, SUITS, SYNERGY_TAGS } from '../types';
 import type {
-  ArchetypeDef, ConsumableDef, DeckStrategyDef, HandValueDef, JokerDef, PackDef, VoucherDef,
+  ArchetypeDef, BossDef, ConsumableDef, DeckStrategyDef, HandValueDef, JokerDef, PackDef, VoucherDef,
 } from '../types';
 
 const id = z.string().min(1).regex(/^[a-z0-9-]+$/, 'ids are lowercase kebab-case');
@@ -35,22 +35,48 @@ const contribution = {
 const cardMatch = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('suit'), suit }).strict(),
   z.object({ kind: z.literal('face') }).strict(),
-  z.object({ kind: z.literal('rank'), ranks: z.number().int().min(1).max(13) }).strict(),
+  z.object({ kind: z.literal('rank'), ranks: z.array(z.enum(RANKS)).min(1).max(13) }).strict(),
+  z.object({ kind: z.literal('any') }).strict(),
+  z.object({ kind: z.literal('rotatingSuit') }).strict(),
 ]);
 
 const runCount = z.enum([
-  'emptyJokerSlots', 'jokers', 'discardsPerRound', 'deckSize',
-  'cardsRemovedFromDeck', 'money', 'steelCards', 'stoneCards',
+  'stencilSlots', 'jokers', 'discardsPerRound', 'deckSize', 'cardsRemovedFromDeck',
+  'money', 'moneyFives', 'steelCards', 'stoneCards', 'otherJokerSellValue', 'uncommonJokers',
 ]);
+
+const timing = {
+  chance: z.number().positive().max(1).optional(),
+  every: z.number().int().min(2).optional(),
+  finalHand: z.boolean().optional(),
+};
 
 const jokerScore = z.object({
   ...contribution,
+  ...timing,
   requiresHand: handType.optional(),
-  perCard: z.object({ ...contribution, match: cardMatch }).strict().optional(),
-  perCount: z.object({ ...contribution, of: runCount }).strict().optional(),
+  maxCards: z.number().int().min(1).max(5).optional(),
+  minEnhanced: z.number().int().positive().optional(),
+  heldAllSuits: z.array(suit).min(1).optional(),
+  perCard: z.object({
+    ...contribution, ...timing, match: cardMatch, firstOnly: z.boolean().optional(),
+  }).strict().optional(),
+  perHeld: z.object({ ...contribution, match: cardMatch }).strict().optional(),
+  lowestHeldMult: z.number().positive().optional(),
+  perCount: z.object({ ...contribution, of: runCount, compounds: z.boolean().optional() }).strict().optional(),
+  retrigger: z.object({
+    ...timing,
+    match: cardMatch,
+    times: z.number().int().positive(),
+    firstOnly: z.boolean().optional(),
+  }).strict().optional(),
+  retriggerHeld: z.number().int().positive().optional(),
+  copies: z.enum(['right', 'leftmost']).optional(),
 }).strict().refine(
   s => s.chips !== undefined || s.mult !== undefined || s.xmult !== undefined
-    || s.perCard !== undefined || s.perCount !== undefined,
+    || s.perCard !== undefined || s.perCount !== undefined || s.perHeld !== undefined
+    || s.lowestHeldMult !== undefined || s.retrigger !== undefined
+    || s.retriggerHeld !== undefined || s.copies !== undefined,
   'a score model that contributes nothing should be left off entirely',
 );
 
@@ -134,6 +160,27 @@ export const blindsSchema = z.object({
   }).strict(),
 }).strict();
 
+export const bossSchema = z.object({
+  id,
+  name: z.string().min(1),
+  minAnte: z.number().int().min(1).max(8),
+  finisher: z.boolean().optional(),
+  effect: z.string().min(1),
+  size: z.number().positive(),
+  debuff: z.union([
+    z.object({ suit }).strict(),
+    z.object({ face: z.literal(true) }).strict(),
+    z.object({ all: z.literal(true) }).strict(),
+  ]).optional(),
+  halveBase: z.boolean().optional(),
+  levelDown: z.boolean().optional(),
+  handSize: z.number().int().optional(),
+  hands: z.number().int().positive().optional(),
+  discards: z.number().int().nonnegative().optional(),
+  playCards: z.number().int().min(1).max(5).optional(),
+  noRepeatHand: z.boolean().optional(),
+}).strict();
+
 export const metaSchema = z.object({
   balatroVersion: z.string().min(1),
   source: z.string().min(1),
@@ -160,4 +207,5 @@ export type SchemaMatchesEngineTypes = [
   AssertAssignable<z.infer<typeof handValueSchema>, HandValueDef>,
   AssertAssignable<z.infer<typeof archetypeSchema>, ArchetypeDef>,
   AssertAssignable<z.infer<typeof deckStrategySchema>, DeckStrategyDef>,
+  AssertAssignable<z.infer<typeof bossSchema>, BossDef>,
 ];

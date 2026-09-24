@@ -22,7 +22,8 @@ import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
 import {
-  handLevelMultiplier, jokerScoreContribution, marginalMultiplier, referenceHand, scoreTarget,
+  asCandidate, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
+  referenceHand, scoreTarget,
 } from './score';
 import { TUNING } from './tuning';
 
@@ -101,6 +102,9 @@ export interface JokerContext {
  * rating prior otherwise; the edition is always modelled, because it is a flat
  * effect on the card. Everything after that — synergy, deck composition, how you
  * play, plan fit, stickers — multiplies onto it.
+ *
+ * `ownedIndex` judges a joker already on the board by what removing it would
+ * cost, rather than by stacking a second copy on top of it.
  */
 export function jokerImpact(
   run: RunState,
@@ -108,28 +112,35 @@ export function jokerImpact(
   edition: Edition,
   stickers: JokerStickers | undefined,
   ctx: JokerContext,
+  ownedIndex?: number,
 ): Impact {
   const hand = referenceHand(run);
   const reasons: string[] = [];
   let multiplier: number;
   let evidence: Evidence;
 
+  const contribution = (withAbility: boolean) => (ownedIndex !== undefined
+    ? ownedContribution(run, hand, ownedIndex, withAbility)
+    : candidateContribution(run, hand, asCandidate(def, edition, withAbility)));
   // The edition is a flat effect on the card, so it is always computed outright.
-  const editionScore = jokerScoreContribution(run, hand, undefined, edition);
+  const editionScore = contribution(false).score;
   const rating = def.rating[ctx.phase];
   const rated = priorContribution(run, rating);
+  // A copy joker is worth what it will copy over the run, which today's board
+  // does not show, so its rating decides. What it copies now is still stated.
+  const copies = def.score?.copies !== undefined;
+  const modelled = def.score ? contribution(true) : null;
 
-  if (def.score) {
-    const modelled = jokerScoreContribution(run, hand, def.score, edition);
+  if (modelled?.modelled && !copies) {
     // Geometric, so a modelled contribution of zero carries through: a joker the
     // model knows cannot fire is not rescued by a good rating.
     const w = TUNING.prior.modelWeight;
-    const blended = modelled ** w * rated ** (1 - w);
+    const blended = modelled.score ** w * rated ** (1 - w);
     multiplier = marginalMultiplier(run, hand, blended);
     evidence = 'partial';
-    if (modelled > editionScore) {
+    if (modelled.score > editionScore) {
       reasons.push(
-        `Modelled at about ${Math.round(modelled).toLocaleString('en-US')} score on your ${hand},`
+        `Modelled at about ${Math.round(modelled.score).toLocaleString('en-US')} score on your ${hand},`
         + ` weighed against its ${rating}/10 rating over a full run`,
       );
     } else {
@@ -138,7 +149,14 @@ export function jokerImpact(
   } else {
     multiplier = marginalMultiplier(run, hand, rated + editionScore);
     evidence = 'heuristic';
-    reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — effect not modelled`);
+    if (copies) {
+      reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — worth what it copies over the run`);
+      if (modelled?.modelled && modelled.score > editionScore) {
+        reasons.push(`Copying your board today adds about ${Math.round(modelled.score).toLocaleString('en-US')} score`);
+      }
+    } else {
+      reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — effect not modelled`);
+    }
   }
   if (edition !== 'base') reasons.push(`${edition} edition is a bonus`);
 

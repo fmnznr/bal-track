@@ -227,9 +227,9 @@ describe('per-card and per-count score models', () => {
   });
 
   it('counts a modelled joker as modeled, not unmodeled', () => {
-    const estimate = estimateHandScore(withJokers(['scary-face', 'blueprint']), 'Pair');
+    const estimate = estimateHandScore(withJokers(['scary-face', 'green-joker']), 'Pair');
     expect(estimate.modeled).toContain('Scary Face');
-    expect(estimate.unmodeled).toContain('Blueprint');
+    expect(estimate.unmodeled).toContain('Green Joker');
   });
 });
 

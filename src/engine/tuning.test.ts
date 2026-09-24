@@ -47,7 +47,6 @@ describe('TUNING', () => {
       ['deck.face.none', TUNING.deck.face.none],
       ['deck.face.scarce', TUNING.deck.face.scarce],
       ['deck.enhanced.noneYet', TUNING.deck.enhanced.noneYet],
-      ['deck.enhanced.driversLicenseDead', TUNING.deck.enhanced.driversLicenseDead],
       ['play.varietyJoker', TUNING.play.varietyJoker],
     ];
     for (const [path, value] of drags) {
@@ -63,7 +62,6 @@ describe('TUNING', () => {
       ['planet.matchesBuild', TUNING.planet.matchesBuild],
       ['deck.suit.abundant', TUNING.deck.suit.abundant],
       ['deck.face.abundant', TUNING.deck.face.abundant],
-      ['deck.enhanced.driversLicenseLive', TUNING.deck.enhanced.driversLicenseLive],
       ['play.consistentHand', TUNING.play.consistentHand],
       ['reroll.expectedNetGain', TUNING.reroll.expectedNetGain],
       ['slots.sellAndBuyMargin', TUNING.slots.sellAndBuyMargin],

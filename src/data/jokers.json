@@ -331,7 +331,11 @@
     "tags": [
       "plus-mult",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "mult": 20,
+      "maxCards": 3
+    }
   },
   {
     "id": "joker-stencil",
@@ -347,7 +351,13 @@
     "tags": [
       "xmult",
       "utility"
-    ]
+    ],
+    "score": {
+      "perCount": {
+        "of": "stencilSlots",
+        "xmult": 1
+      }
+    }
   },
   {
     "id": "four-fingers",
@@ -379,7 +389,10 @@
     "tags": [
       "retrigger",
       "utility"
-    ]
+    ],
+    "score": {
+      "retriggerHeld": 1
+    }
   },
   {
     "id": "credit-card",
@@ -481,7 +494,11 @@
     },
     "tags": [
       "xmult"
-    ]
+    ],
+    "score": {
+      "xmult": 4,
+      "every": 6
+    }
   },
   {
     "id": "8-ball",
@@ -513,7 +530,10 @@
     "tags": [
       "plus-mult",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "mult": 11.5
+    }
   },
   {
     "id": "dusk",
@@ -528,7 +548,16 @@
     },
     "tags": [
       "retrigger"
-    ]
+    ],
+    "score": {
+      "retrigger": {
+        "match": {
+          "kind": "any"
+        },
+        "times": 1,
+        "finalHand": true
+      }
+    }
   },
   {
     "id": "raised-fist",
@@ -544,7 +573,10 @@
     "tags": [
       "plus-mult",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "lowestHeldMult": 2
+    }
   },
   {
     "id": "chaos-the-clown",
@@ -580,7 +612,13 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 5
+          "ranks": [
+            "A",
+            "2",
+            "3",
+            "5",
+            "8"
+          ]
         },
         "mult": 8
       }
@@ -682,7 +720,21 @@
     },
     "tags": [
       "retrigger"
-    ]
+    ],
+    "score": {
+      "retrigger": {
+        "match": {
+          "kind": "rank",
+          "ranks": [
+            "2",
+            "3",
+            "4",
+            "5"
+          ]
+        },
+        "times": 1
+      }
+    }
   },
   {
     "id": "pareidolia",
@@ -737,7 +789,13 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 5
+          "ranks": [
+            "2",
+            "4",
+            "6",
+            "8",
+            "10"
+          ]
         },
         "mult": 4
       }
@@ -761,7 +819,13 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 5
+          "ranks": [
+            "A",
+            "3",
+            "5",
+            "7",
+            "9"
+          ]
         },
         "chips": 31
       }
@@ -786,7 +850,9 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 1
+          "ranks": [
+            "A"
+          ]
         },
         "chips": 20,
         "mult": 4
@@ -904,7 +970,14 @@
       "xmult",
       "suit-spades",
       "suit-clubs"
-    ]
+    ],
+    "score": {
+      "xmult": 3,
+      "heldAllSuits": [
+        "spades",
+        "clubs"
+      ]
+    }
   },
   {
     "id": "runner",
@@ -1296,7 +1369,18 @@
     "tags": [
       "xmult",
       "face-cards"
-    ]
+    ],
+    "score": {
+      "perHeld": {
+        "match": {
+          "kind": "rank",
+          "ranks": [
+            "K"
+          ]
+        },
+        "xmult": 1.5
+      }
+    }
   },
   {
     "id": "cloud-9",
@@ -1392,7 +1476,16 @@
     "tags": [
       "xmult",
       "face-cards"
-    ]
+    ],
+    "score": {
+      "perCard": {
+        "match": {
+          "kind": "face"
+        },
+        "xmult": 2,
+        "firstOnly": true
+      }
+    }
   },
   {
     "id": "gift-card",
@@ -1625,7 +1718,14 @@
     "tags": [
       "xmult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "perCount": {
+        "of": "uncommonJokers",
+        "xmult": 1.5,
+        "compounds": true
+      }
+    }
   },
   {
     "id": "bull",
@@ -1743,7 +1843,15 @@
     "tags": [
       "xmult",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "perCard": {
+        "match": {
+          "kind": "rotatingSuit"
+        },
+        "xmult": 1.5
+      }
+    }
   },
   {
     "id": "ramen",
@@ -1780,7 +1888,10 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 2
+          "ranks": [
+            "10",
+            "4"
+          ]
         },
         "chips": 10,
         "mult": 4
@@ -1800,7 +1911,15 @@
     },
     "tags": [
       "retrigger"
-    ]
+    ],
+    "score": {
+      "retrigger": {
+        "match": {
+          "kind": "any"
+        },
+        "times": 1
+      }
+    }
   },
   {
     "id": "castle",
@@ -1903,7 +2022,11 @@
     },
     "tags": [
       "xmult"
-    ]
+    ],
+    "score": {
+      "xmult": 3,
+      "finalHand": true
+    }
   },
   {
     "id": "sock-and-buskin",
@@ -1919,7 +2042,15 @@
     "tags": [
       "retrigger",
       "face-cards"
-    ]
+    ],
+    "score": {
+      "retrigger": {
+        "match": {
+          "kind": "face"
+        },
+        "times": 1
+      }
+    }
   },
   {
     "id": "swashbuckler",
@@ -1935,7 +2066,13 @@
     "tags": [
       "plus-mult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "perCount": {
+        "of": "otherJokerSellValue",
+        "mult": 1
+      }
+    }
   },
   {
     "id": "troubadour",
@@ -2015,7 +2152,16 @@
     },
     "tags": [
       "retrigger"
-    ]
+    ],
+    "score": {
+      "retrigger": {
+        "match": {
+          "kind": "any"
+        },
+        "times": 2,
+        "firstOnly": true
+      }
+    }
   },
   {
     "id": "rough-gem",
@@ -2047,7 +2193,17 @@
     "tags": [
       "xmult",
       "suit-hearts"
-    ]
+    ],
+    "score": {
+      "perCard": {
+        "match": {
+          "kind": "suit",
+          "suit": "hearts"
+        },
+        "xmult": 1.5,
+        "chance": 0.5
+      }
+    }
   },
   {
     "id": "arrowhead",
@@ -2159,7 +2315,10 @@
     },
     "tags": [
       "utility"
-    ]
+    ],
+    "score": {
+      "copies": "right"
+    }
   },
   {
     "id": "wee-joker",
@@ -2420,7 +2579,10 @@
     },
     "tags": [
       "utility"
-    ]
+    ],
+    "score": {
+      "copies": "leftmost"
+    }
   },
   {
     "id": "satellite",
@@ -2453,7 +2615,18 @@
     "tags": [
       "plus-mult",
       "face-cards"
-    ]
+    ],
+    "score": {
+      "perHeld": {
+        "match": {
+          "kind": "rank",
+          "ranks": [
+            "Q"
+          ]
+        },
+        "mult": 13
+      }
+    }
   },
   {
     "id": "drivers-license",
@@ -2469,7 +2642,11 @@
     "tags": [
       "xmult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "xmult": 3,
+      "minEnhanced": 16
+    }
   },
   {
     "id": "cartomancer",
@@ -2534,7 +2711,13 @@
       "plus-mult",
       "economy",
       "scaling"
-    ]
+    ],
+    "score": {
+      "perCount": {
+        "of": "moneyFives",
+        "mult": 2
+      }
+    }
   },
   {
     "id": "canio",
@@ -2572,7 +2755,10 @@
       "perCard": {
         "match": {
           "kind": "rank",
-          "ranks": 2
+          "ranks": [
+            "K",
+            "Q"
+          ]
         },
         "xmult": 2
       }

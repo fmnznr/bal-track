@@ -112,7 +112,7 @@ function findWeakestOwned(run: RunState, ctx: JokerContext): WeakestOwned | null
     if (owned.edition === 'negative' || owned.stickers?.eternal) return;
     const def = getJoker(owned.jokerId);
     if (!def) return;
-    const impact = jokerImpact(run, def, owned.edition, owned.stickers, ctx);
+    const impact = jokerImpact(run, def, owned.edition, owned.stickers, ctx, i);
     if (!weakest || impact.multiplier < weakest.impact.multiplier) {
       weakest = {
         index: i, impact, name: def.name, cost: def.cost, edition: owned.edition, stickers: owned.stickers,

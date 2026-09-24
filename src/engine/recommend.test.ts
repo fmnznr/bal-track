@@ -83,9 +83,10 @@ describe('recommend — full joker slots', () => {
       shop({ cards: [{ kind: 'joker', jokerId: 'blueprint', edition: 'base', price: 10 }] }),
     );
     expect(recs[0].kind).toBe('sell-and-buy');
-    // Crafty Joker contributes nothing on this hand but sits on the recommended
-    // Flush plan, so it is kept; the plain Joker, which fits no plan, goes.
-    expect(recs[0].action).toMatch(/^Sell Joker, buy Blueprint/);
+    // Owned jokers are judged by what selling them loses. Crafty Joker adds
+    // nothing on this hand but sits on the recommended Flush plan, so it is
+    // kept; Cavendish loses less than the Joker whose +4 Mult it multiplies.
+    expect(recs[0].action).toMatch(/^Sell Cavendish, buy Blueprint/);
     expect(recs[0].reasons.join(' ')).toMatch(/Slots full/);
   });
 
@@ -190,7 +191,7 @@ describe('recommendPackPick — replacement hints', () => {
       jokers: owned('joker', 'droll-joker', 'crafty-joker', 'golden-joker', 'cavendish'),
     });
     const picks = recommendPackPick(fullRun, ['blueprint']);
-    expect(picks[0].reasons.join(' ')).toMatch(/sell Joker .*to make room/);
+    expect(picks[0].reasons.join(' ')).toMatch(/sell Cavendish .*to make room/);
   });
 
   it('warns without a sell target when no pack pick is worth a slot', () => {

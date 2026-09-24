@@ -33,18 +33,26 @@ export const SYNERGY_TAGS = [
 ] as const;
 export type SynergyTag = (typeof SYNERGY_TAGS)[number];
 
+export const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'] as const;
+export type Rank = (typeof RANKS)[number];
+
 /**
- * What a per-card effect matches among the cards a hand scores.
+ * What a per-card effect matches among the cards a hand scores or holds.
  *
  * Suit and face shares come from the tracked deck profile, so they follow a
- * deck that has been converted or thinned. Rank shares assume the ranks are
- * evenly spread, because the app does not track rank composition.
+ * deck that has been converted or thinned. Ranks inside the face and non-face
+ * groups are assumed evenly spread, because the app does not track rank
+ * composition beyond the face-card count.
  */
 export type CardMatch =
   | { kind: 'suit'; suit: Suit }
   | { kind: 'face' }
-  /** Matches this many of the thirteen ranks, e.g. 2 for "each played 10 or 4". */
-  | { kind: 'rank'; ranks: number };
+  /** The ranks named, e.g. ["10", "4"] for "each played 10 or 4". */
+  | { kind: 'rank'; ranks: Rank[] }
+  /** Every card. */
+  | { kind: 'any' }
+  /** One suit that changes every round (Ancient Joker): on average a quarter. */
+  | { kind: 'rotatingSuit' };
 
 /** A contribution that repeats, once per matching card or per counted thing. */
 export interface ScoreContribution {
@@ -56,26 +64,80 @@ export interface ScoreContribution {
 
 /**
  * Things a joker can scale with that the run already tracks exactly, so the
- * estimate needs no assumption at all.
+ * estimate needs no assumption at all. Board counts are read off the board the
+ * estimate is scoring, so a joker being considered counts itself.
  */
 export type RunCount =
-  | 'emptyJokerSlots'
+  /** Empty joker slots, with every Joker Stencil after the first counted as empty. */
+  | 'stencilSlots'
   | 'jokers'
   | 'discardsPerRound'
   | 'deckSize'
   | 'cardsRemovedFromDeck'
   | 'money'
+  /** Completed $5 steps of money (Bootstraps). */
+  | 'moneyFives'
   | 'steelCards'
-  | 'stoneCards';
+  | 'stoneCards'
+  /** Sell value of every other joker on the board (Swashbuckler). */
+  | 'otherJokerSellValue'
+  /** Uncommon jokers on the board (Baseball Card). */
+  | 'uncommonJokers';
+
+/** How often an effect fires, when that is not every hand. */
+export interface ScoreTiming {
+  /**
+   * A listed probability ("1 in 2" is 0.5). Oops! All 6s doubles it, which is
+   * why it is kept apart from `every`.
+   */
+  chance?: number;
+  /** Fires once every this many hands (Loyalty Card). Not a listed probability. */
+  every?: number;
+  /** Fires on the last hand of a round only (Acrobat, Dusk). */
+  finalHand?: boolean;
+}
+
+/** Retriggers of played cards. */
+export interface Retrigger extends ScoreTiming {
+  match: CardMatch;
+  /** Extra triggers per matching card. */
+  times: number;
+  /** Only the first scoring card (Hanging Chad). */
+  firstOnly?: boolean;
+}
 
 /** Score contribution of a joker, as far as it is modelled. */
-export interface JokerScore extends ScoreContribution {
+export interface JokerScore extends ScoreContribution, ScoreTiming {
   /** Only contributes when the estimated hand contains this. */
   requiresHand?: HandType;
+  /** Only contributes when the hand plays at most this many cards (Half Joker). */
+  maxCards?: number;
+  /** Only contributes with at least this many enhanced cards in the deck (Driver's License). */
+  minEnhanced?: number;
+  /** Only contributes when every card held in hand is one of these suits (Blackboard). */
+  heldAllSuits?: Suit[];
   /** Fires once per scoring card that matches; the count is an expectation. */
-  perCard?: ScoreContribution & { match: CardMatch };
+  perCard?: ScoreContribution & ScoreTiming & {
+    match: CardMatch;
+    /** Only the first scoring card that matches (Photograph). */
+    firstOnly?: boolean;
+  };
+  /** Fires once per card held in hand that matches (Baron, Shoot the Moon). */
+  perHeld?: ScoreContribution & { match: CardMatch };
+  /** Adds this many Mult per rank of the lowest card held in hand (Raised Fist). */
+  lowestHeldMult?: number;
   /** Scales with something the run tracks, counted exactly. */
-  perCount?: ScoreContribution & { of: RunCount };
+  perCount?: ScoreContribution & {
+    of: RunCount;
+    /** Each counted thing multiplies separately (X1.5 each), instead of building one X(1 + 0.5n). */
+    compounds?: boolean;
+  };
+  /** Retriggers played cards. */
+  retrigger?: Retrigger;
+  /** Retriggers every held-in-hand ability this many times (Mime). */
+  retriggerHeld?: number;
+  /** Copies another joker's ability: the one to its right, or the leftmost. */
+  copies?: 'right' | 'leftmost';
 }
 
 export interface JokerDef {
@@ -231,4 +293,36 @@ export interface DeckProfile {
   faceCards: number;
   deckSize: number;
   enhanced: Record<EnhancementType, number>;
+}
+
+/**
+ * A boss blind and the parts of its effect the score estimate can express.
+ * Anything not described by a field is named in `effect` but not modelled.
+ */
+export interface BossDef {
+  id: string;
+  name: string;
+  /** Earliest ante the boss can appear in. */
+  minAnte: number;
+  /** Showdown bosses appear only on ante 8 (and every eighth ante after). */
+  finisher?: boolean;
+  effect: string;
+  /** Blind size as a multiple of the ante's base amount. Most bosses are 2. */
+  size: number;
+  /** Cards that score nothing and trigger nothing. */
+  debuff?: { suit: Suit } | { face: true } | { all: true };
+  /** The Flint: base Chips and Mult of the hand are halved. */
+  halveBase?: boolean;
+  /** The Arm: every played hand loses a level. */
+  levelDown?: boolean;
+  /** Change to hand size (The Manacle). */
+  handSize?: number;
+  /** Hands this round, overriding the run's (The Needle). */
+  hands?: number;
+  /** Discards this round, overriding the run's (The Water). */
+  discards?: number;
+  /** Cards every hand must play (The Psychic). */
+  playCards?: number;
+  /** Each hand type can be played only once this round (The Eye). */
+  noRepeatHand?: boolean;
 }

@@ -136,14 +136,10 @@ export const TUNING = {
       abundant: 1.15,
     },
     enhanced: {
-      /** Steel Joker and Glass Joker scale with their matching enhanced cards. */
+      /** Glass Joker scales with the Glass cards it could shatter. */
       perMatchingCard: 1.08,
       cap: 1.6,
       noneYet: 0.7,
-      /** Driver's License does nothing at all below its threshold. */
-      driversLicenseRequirement: 16,
-      driversLicenseLive: 1.5,
-      driversLicenseDead: 0.55,
     },
   },
 

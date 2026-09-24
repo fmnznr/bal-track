@@ -48,15 +48,13 @@ describe('deckMultiplierForJoker', () => {
     const four = deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 4 } });
     expect(four.multiplier).toBeCloseTo(TUNING.deck.enhanced.perMatchingCard ** 4);
     expect(four.multiplier).toBeGreaterThan(1);
-    const sig = deckMultiplierForJoker(driversLicense, p);
-    expect(sig.multiplier).toBe(TUNING.deck.enhanced.driversLicenseDead);
-    expect(sig.reasons.join(' ')).toMatch(/0\/16 enhanced/);
   });
 
-  it('leaves Steel Joker to the score model rather than signalling it twice', () => {
+  it("leaves Steel Joker and Driver's License to the score model rather than signalling them twice", () => {
     const p = initialDeckProfile('Red');
     expect(deckMultiplierForJoker(steelJoker, { ...p, enhanced: { ...p.enhanced, steel: 6 } }))
       .toEqual({ multiplier: 1, reasons: [] });
+    expect(deckMultiplierForJoker(driversLicense, p)).toEqual({ multiplier: 1, reasons: [] });
   });
 });
 
