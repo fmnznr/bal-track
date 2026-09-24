@@ -77,6 +77,7 @@ export default function RunOverview() {
       <div className="row">
         <NumberField label={t('money')} value={run.money} onChange={money => dispatch({ type: 'SET_MONEY', money })} />
         <NumberField label={t('ante')} value={run.ante} min={0} onChange={ante => dispatch({ type: 'SET_ANTE', ante })} />
+        <NumberField label={t('round')} value={run.round} min={1} onChange={round => dispatch({ type: 'SET_ROUND', round })} />
         <NumberField label={t('jokerSlots')} value={run.jokerSlots} min={1} onChange={slots => dispatch({ type: 'SET_JOKER_SLOTS', slots })} />
       </div>
 

@@ -59,6 +59,7 @@ export type RunAction =
   | { type: 'START_RUN'; deck: string; stake: string }
   | { type: 'SET_MONEY'; money: number }
   | { type: 'SET_ANTE'; ante: number }
+  | { type: 'SET_ROUND'; round: number }
   | { type: 'SET_BOSS'; boss: string | null }
   | { type: 'SET_JOKER_SLOTS'; slots: number }
   | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; stickers?: JokerStickers; price?: number }
@@ -140,6 +141,7 @@ export function newRunState(deck: string, stake: string): RunState {
     deck,
     stake,
     ante: 1,
+    round: 1,
     money: DECK_START_MONEY[deck] ?? 4,
     jokerSlots: DECK_JOKER_SLOTS[deck] ?? 5,
     consumableSlots: start?.consumableSlots ?? 2,
@@ -297,6 +299,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       // A new ante has a new boss, which the player has not seen yet.
       return push({ ...run, ante, boss: ante === run.ante ? run.boss : null });
     }
+    case 'SET_ROUND':
+      return push({ ...run, round: Math.max(1, action.round) });
     case 'SET_BOSS':
       if (action.boss === run.boss || (action.boss !== null && !getBoss(action.boss))) return state;
       return push({ ...run, boss: action.boss });
@@ -621,6 +625,7 @@ export function load(): StoreState | null {
         // One id for the run in progress when the log arrived, so its decisions
         // and its result still meet.
         id: r.id ?? 'legacy',
+        round: r.round ?? 1,
         handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
         discardsPerRound: r.discardsPerRound
           ?? Math.max(0, (DECK_DISCARDS[r.deck] ?? 3) - stakeDiscardPenalty(r.stake)),

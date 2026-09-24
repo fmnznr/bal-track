@@ -171,6 +171,30 @@ shows the column — $2, $5, $8, $14, $29, $52 among them — and returned nothi
 for the one where a dialog covers it. The reroll cost read $5 on each of the
 four shop screenshots and nothing on the seventeen screens that have no shop.
 
+### The four counters beside the money
+
+Hands, discards, ante and round are read the same way, and the money plate is
+what places them. Balatro's status column is a fixed stack — hands and discards
+on one row, the plate under them, ante and round under that — so each counter
+is the number of its own colour on the right side of the plate, above it or
+below it. Colour alone would not do: the Run Info button is the same red as the
+discards counter and closes into a blob the digit reader is happy to call a
+"0". Its size gives it away, so a counter must also be printed at roughly the
+plate's size.
+
+This needed a finer glyph grid. The counters are about twice the size of a
+price tag, and on the 8x12 grid the loops of an "8" quantise to two columns, so
+one pixel of jitter turned an ante 8 into a 0 or a 6 — two of the three ante-8
+screenshots read wrong. The templates are now 12x18 and built from samples of
+both sizes; every price the old templates read, the new ones read the same.
+
+Measured on eighteen screenshots showing the column, ninety values in all:
+every one correct.
+
+One caveat is deliberate: in a shop the hands and discards on display are the
+next round's full allowance, which is what the run tracks. Read mid-round they
+would be what is left of this one, and the import would understate both.
+
 ## Trade-off accepted
 
 Recognition is offered for the shop and the pack-opening screen only. Screens

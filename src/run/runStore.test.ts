@@ -513,6 +513,19 @@ describe('boss blind', () => {
     expect(s.current?.boss).toBeNull();
   });
 
+  it('tracks the round counter and never drops below the first round', () => {
+    let s = reduce(started(), { type: 'SET_ROUND', round: 18 });
+    expect(s.current?.round).toBe(18);
+    s = reduce(s, { type: 'SET_ROUND', round: 0 });
+    expect(s.current?.round).toBe(1);
+  });
+
+  it('starts runs saved before the round counter existed at round one', () => {
+    const { round: _round, ...old } = newRunState('Red', 'White');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: old, finished: [], past: [] }));
+    expect(load()?.current?.round).toBe(1);
+  });
+
   it('ignores an unknown boss', () => {
     const s = started();
     expect(reduce(s, { type: 'SET_BOSS', boss: 'the-nothing' })).toBe(s);

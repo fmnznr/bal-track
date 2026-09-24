@@ -13,7 +13,9 @@ function card(kind: CardKind, ids: string[], y: number, price: number | null = n
 }
 
 type Hud = ScreenshotReading['hud'];
-const NO_HUD: Hud = { money: null, rerollCost: null };
+const NO_HUD: Hud = { money: null, rerollCost: null, hands: null, discards: null, ante: null, round: null };
+/** What onAdd carries when the status column gave nothing. */
+const NO_VALUES = { money: null, reroll: null, hands: null, discards: null, ante: null, round: null };
 
 const reading = (cards: ReadCard[], hud: Hud = NO_HUD): ScreenshotReading =>
   ({ cards, hud, width: 2556, height: 1179 });
@@ -46,7 +48,7 @@ it('offers what was recognised and adds only the ticked rows', async () => {
 
   expect(onAdd).toHaveBeenCalledWith({
     cards: [{ kind: 'joker', id: 'blueprint', price: null, target: 'shop' }],
-    money: null, rerollCost: null,
+    ...NO_VALUES,
   });
 });
 
@@ -66,8 +68,7 @@ it('sends what sat at the top of the screen into the run, not the shop', async (
       { kind: 'joker', id: 'blueprint', price: null, target: 'owned' },
       { kind: 'joker', id: 'madness', price: 7, target: 'shop' },
     ],
-    money: null,
-    rerollCost: null,
+    ...NO_VALUES,
   });
 });
 
@@ -80,8 +81,7 @@ it('lets a card be moved to the other side when the guess is wrong', async () =>
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
   expect(onAdd).toHaveBeenCalledWith({
     cards: [{ kind: 'joker', id: 'blueprint', price: null, target: 'shop' }],
-    money: null,
-    rerollCost: null,
+    ...NO_VALUES,
   });
 });
 
@@ -96,7 +96,7 @@ it('asks which card when one sprite serves two', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
   expect(onAdd).toHaveBeenCalledWith({
     cards: [{ kind: 'joker', id: 'wee-joker', price: null, target: 'shop' }],
-    money: null, rerollCost: null,
+    ...NO_VALUES,
   });
 });
 

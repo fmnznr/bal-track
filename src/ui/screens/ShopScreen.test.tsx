@@ -9,7 +9,7 @@ vi.mock('../../vision/client', () => ({
   readScreenshot: vi.fn().mockResolvedValue({
     width: 2556,
     height: 1179,
-    hud: { money: 29, rerollCost: 6 },
+    hud: { money: 29, rerollCost: 6, hands: 4, discards: 3, ante: 4, round: 10 },
     cards: [
       { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80 },
       { kind: 'joker', cell: [0, 1], ids: ['madness'], box: { x0: 100, y0: 44, x1: 280, y1: 288 }, score: 95, margin: 70 },
@@ -129,6 +129,24 @@ it('puts the jokers you already hold into the run rather than the offer', async 
   expect(screen.queryByText(/Buy Madness/)).not.toBeInTheDocument();
   await userEvent.click(screen.getByRole('button', { name: 'Run' }));
   expect(screen.getByText('Madness')).toBeInTheDocument();
+});
+
+it('carries the status column into the run: ante, round, hands and discards', async () => {
+  // The screenshot shows where the run stands as well as what is on sale, and
+  // the engine judges a shop against both.
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  const input = document.querySelector('input[type=file]') as HTMLInputElement;
+  await userEvent.upload(input, new File(['x'], 'shop.png', { type: 'image/png' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Add ticked cards' }));
+
+  await userEvent.click(screen.getByRole('button', { name: 'Run' }));
+  expect(screen.getByLabelText('Ante')).toHaveValue(4);
+  expect(screen.getByLabelText('Round')).toHaveValue(10);
+  expect(screen.getByLabelText('Money $')).toHaveValue(29);
+  await userEvent.click(screen.getByText('Corrections'));
+  expect(screen.getByLabelText('Hands per round')).toHaveValue(4);
+  expect(screen.getByLabelText('Discards per round')).toHaveValue(3);
 });
 
 it('logs what you did against the advice and shows it in the history', async () => {

@@ -40,6 +40,12 @@ export const GOLD: Ink = (r, g, b) => r > 170 && g > 110 && g < 215 && b < 120 &
 /** The near-white of button labels. */
 export const WHITE: Ink = (r, g, b) => r > 200 && g > 200 && b > 190;
 
+/** The blue Balatro prints the hands counter (and its chips) in. */
+export const BLUE: Ink = (r, g, b) => b > 200 && b - r > 120 && g > 90 && g < 210;
+
+/** The red of the discards counter (and of the mult). */
+export const RED: Ink = (r, g, b) => r > 190 && r - g > 120 && r - b > 120;
+
 export function inkMask(image: ImageLike, box: Box, ink: Ink): Mask {
   const width = box.x1 - box.x0;
   const height = box.y1 - box.y0;

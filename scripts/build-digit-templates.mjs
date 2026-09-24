@@ -13,12 +13,17 @@
  * templates are this script's output rather than something rebuilt on demand.
  * It loads the reader's own normalisation code, because a template built by a
  * second implementation would match nothing the first one produces.
+ *
+ * The grid is finer than a price tag needs. The status column prints its
+ * counters about twice the size of a tag, and on an 8x12 grid the loops of an
+ * "8" quantise to two columns, so one pixel of jitter turned an ante 8 into a
+ * 0 or a 6. Samples of both sizes on a 12x18 grid tell them apart.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { decodePng } from './png.mjs';
 
-const W = 8;
-const H = 12;
+const W = 12;
+const H = 18;
 
 const specPath = process.argv[2];
 if (!specPath) {

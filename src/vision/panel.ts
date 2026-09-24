@@ -12,12 +12,17 @@
 import { findBlobs } from './detect';
 import type { Blob } from './detect';
 import type { Box, ImageLike } from './fingerprint';
-import { classify, columnRuns, GOLD, inkMask, normalise, WHITE } from './price';
+import { BLUE, classify, columnRuns, GOLD, inkMask, normalise, RED, WHITE } from './price';
 import type { DigitTemplates, Ink } from './price';
 
 export interface Hud {
   money: number | null;
   rerollCost: number | null;
+  /** The four counters of the status column, where the screenshot showed them. */
+  hands: number | null;
+  discards: number | null;
+  ante: number | null;
+  round: number | null;
 }
 
 interface Word {
@@ -109,14 +114,21 @@ const inside = (inner: Box, outer: Box) =>
  * every size, and the amount there is printed larger than a price tag, so the
  * two rules together settle which gold number is which.
  */
-export function readMoney(image: ImageLike, templates: DigitTemplates, cards: readonly Box[]): number | null {
-  const column = { x0: 0, y0: 0, x1: Math.round(image.width * 0.45), y1: image.height };
-  const candidates = words(image, column, GOLD, templates)
+function statusColumn(image: ImageLike): Box {
+  return { x0: 0, y0: 0, x1: Math.round(image.width * 0.45), y1: image.height };
+}
+
+function moneyWord(image: ImageLike, templates: DigitTemplates, cards: readonly Box[]): Word | null {
+  const candidates = words(image, statusColumn(image), GOLD, templates)
     .filter(word => AMOUNT.test(word.text))
     .filter(word => !cards.some(card => inside(word.box, tagBand(card))));
   if (candidates.length === 0) return null;
-  const biggest = candidates.reduce((a, b) => (b.glyphHeight > a.glyphHeight ? b : a));
-  return Number(AMOUNT.exec(biggest.text)![1]);
+  return candidates.reduce((a, b) => (b.glyphHeight > a.glyphHeight ? b : a));
+}
+
+export function readMoney(image: ImageLike, templates: DigitTemplates, cards: readonly Box[]): number | null {
+  const word = moneyWord(image, templates, cards);
+  return word ? Number(AMOUNT.exec(word.text)![1]) : null;
 }
 
 /** The reroll cost, from the green button it is printed on. */
@@ -141,9 +153,74 @@ export function readWords(image: ImageLike, region: Box, ink: Ink, templates: Di
   return words(image, region, ink, templates);
 }
 
-export function readHud(image: ImageLike, templates: DigitTemplates, cards: readonly Box[]): Hud {
+
+const COUNTER = /^([0-9]{1,3})$/;
+/** A counter is printed at roughly the size of the money plate; anything far
+    off it is a button or a panel the ink mask happened to close around. */
+const MIN_COUNTER_SCALE = 0.5;
+const MAX_COUNTER_SCALE = 1.5;
+
+type Side = 'left' | 'right';
+type Band = 'above' | 'below';
+
+/**
+ * One counter, found by the three things that tell the four of them apart:
+ * the colour it is printed in, whether it sits above or below the money plate,
+ * and which half of the column it is in.
+ *
+ * Balatro's status column is a fixed stack — hands and discards on one row,
+ * the money plate under it, ante and round under that — so the money plate is
+ * both the anchor and the scale. Colour alone is not enough: the Run Info
+ * button is the same red as the discards counter and closes into a blob the
+ * digit reader is happy to call a "0".
+ */
+function counter(
+  image: ImageLike, templates: DigitTemplates, money: Word, ink: Ink, band: Band, side: Side,
+): number | null {
+  const centre = (money.box.x0 + money.box.x1) / 2;
+  const matches = words(image, statusColumn(image), ink, templates)
+    .filter(word => COUNTER.test(word.text))
+    .filter(word => {
+      const scale = word.glyphHeight / money.glyphHeight;
+      return scale >= MIN_COUNTER_SCALE && scale <= MAX_COUNTER_SCALE;
+    })
+    .filter(word => (band === 'above' ? word.box.y1 <= money.box.y0 : word.box.y0 >= money.box.y1))
+    .filter(word => {
+      const middle = (word.box.x0 + word.box.x1) / 2;
+      return side === 'left' ? middle < centre : middle > centre;
+    });
+  if (matches.length === 0) return null;
+  // The nearest row to the money plate, in case something else in the column
+  // reads as a number further away.
+  const nearest = matches.reduce((a, b) => (band === 'above'
+    ? (b.box.y1 > a.box.y1 ? b : a)
+    : (b.box.y0 < a.box.y0 ? b : a)));
+  return Number(COUNTER.exec(nearest.text)![1]);
+}
+
+/**
+ * Hands, discards, ante and round.
+ *
+ * In a shop screenshot the hands and discards shown are the next round's full
+ * allowance, which is what the run tracks. Read mid-round they would be what
+ * is left of this one, so this is deliberately tied to the money plate being
+ * readable: no status column, no counters.
+ */
+export function readCounters(image: ImageLike, templates: DigitTemplates, money: Word | null): Pick<Hud, 'hands' | 'discards' | 'ante' | 'round'> {
+  if (!money) return { hands: null, discards: null, ante: null, round: null };
   return {
-    money: readMoney(image, templates, cards),
+    hands: counter(image, templates, money, BLUE, 'above', 'left'),
+    discards: counter(image, templates, money, RED, 'above', 'right'),
+    ante: counter(image, templates, money, GOLD, 'below', 'left'),
+    round: counter(image, templates, money, GOLD, 'below', 'right'),
+  };
+}
+
+export function readHud(image: ImageLike, templates: DigitTemplates, cards: readonly Box[]): Hud {
+  const money = moneyWord(image, templates, cards);
+  return {
+    money: money ? Number(AMOUNT.exec(money.text)![1]) : null,
     rerollCost: readRerollCost(image, templates),
+    ...readCounters(image, templates, money),
   };
 }

@@ -193,6 +193,12 @@ export interface RunState {
   deck: string;
   stake: string;
   ante: number;
+  /**
+   * The round counter the game shows beside the ante. Nothing reads it yet —
+   * it is here so a screenshot import can carry it over and the run screen can
+   * show where you are, the way the game does.
+   */
+  round: number;
   money: number;
   jokerSlots: number;
   consumableSlots: number;

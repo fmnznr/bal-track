@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { useT } from '../../i18n/I18nContext';
+import type { PhraseKey } from '../../i18n/dictionary';
 import type { ReadScreenshot } from '../../vision/client';
 import type { ReadCard } from '../../vision/read';
 import type { CardKind } from '../../vision/recognise';
@@ -16,16 +17,17 @@ import type { CardKind } from '../../vision/recognise';
 /** Where a confirmed card belongs: the shop's offer, or the run itself. */
 export type CardTarget = 'shop' | 'owned';
 
-export interface Confirmed {
+/** The status column's numbers, each confirmed on its own row. */
+export type ValueKind = 'money' | 'reroll' | 'hands' | 'discards' | 'ante' | 'round';
+
+export type Confirmed = Record<ValueKind, number | null> & {
   cards: { kind: CardKind; id: string; price: number | null; target: CardTarget }[];
-  money: number | null;
-  rerollCost: number | null;
-}
+};
 
 interface Props {
   /** What this screen can use: the shop takes everything, a pack only cards. */
   kinds: CardKind[];
-  /** Whether the money and reroll cost in the status column are of use here. */
+  /** Whether the status column's numbers are of use here. */
   hud?: boolean;
   onAdd: (confirmed: Confirmed) => void;
   /** Injectable so tests need no worker, no canvas and no screenshot. */
@@ -40,8 +42,18 @@ const OWNED_ABOVE = 0.3;
 
 type Row =
   | { type: 'card'; card: ReadCard; id: string; take: boolean; target: CardTarget }
-  /** The two numbers the status column shows rather than a card. */
-  | { type: 'money' | 'reroll'; value: number; take: boolean };
+  /** A number the status column shows rather than a card. */
+  | { type: 'value'; kind: ValueKind; value: number; take: boolean };
+
+/** The label each status-column number goes under, and whether it is money. */
+const VALUES: { kind: ValueKind; label: PhraseKey; dollars: boolean }[] = [
+  { kind: 'money', label: 'money', dollars: true },
+  { kind: 'reroll', label: 'rerollCost', dollars: true },
+  { kind: 'hands', label: 'handsPerRound', dollars: false },
+  { kind: 'discards', label: 'discardsPerRound', dollars: false },
+  { kind: 'ante', label: 'ante', dollars: false },
+  { kind: 'round', label: 'round', dollars: false },
+];
 
 export function cardName(kind: CardKind, id: string): string {
   const def = kind === 'joker' ? getJoker(id)
@@ -66,11 +78,12 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
       const reading = await read(file);
       const usable = reading.cards.filter(c => kinds.includes(c.kind));
       setSkipped(reading.cards.length - usable.length);
+      const shown: Record<ValueKind, number | null> = { ...reading.hud, reroll: reading.hud.rerollCost };
       const values: Row[] = hud
-        ? [
-          ...(reading.hud.money !== null ? [{ type: 'money' as const, value: reading.hud.money, take: true }] : []),
-          ...(reading.hud.rerollCost !== null ? [{ type: 'reroll' as const, value: reading.hud.rerollCost, take: true }] : []),
-        ]
+        ? VALUES.flatMap(({ kind }) => {
+          const value = shown[kind];
+          return typeof value === 'number' ? [{ type: 'value' as const, kind, value, take: true }] : [];
+        })
         : [];
       setRows([
         ...values,
@@ -95,7 +108,7 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
     setRows(current => current && current.map((row, i) => (i === index ? { ...row, ...change } : row)));
 
   const rowKey = (row: Row, i: number) =>
-    (row.type === 'card' ? `${row.card.box.x0}-${row.card.box.y0}` : `${row.type}-${i}`);
+    (row.type === 'card' ? `${row.card.box.x0}-${row.card.box.y0}` : `${row.kind}-${i}`);
 
   return (
     <div className="screenshot-import">
@@ -128,8 +141,8 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
                     checked={row.take}
                     onChange={e => update(i, { take: e.target.checked })}
                   />
-                  {row.type !== 'card' ? (
-                    <span>{row.type === 'money' ? t('money') : t('rerollCost')}</span>
+                  {row.type === 'value' ? (
+                    <span>{t(VALUES.find(v => v.kind === row.kind)!.label)}</span>
                   ) : row.card.ids.length > 1 ? (
                     <select
                       aria-label={t('whichCard')}
@@ -147,7 +160,11 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
                 {/* The price comes off the tag above the card, so a shop with
                     Clearance Sale prices is read as it really is. */}
                 {row.type === 'card' && row.card.price !== null && <span className="muted">${row.card.price}</span>}
-                {row.type !== 'card' && <span className="muted">${row.value}</span>}
+                {row.type === 'value' && (
+                  <span className="muted">
+                    {VALUES.find(v => v.kind === row.kind)!.dollars ? `$${row.value}` : row.value}
+                  </span>
+                )}
                 {/* A joker at the top of the screenshot is one you hold; the
                     same card lower down is one on sale. The reading guesses
                     from where it sat, and you correct it here. */}
@@ -170,16 +187,15 @@ export default function ScreenshotImport({ kinds, hud = false, onAdd, read }: Pr
             disabled={rows.every(r => !r.take)}
             onClick={() => {
               const taken = rows.filter(r => r.take);
-              const value = (type: 'money' | 'reroll') => {
-                const row = taken.find(r => r.type === type);
-                return row && row.type !== 'card' ? row.value : null;
+              const value = (kind: ValueKind) => {
+                const row = taken.find(r => r.type === 'value' && r.kind === kind);
+                return row && row.type === 'value' ? row.value : null;
               };
               onAdd({
                 cards: taken
                   .filter(r => r.type === 'card')
                   .map(r => ({ kind: r.card.kind, id: r.id, price: r.card.price, target: r.target })),
-                money: value('money'),
-                rerollCost: value('reroll'),
+                ...Object.fromEntries(VALUES.map(v => [v.kind, value(v.kind)])) as Record<ValueKind, number | null>,
               });
               setRows(null);
             }}

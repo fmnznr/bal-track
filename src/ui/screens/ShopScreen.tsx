@@ -46,8 +46,15 @@ export default function ShopScreen({ onPackBought }: Props) {
 
   /** Everything confirmed from one screenshot lands in a single draft update,
       because setShop resolves against the shop as it was rendered. */
-  const addFromScreenshot = ({ cards, money, rerollCost }: Confirmed) => {
+  const addFromScreenshot = ({ cards, money, reroll, hands, discards, ante, round }: Confirmed) => {
     if (money !== null) dispatch({ type: 'SET_MONEY', money });
+    // The status column also carries where the run stands. In a shop the hands
+    // and discards it shows are the next round's full allowance, which is what
+    // the run tracks — so they can be taken as they are.
+    if (ante !== null) dispatch({ type: 'SET_ANTE', ante });
+    if (round !== null) dispatch({ type: 'SET_ROUND', round });
+    if (hands !== null) dispatch({ type: 'SET_HANDS_PER_ROUND', value: hands });
+    if (discards !== null) dispatch({ type: 'SET_DISCARDS_PER_ROUND', value: discards });
 
     // What the screenshot showed you already holding goes into the run, not
     // into the offer: the engine needs your board to judge anything at all.
@@ -66,7 +73,7 @@ export default function ShopScreen({ onPackBought }: Props) {
 
     setShop(s => {
       const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
-      if (rerollCost !== null) next.rerollCost = rerollCost;
+      if (reroll !== null) next.rerollCost = reroll;
       for (const { kind, id, price, target } of cards) {
         if (target === 'owned') continue;
         // The price on the tag beats the catalog: a shop under Clearance Sale
