@@ -155,3 +155,24 @@ it('adds a sixth joker to a full board when it is Negative', async () => {
   await userEvent.click(await screen.findByRole('button', { name: /Madness/ }));
   expect(screen.getByText('Madness')).toBeInTheDocument();
 });
+
+it('scores the board against the boss blind you pick', async () => {
+  render(<App />);
+  expect(document.querySelector('.score-panel')).not.toHaveTextContent('vs The Club');
+  await userEvent.selectOptions(screen.getByLabelText('Boss blind this ante'), 'the-club');
+  expect(document.querySelector('.score-panel')).toHaveTextContent(/vs The Club: ~\d+ per hand against 600/);
+  // A new ante has a boss you have not seen yet.
+  const ante = screen.getByLabelText('Ante');
+  await userEvent.clear(ante);
+  await userEvent.type(ante, '2');
+  await userEvent.tab();
+  expect(screen.getByLabelText('Boss blind this ante')).toHaveDisplayValue('Not looked up yet');
+});
+
+it('shows where the bankroll is heading if nothing is bought', () => {
+  render(<App />);
+  const panel = document.querySelector('.economy-panel');
+  expect(panel).toHaveTextContent('Blind reward $4');
+  expect(panel).toHaveTextContent('Golden Joker $4');
+  expect(panel).toHaveTextContent(/Banking everything: \$20 next shop, \$\d+ in 6 rounds/);
+});

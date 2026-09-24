@@ -55,7 +55,7 @@ function Shell() {
         <LanguagePicker />
         <RunSetup onStarted={() => setScreen('run')} />
         <div className="row">
-          {store.finished.length > 0 && (
+          {(store.finished.length > 0 || store.decisions.length > 0) && (
             <button className="ghost" onClick={() => setScreen('history')}>{t('tabHistory')}</button>
           )}
           {/* Ending or abandoning a run leaves you here, and the store still holds

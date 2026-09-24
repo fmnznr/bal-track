@@ -37,11 +37,11 @@ describe('playMultiplierForJoker', () => {
     expect(signal.reasons.join(' ')).toMatch(/variety/i);
   });
 
-  it('scales Delayed Gratification with discards per round', () => {
-    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 5 })).multiplier)
-      .toBeCloseTo(TUNING.play.perExtraDiscard ** 2);
-    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 2 })).multiplier)
-      .toBeCloseTo(TUNING.play.perExtraDiscard ** -1);
+  it('leaves Delayed Gratification to the projection rather than signalling it twice', () => {
+    // Its $2 per unused discard is money there; charging the discard count
+    // again here would pay for the same fact twice, as Banner used to.
+    expect(playMultiplierForJoker(delayed, runWith(null, { discardsPerRound: 5 })))
+      .toEqual({ multiplier: 1, reasons: [] });
   });
 
   it('leaves Banner to the score model rather than signalling it twice', () => {
@@ -53,9 +53,4 @@ describe('playMultiplierForJoker', () => {
     expect(playMultiplierForJoker(blueprint, runWith('Flush'))).toEqual({ multiplier: 1, reasons: [] });
   });
 
-  it('counts the Red deck extra discard as a real advantage', () => {
-    const red = newRunState('Red', 'White');
-    expect(red.discardsPerRound).toBe(4);
-    expect(playMultiplierForJoker(delayed, red).multiplier).toBeCloseTo(TUNING.play.perExtraDiscard);
-  });
 });

@@ -19,7 +19,8 @@ function meta(r: Recommendation, t: Translate): string {
   // Buying nothing is the scale's zero point, so a percentage says nothing.
   if (r.kind === 'skip') return t('baselineNote');
   const parts = [`${formatMultiplier(r.impact)} ${t('scoreSuffix')}`];
-  if (r.costDollars > 0) parts.push(`${t('costs')} $${Math.round(r.costDollars)}`);
+  if (r.costDollars >= 0.5) parts.push(`${t('costs')} $${Math.round(r.costDollars)}`);
+  else if (r.costDollars <= -0.5) parts.push(`${t('earnsNet')} $${Math.round(-r.costDollars)}`);
   parts.push(t(EVIDENCE_KEY[r.evidence]));
   return parts.join(' · ');
 }

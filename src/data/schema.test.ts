@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ZodType } from 'zod';
 import archetypes from './archetypes.json';
 import blinds from './blinds.json';
+import bosses from './bosses.json';
 import consumables from './consumables.json';
 import deckStrategy from './deckStrategy.json';
 import handValues from './handValues.json';
@@ -10,7 +11,7 @@ import meta from './meta.json';
 import packs from './packs.json';
 import vouchers from './vouchers.json';
 import {
-  archetypeSchema, blindsSchema, consumableSchema, deckStrategySchema, handValueSchema,
+  archetypeSchema, blindsSchema, bossSchema, consumableSchema, deckStrategySchema, handValueSchema,
   jokerSchema, metaSchema, packSchema, voucherSchema,
 } from './schema';
 
@@ -35,6 +36,7 @@ describe('catalog data matches its schema', () => {
   it('hand values', () => parseAll('hand', handValues, handValueSchema));
   it('archetypes', () => parseAll('archetype', archetypes, archetypeSchema));
   it('deck strategies', () => parseAll('deck', deckStrategy, deckStrategySchema));
+  it('bosses', () => parseAll('boss', bosses, bossSchema));
   it('blinds', () => expect(blindsSchema.safeParse(blinds).success).toBe(true));
   it('meta', () => expect(metaSchema.safeParse(meta).success).toBe(true));
 });

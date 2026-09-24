@@ -13,7 +13,7 @@
  * and spectral — the curated rating supplies a prior, and the result is labelled
  * so the UI can say which kind of number the player is looking at.
  */
-import { getConsumable, getJoker } from '../catalog/catalog';
+import { getBoss, getConsumable, getJoker } from '../catalog/catalog';
 import type {
   ConsumableDef, Edition, HandType, JokerDef, JokerStickers, Phase, RunState,
 } from '../types';
@@ -22,8 +22,10 @@ import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
 import {
-  handLevelMultiplier, jokerScoreContribution, marginalMultiplier, referenceHand, scoreTarget,
+  asCandidate, boardOf, bossOutlook, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
+  referenceHand, scoreTarget,
 } from './score';
+import { earnsIncome, horizonRounds, jokerIncome } from './projection';
 import { TUNING } from './tuning';
 
 export type Evidence = 'modeled' | 'partial' | 'heuristic';
@@ -31,6 +33,11 @@ export type Evidence = 'modeled' | 'partial' | 'heuristic';
 export interface Impact {
   /** Estimated multiplier on the reference hand's score. 1 = changes nothing. */
   multiplier: number;
+  /**
+   * Dollars the card earns over the planning horizon, interest included. Kept
+   * apart from the multiplier because it belongs on the cost side of a buy.
+   */
+  incomeDollars: number;
   evidence: Evidence;
   reasons: string[];
 }
@@ -101,6 +108,9 @@ export interface JokerContext {
  * rating prior otherwise; the edition is always modelled, because it is a flat
  * effect on the card. Everything after that — synergy, deck composition, how you
  * play, plan fit, stickers — multiplies onto it.
+ *
+ * `ownedIndex` judges a joker already on the board by what removing it would
+ * cost, rather than by stacking a second copy on top of it.
  */
 export function jokerImpact(
   run: RunState,
@@ -108,28 +118,44 @@ export function jokerImpact(
   edition: Edition,
   stickers: JokerStickers | undefined,
   ctx: JokerContext,
+  ownedIndex?: number,
 ): Impact {
   const hand = referenceHand(run);
   const reasons: string[] = [];
   let multiplier: number;
   let evidence: Evidence;
 
+  const contribution = (withAbility: boolean) => (ownedIndex !== undefined
+    ? ownedContribution(run, hand, ownedIndex, withAbility)
+    : candidateContribution(run, hand, asCandidate(def, edition, withAbility)));
   // The edition is a flat effect on the card, so it is always computed outright.
-  const editionScore = jokerScoreContribution(run, hand, undefined, edition);
+  const editionScore = contribution(false).score;
   const rating = def.rating[ctx.phase];
   const rated = priorContribution(run, rating);
+  // A copy joker is worth what it will copy over the run, which today's board
+  // does not show, so its rating decides. What it copies now is still stated.
+  const copies = def.score?.copies !== undefined;
+  const modelled = def.score ? contribution(true) : null;
+  // What an income joker earns is counted in dollars, so its rating — which
+  // mostly stands for that income — does not count it a second time.
+  const income = earnsIncome(def) ? jokerIncome(run, def, ownedIndex) : 0;
 
-  if (def.score) {
-    const modelled = jokerScoreContribution(run, hand, def.score, edition);
+  if (earnsIncome(def) && !def.score) {
+    multiplier = marginalMultiplier(run, hand, editionScore);
+    evidence = 'modeled';
+    reasons.push(
+      `Earns about $${Math.round(income)} over the next ${horizonRounds(run.ante)} rounds, interest included`,
+    );
+  } else if (modelled?.modelled && !copies) {
     // Geometric, so a modelled contribution of zero carries through: a joker the
     // model knows cannot fire is not rescued by a good rating.
     const w = TUNING.prior.modelWeight;
-    const blended = modelled ** w * rated ** (1 - w);
+    const blended = modelled.score ** w * rated ** (1 - w);
     multiplier = marginalMultiplier(run, hand, blended);
     evidence = 'partial';
-    if (modelled > editionScore) {
+    if (modelled.score > editionScore) {
       reasons.push(
-        `Modelled at about ${Math.round(modelled).toLocaleString('en-US')} score on your ${hand},`
+        `Modelled at about ${Math.round(modelled.score).toLocaleString('en-US')} score on your ${hand},`
         + ` weighed against its ${rating}/10 rating over a full run`,
       );
     } else {
@@ -138,7 +164,14 @@ export function jokerImpact(
   } else {
     multiplier = marginalMultiplier(run, hand, rated + editionScore);
     evidence = 'heuristic';
-    reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — effect not modelled`);
+    if (copies) {
+      reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — worth what it copies over the run`);
+      if (modelled?.modelled && modelled.score > editionScore) {
+        reasons.push(`Copying your board today adds about ${Math.round(modelled.score).toLocaleString('en-US')} score`);
+      }
+    } else {
+      reasons.push(`${def.rarity} joker rated ${rating}/10 at this stage — effect not modelled`);
+    }
   }
   if (edition !== 'base') reasons.push(`${edition} edition is a bonus`);
 
@@ -166,11 +199,39 @@ export function jokerImpact(
     }
   }
 
+  reasons.push(...bossReasons(run, def));
+
   const sticker = stickerMultiplier(stickers);
   multiplier *= sticker.multiplier;
   reasons.push(...sticker.reasons);
 
-  return { multiplier, evidence, reasons };
+  return { multiplier, incomeDollars: income, evidence, reasons };
+}
+
+/** Jokers that switch the current boss off, for good or for one sale. */
+const BOSS_DISABLERS: Record<string, string> = {
+  chicot: 'Disables',
+  luchador: 'Selling it disables',
+};
+
+/**
+ * What a boss disabler is worth against the boss actually waiting this ante.
+ * Context rather than a score change: the ranking judges the run a full ante
+ * ahead, and this boss is gone after one round.
+ */
+function bossReasons(run: RunState, def: JokerDef): string[] {
+  const verb = BOSS_DISABLERS[def.id];
+  const boss = run.boss ? getBoss(run.boss) : undefined;
+  if (!verb || !boss) return [];
+  const board = boardOf(run);
+  if (board.some(j => j.id === 'chicot')) return [];
+  const now = bossOutlook(run, boss, board);
+  const without = bossOutlook(run, boss, [...board, asCandidate(getJoker('chicot')!, 'base')]);
+  const fmt = (n: number) => n.toLocaleString('en-US');
+  return [
+    `${verb} ${boss.name} (${boss.effect}): your hand scores ~${fmt(without.score)} against`
+    + ` ${fmt(without.target)} instead of ~${fmt(now.score)} against ${fmt(now.target)}`,
+  ];
 }
 
 /**
@@ -192,7 +253,7 @@ export function consumableImpact(
     if (def.hand === hand) {
       const multiplier = handLevelMultiplier(run, hand, 1);
       reasons.push(`Levels ${def.hand}, the hand your estimate is built on`);
-      return { multiplier, evidence: 'modeled', reasons };
+      return { multiplier, incomeDollars: 0, evidence: 'modeled', reasons };
     }
     // Levels a hand the current estimate is not about, so the gain lands only if
     // the player switches to it. Worth something when the build points that way.
@@ -215,10 +276,10 @@ export function consumableImpact(
       multiplier *= TUNING.planet.perExistingLevel ** (level - 1);
       reasons.push(`${def.hand} is already level ${level} — keep stacking it`);
     }
-    return { multiplier, evidence: 'heuristic', reasons };
+    return { multiplier, incomeDollars: 0, evidence: 'heuristic', reasons };
   }
 
-  return { multiplier: priorFromRating(run, hand, def.rating), evidence: 'heuristic', reasons };
+  return { multiplier: priorFromRating(run, hand, def.rating), incomeDollars: 0, evidence: 'heuristic', reasons };
 }
 
 /** Impact of a card in a shop slot, resolved from the catalog. */

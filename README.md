@@ -28,7 +28,16 @@ of the board — and disagree with.
 - Suit, face-card and enhancement counts with common consumable effects, which
   feed the score estimate rather than only the heuristics.
 - Joker trigger order, with a safe one-tap reorder suggestion.
-- Approximate hand score, Plasma Deck balancing and Stake-aware blind targets.
+- Approximate hand score, Plasma Deck balancing and Stake-aware blind targets,
+  worked out from the deck as card types: enhanced cards, retriggers, cards
+  held in hand and Blueprint/Brainstorm copies all count.
+- The boss blind of the current ante, with the board scored against its
+  effects and its own target.
+- Money over the next two antes: blind rewards, spare hands, interest and
+  income jokers, which is what purchases are priced against.
+- Shop discounts from Clearance Sale, Liquidation and Astronomer.
+- A local log of the advice against what you did, summarised on the History
+  tab and exportable as JSON for calibrating the weights.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
 - Ending a run without a result, for when you restart rather than finish, and
   clearing the run history outright.
@@ -42,28 +51,34 @@ Corrections section exists only for when a run drifts from what was recorded.
 
 - Shop and run state are entered manually; the app does not read Balatro saves.
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Exact score contribution is modeled for 40 of the 150 Jokers: flat effects,
-  effects that repeat per scoring card of a suit, face or rank, and effects that
-  scale with something the run tracks (money, discards, deck size, enhanced
-  cards). Rank shares assume ranks are evenly spread, since rank composition is
-  not tracked. Random, copy, retrigger, held-in-hand and time-scaling effects
-  are named but deliberately excluded from the numeric estimate.
+- Score contribution is modeled for 64 of the 150 Jokers: flat effects,
+  per-card and held-card effects, retriggers, copies, listed chances and
+  effects that scale with something the run tracks. Ranks are assumed evenly
+  spread within the face and non-face cards, since only the face count is
+  tracked, and the estimate assumes you play only the scoring cards. Jokers that
+  scale over time or depend on what was played before are named but excluded.
+  Copy jokers are ranked on their rating, since what they will copy over a run
+  is not on today's board.
+- Income is counted for nine jokers (Golden Joker, To the Moon, Rocket and
+  others) and valued in dollars over the horizon instead of their rating.
 - Ratings and the score model both estimate a score contribution, so they are
   blended on equal footing, but the weights behind the rating half
   (`topShareOfTarget`, `ratingCurve`, `minBaselineShare`, `dollarsPerDoubling`)
   are judgement calls, not values trained on played runs. See
   [`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
-- The ranking prices one shop visit at a time. It does not model how an economy
-  build compounds, so a plan changes the advisor's reasons but not its numbers.
-- Boss-specific effects, tags, playing-card seals and exact card-by-card scoring
-  are not simulated.
+- The money projection assumes you bank everything inside the horizon. It does
+  not know what you will spend on later.
+- Boss effects are modeled where the estimate can express them (debuffs, size,
+  The Flint, The Arm, The Manacle, The Needle, The Water). Face-down cards,
+  The Hook, The Pillar and similar are named but not simulated. Tags,
+  playing-card seals and editions are not tracked.
 - Perishable remaining rounds are not counted; the sticker is treated as a
   general flexibility penalty.
 - Jokers that scale with hands played since acquisition (Green Joker, Ice
   Cream) are rated on their base value only. Supernova and Obelisk are nudged
   by whether you declared a hand, not by how often you played it.
-- Unusual card-price modifiers may require correcting the displayed card price
-  manually. Pack and voucher discounts are not modeled yet.
+- Unusual card-price modifiers (Couponed tags and the like) may require
+  correcting the displayed card price manually.
 
 Use the ranking as a checklist and explanation aid. Your knowledge of the
 current blind and run still wins when the model lacks context.
@@ -127,6 +142,12 @@ known weaknesses are in
 and
 [`docs/superpowers/specs/2026-09-17-marginal-prior-design.md`](docs/superpowers/specs/2026-09-17-marginal-prior-design.md).
 
+The design of the card-type score model, bosses, projection and the advice log
+is in
+[`docs/superpowers/specs/2026-09-24-model-economy-log-design.md`](docs/superpowers/specs/2026-09-24-model-economy-log-design.md).
+The advice log (History tab, **Export JSON**) is the raw material for checking
+those weights against real runs.
+
 Heuristic weights live in [`src/engine/tuning.ts`](src/engine/tuning.ts), separate
 from the game rules in `gameRules.ts`, `economy.ts` and `score.ts`. A game rule is
 right or wrong; a tuning weight is a judgement call about desirability. Change a
@@ -158,9 +179,9 @@ separate piece of work from a wording pass.
 
 ## Privacy
 
-Bal-Track has no backend or analytics. Run data stays in the browser's local
-storage and the static app remains usable offline after its first successful
-load.
+Bal-Track has no backend or analytics. Run data, including the advice log,
+stays in the browser's local storage until you export it yourself, and the
+static app remains usable offline after its first successful load.
 
 ## License
 

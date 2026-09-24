@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import jokers from './jokers.json';
-import { HAND_TYPES, SUITS } from '../types';
+import { HAND_TYPES, RANKS, SUITS } from '../types';
 import type { JokerScore } from '../types';
 
 const all = jokers as unknown as { id: string; effect: string; score?: JokerScore }[];
@@ -19,9 +19,9 @@ describe('joker score models', () => {
       .toEqual({ perCard: { match: { kind: 'suit', suit: 'diamonds' }, mult: 3 } });
     expect(byId.get('scary-face')?.score)
       .toEqual({ perCard: { match: { kind: 'face' }, chips: 30 } });
-    // "Each played 10 or 4" names two of the thirteen ranks.
+    // "Each played 10 or 4" names its ranks, so face and rank matches agree.
     expect(byId.get('walkie-talkie')?.score)
-      .toEqual({ perCard: { match: { kind: 'rank', ranks: 2 }, chips: 10, mult: 4 } });
+      .toEqual({ perCard: { match: { kind: 'rank', ranks: ['10', '4'] }, chips: 10, mult: 4 } });
   });
 
   it('models counts the run already tracks exactly', () => {
@@ -29,19 +29,26 @@ describe('joker score models', () => {
     expect(byId.get('steel-joker')?.score).toEqual({ perCount: { of: 'steelCards', xmult: 0.2 } });
   });
 
-  it('leaves conditional, scaling, copy and random jokers unmodeled', () => {
+  it('models retriggers, held cards, copies and listed chances', () => {
+    expect(byId.get('hack')?.score?.retrigger?.match).toEqual({ kind: 'rank', ranks: ['2', '3', '4', '5'] });
+    expect(byId.get('baron')?.score?.perHeld).toEqual({ match: { kind: 'rank', ranks: ['K'] }, xmult: 1.5 });
+    expect(byId.get('blueprint')?.score).toEqual({ copies: 'right' });
+    expect(byId.get('bloodstone')?.score?.perCard?.chance).toBe(0.5);
+  });
+
+  it('leaves play-history, scaling and hand-shape jokers unmodeled', () => {
     for (const id of [
-      'green-joker', 'ride-the-bus', 'blueprint', 'brainstorm', 'business-card', 'obelisk',
-      'glass-joker', 'photograph', 'baron', 'joker-stencil', 'card-sharp', 'blackboard',
+      'green-joker', 'ride-the-bus', 'business-card', 'obelisk', 'supernova',
+      'glass-joker', 'card-sharp', 'flower-pot', 'seeing-double', 'the-idol',
     ]) {
       expect(byId.get(id)?.score, id).toBeUndefined();
     }
   });
 
   it('models a reasonable share without inventing numbers', () => {
-    // Flat effects, per-card effects over suit/face/rank, and counts the run
-    // tracks. Everything conditional on board state, random, copying, retriggering
-    // or scaling over time is still out. The floor guards against losing them
+    // Flat effects, per-card and held-card effects, retriggers, copies, listed
+    // chances and counts the run tracks. Anything that scales over time or
+    // depends on what was played before is still out. The floor guards against losing them
     // wholesale, the ceiling against modelling by guesswork.
     expect(modeled.length).toBeGreaterThanOrEqual(35);
     expect(modeled.length).toBeLessThanOrEqual(70);
@@ -58,12 +65,19 @@ describe('joker score models', () => {
     for (const j of all) {
       if (!j.score) continue;
       const score = j.score as unknown as Record<string, unknown>;
-      check(score, j.id, [...numeric, 'requiresHand', 'perCard', 'perCount']);
+      const timing = ['chance', 'every', 'finalHand'];
+      check(score, j.id, [
+        ...numeric, ...timing, 'requiresHand', 'maxCards', 'minEnhanced', 'heldAllSuits', 'perCard',
+        'perHeld', 'lowestHeldMult', 'perCount', 'retrigger', 'retriggerHeld', 'copies',
+      ]);
       if (j.score.perCard) {
-        check(j.score.perCard as unknown as Record<string, unknown>, j.id, [...numeric, 'match']);
+        check(j.score.perCard as unknown as Record<string, unknown>, j.id, [...numeric, ...timing, 'match', 'firstOnly']);
+      }
+      if (j.score.perHeld) {
+        check(j.score.perHeld as unknown as Record<string, unknown>, j.id, [...numeric, 'match']);
       }
       if (j.score.perCount) {
-        check(j.score.perCount as unknown as Record<string, unknown>, j.id, [...numeric, 'of']);
+        check(j.score.perCount as unknown as Record<string, unknown>, j.id, [...numeric, 'of', 'compounds']);
       }
     }
   });
@@ -77,23 +91,25 @@ describe('joker score models', () => {
     }
   });
 
-  it('names only real suits and plausible rank counts in perCard', () => {
+  it('names only real suits and ranks in card matches', () => {
     const suitSet = new Set<string>(SUITS);
+    const rankSet = new Set<string>(RANKS);
     for (const j of all) {
-      const match = j.score?.perCard?.match;
-      if (!match) continue;
-      if (match.kind === 'suit') expect(suitSet.has(match.suit), j.id).toBe(true);
-      if (match.kind === 'rank') {
-        expect(match.ranks, j.id).toBeGreaterThan(0);
-        expect(match.ranks, j.id).toBeLessThanOrEqual(13);
+      for (const match of [j.score?.perCard?.match, j.score?.perHeld?.match, j.score?.retrigger?.match]) {
+        if (!match) continue;
+        if (match.kind === 'suit') expect(suitSet.has(match.suit), j.id).toBe(true);
+        if (match.kind === 'rank') {
+          expect(match.ranks.length, j.id).toBeGreaterThan(0);
+          for (const rank of match.ranks) expect(rankSet.has(rank), `${j.id}: ${rank}`).toBe(true);
+        }
       }
     }
   });
 
   it('names only counts the engine knows how to read', () => {
     const known = [
-      'emptyJokerSlots', 'jokers', 'discardsPerRound', 'deckSize',
-      'cardsRemovedFromDeck', 'money', 'steelCards', 'stoneCards',
+      'stencilSlots', 'jokers', 'discardsPerRound', 'deckSize', 'cardsRemovedFromDeck',
+      'money', 'moneyFives', 'steelCards', 'stoneCards', 'otherJokerSellValue', 'uncommonJokers',
     ];
     for (const j of all) {
       if (j.score?.perCount) expect(known, j.id).toContain(j.score.perCount.of);
@@ -101,11 +117,18 @@ describe('joker score models', () => {
   });
 
   it('keeps every model traceable to a number in its own effect text', () => {
+    // Numbers the text implies rather than states, each for a stated reason.
+    const derived: Record<string, number[]> = {
+      misprint: [11.5], // the average of +0-23 Mult
+      swashbuckler: [1], // one Mult per dollar of sell value
+      'raised-fist': [2], // "double the rank"
+    };
     for (const j of modeled) {
-      const numbers = (j.effect.match(/\d+(\.\d+)?/g) ?? []).map(Number);
+      const numbers = [...(j.effect.match(/\d+(\.\d+)?/g) ?? []).map(Number), ...(derived[j.id] ?? [])];
       const claimed = [
-        j.score!.chips, j.score!.mult, j.score!.xmult,
+        j.score!.chips, j.score!.mult, j.score!.xmult, j.score!.lowestHeldMult,
         j.score!.perCard?.chips, j.score!.perCard?.mult, j.score!.perCard?.xmult,
+        j.score!.perHeld?.chips, j.score!.perHeld?.mult, j.score!.perHeld?.xmult,
         j.score!.perCount?.chips, j.score!.perCount?.mult, j.score!.perCount?.xmult,
       ].filter((n): n is number => n !== undefined);
       for (const value of claimed) {

@@ -3,23 +3,17 @@ import { phaseForAnte } from '../types';
 import type {
   Edition, JokerStickers, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
 } from '../types';
-import { interestCapFor, runInterest, runInterestLost, sellValue } from './economy';
+import { interestCapFor, runInterest, sellValue } from './economy';
 import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
 import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution } from './impact';
 import type { Impact, JokerContext } from './impact';
 import { marginalMultiplier, referenceHand } from './score';
+import { packPrice, voucherPrice } from './prices';
+import { horizonRounds, interestCost, projectMoney, roundsRemaining } from './projection';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
 
-/**
- * Rounds of play left in the run, which is what turns a per-round cost into a
- * total one. A rental joker bought in ante 1 pays its upkeep eight times as
- * often as the same joker bought in ante 8.
- */
-export function roundsRemaining(ante: number): number {
-  const { antesPerRun, roundsPerAnte } = TUNING.economy;
-  return Math.max(1, (antesPerRun - Math.floor(ante) + 1) * roundsPerAnte);
-}
+export { roundsRemaining };
 
 /**
  * Converts dollars given up into the same unit as a score multiplier.
@@ -39,21 +33,22 @@ interface Cost {
 
 /**
  * What an action really costs: the price, plus the interest it stops earning
- * for every remaining round, plus any per-round upkeep it brings with it.
+ * over the planning horizon, plus any per-round upkeep it brings with it.
  */
 function costOf(run: RunState, price: number, stickers?: JokerStickers): Cost {
   const rounds = roundsRemaining(run.ante);
   const reasons: string[] = [];
   let dollars = price;
 
-  // Interest is charged over the recovery horizon, not the whole run: you earn
-  // through the next blinds and climb back out of the tier you dropped.
-  const lostPerRound = runInterestLost(run, price);
-  if (lostPerRound > 0) {
-    const recovery = Math.min(rounds, TUNING.economy.interestRecoveryRounds);
-    dollars += lostPerRound * recovery;
+  // Played forward rather than guessed: a buy that keeps you at the interest
+  // cap costs nothing extra, one that empties the bank costs every tier you
+  // would otherwise have climbed back through.
+  const lost = interestCost(run, price);
+  if (lost > 0) {
+    dollars += lost;
     reasons.push(
-      `Drops your interest by $${lostPerRound}/round while you rebuild ($${run.money} → $${run.money - price})`,
+      `Costs about $${Math.round(lost)} of interest over the next ${horizonRounds(run.ante)} rounds`
+      + ` ($${run.money} → $${run.money - price})`,
     );
   }
 
@@ -96,6 +91,14 @@ function finalize(recs: Recommendation[]): Recommendation[] {
     }));
 }
 
+/**
+ * A card's whole worth on the ranking scale: what it does for your score, and
+ * what it earns, converted at the same exchange rate every cost uses.
+ */
+function worth(impact: Impact): number {
+  return impact.multiplier * economyMultiplier(-impact.incomeDollars);
+}
+
 interface WeakestOwned {
   index: number;
   impact: Impact;
@@ -112,8 +115,8 @@ function findWeakestOwned(run: RunState, ctx: JokerContext): WeakestOwned | null
     if (owned.edition === 'negative' || owned.stickers?.eternal) return;
     const def = getJoker(owned.jokerId);
     if (!def) return;
-    const impact = jokerImpact(run, def, owned.edition, owned.stickers, ctx);
-    if (!weakest || impact.multiplier < weakest.impact.multiplier) {
+    const impact = jokerImpact(run, def, owned.edition, owned.stickers, ctx, i);
+    if (!weakest || worth(impact) < worth(weakest.impact)) {
       weakest = {
         index: i, impact, name: def.name, cost: def.cost, edition: owned.edition, stickers: owned.stickers,
       };
@@ -151,7 +154,10 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
     if (slot.price > run.money) {
       return unavailable(kind, action, `Not affordable ($${slot.price} > $${run.money})`, def.id);
     }
-    return rec(kind, action, impact.multiplier, cost.dollars, [...impact.reasons, ...cost.reasons], def.id, impact.evidence);
+    return rec(
+      kind, action, impact.multiplier, cost.dollars - impact.incomeDollars,
+      [...impact.reasons, ...cost.reasons], def.id, impact.evidence,
+    );
   }
 
   // Slots are full, so the real choice is trading a joker you own for this one.
@@ -166,8 +172,9 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
       );
     }
     // Swapping trades one card's contribution for another's, so the gain is the
-    // ratio between them rather than the newcomer's own multiplier.
-    const swap = impact.multiplier / weakest.impact.multiplier;
+    // ratio between them rather than the newcomer's own multiplier. Income is
+    // part of both sides: selling a Golden Joker gives up what it earns.
+    const swap = worth(impact) / worth(weakest.impact);
     if (swap >= TUNING.slots.sellAndBuyMargin) {
       const netCost = costOf(run, Math.max(0, slot.price - refund), stickers);
       return rec(
@@ -178,8 +185,8 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
         [
           ...impact.reasons,
           ...netCost.reasons,
-          `Slots full — ${weakest.name} contributes least (${formatMultiplier(weakest.impact.multiplier)}`
-          + ` against this card's ${formatMultiplier(impact.multiplier)})`,
+          `Slots full — ${weakest.name} contributes least (${formatMultiplier(worth(weakest.impact))}`
+          + ` against this card's ${formatMultiplier(worth(impact))})`,
           `Selling refunds $${refund}`,
         ],
         def.id,
@@ -192,7 +199,7 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
     return unavailable(kind, action, `Not affordable without a sellable joker ($${slot.price} > $${run.money})`, def.id);
   }
   return rec(
-    kind, action, impact.multiplier * TUNING.slots.blockedPenalty, cost.dollars,
+    kind, action, impact.multiplier * TUNING.slots.blockedPenalty, cost.dollars - impact.incomeDollars,
     [...impact.reasons, ...cost.reasons, 'Joker slots are full and nothing is clearly worth selling for this'],
     def.id, impact.evidence,
   );
@@ -201,9 +208,10 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
 function evalVoucher(run: RunState, voucherId: string, ante: number): Recommendation {
   const def = getVoucher(voucherId);
   if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
-  const action = `Buy ${def.name} ($${def.cost})`;
-  if (def.cost > run.money) {
-    return unavailable('buy-voucher', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
+  const price = voucherPrice(run, def);
+  const action = `Buy ${def.name} ($${price})`;
+  if (price > run.money) {
+    return unavailable('buy-voucher', action, `Not affordable ($${price} > $${run.money})`, def.id);
   }
 
   // A voucher pays out over the rest of the run, so the same voucher is worth
@@ -217,18 +225,19 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
   const reasons = [def.effect];
   if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
 
-  const cost = costOf(run, def.cost);
+  const cost = costOf(run, price);
   return rec('buy-voucher', action, multiplier, cost.dollars, [...reasons, ...cost.reasons], def.id);
 }
 
 function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {
   const def = getPack(packId);
   if (!def) return unavailable('buy-pack', 'Buy unknown pack', 'Unknown catalog id');
-  const action = `Buy ${def.name} ($${def.cost})`;
-  if (def.cost > run.money) {
-    return unavailable('buy-pack', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
+  const price = packPrice(run, def);
+  const action = `Buy ${def.name} ($${price})`;
+  if (price > run.money) {
+    return unavailable('buy-pack', action, `Not affordable ($${price} > $${run.money})`, def.id);
   }
-  const cost = costOf(run, def.cost);
+  const cost = costOf(run, price);
   const hand = referenceHand(run);
   const multiplier = marginalMultiplier(run, hand, priorContribution(run, def.rating[phase]));
   return rec(
@@ -272,6 +281,14 @@ function evalSkip(run: RunState, plan: JokerContext['plan']): Recommendation {
     }
   } else {
     reasons.push('Green Deck earns no interest — cash can be spent without breaking an interest tier');
+  }
+  const path = projectMoney(run, horizonRounds(run.ante));
+  if (path.length > 0) {
+    reasons.push(
+      path.length > 1
+        ? `Banked, that is about $${Math.round(path[0])} next shop and $${Math.round(path[path.length - 1])} in ${path.length} rounds`
+        : `Banked, that is about $${Math.round(path[0])} next shop`,
+    );
   }
   if (plan?.archetypeId === 'economy') {
     // Context, not a score change: the model prices what spending costs you now,
@@ -326,13 +343,13 @@ export function recommendPackPick(run: RunState, optionIds: string[]): Recommend
 
     if (getJoker(id) && !hasFreeJokerSlot(run, 'base')) {
       const weakest = findWeakestOwned(run, ctx);
-      if (weakest && impact.multiplier / weakest.impact.multiplier >= TUNING.slots.sellAndBuyMargin) {
-        reasons.push(`Slots full — sell ${weakest.name} (${formatMultiplier(weakest.impact.multiplier)}) to make room`);
+      if (weakest && worth(impact) / worth(weakest.impact) >= TUNING.slots.sellAndBuyMargin) {
+        reasons.push(`Slots full — sell ${weakest.name} (${formatMultiplier(worth(weakest.impact))}) to make room`);
       } else {
         reasons.push('Careful: your joker slots are full and nothing is clearly worth selling');
       }
     }
-    return rec('pick', `Take ${name}`, impact.multiplier, 0, reasons, id, impact.evidence);
+    return rec('pick', `Take ${name}`, impact.multiplier, -impact.incomeDollars, reasons, id, impact.evidence);
   });
   return finalize(recs);
 }
