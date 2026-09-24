@@ -8,6 +8,7 @@ import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
 import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution } from './impact';
 import type { Impact, JokerContext } from './impact';
 import { marginalMultiplier, referenceHand } from './score';
+import { packPrice, voucherPrice } from './prices';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
 
@@ -201,9 +202,10 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
 function evalVoucher(run: RunState, voucherId: string, ante: number): Recommendation {
   const def = getVoucher(voucherId);
   if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
-  const action = `Buy ${def.name} ($${def.cost})`;
-  if (def.cost > run.money) {
-    return unavailable('buy-voucher', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
+  const price = voucherPrice(run, def);
+  const action = `Buy ${def.name} ($${price})`;
+  if (price > run.money) {
+    return unavailable('buy-voucher', action, `Not affordable ($${price} > $${run.money})`, def.id);
   }
 
   // A voucher pays out over the rest of the run, so the same voucher is worth
@@ -217,18 +219,19 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
   const reasons = [def.effect];
   if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
 
-  const cost = costOf(run, def.cost);
+  const cost = costOf(run, price);
   return rec('buy-voucher', action, multiplier, cost.dollars, [...reasons, ...cost.reasons], def.id);
 }
 
 function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {
   const def = getPack(packId);
   if (!def) return unavailable('buy-pack', 'Buy unknown pack', 'Unknown catalog id');
-  const action = `Buy ${def.name} ($${def.cost})`;
-  if (def.cost > run.money) {
-    return unavailable('buy-pack', action, `Not affordable ($${def.cost} > $${run.money})`, def.id);
+  const price = packPrice(run, def);
+  const action = `Buy ${def.name} ($${price})`;
+  if (price > run.money) {
+    return unavailable('buy-pack', action, `Not affordable ($${price} > $${run.money})`, def.id);
   }
-  const cost = costOf(run, def.cost);
+  const cost = costOf(run, price);
   const hand = referenceHand(run);
   const multiplier = marginalMultiplier(run, hand, priorContribution(run, def.rating[phase]));
   return rec(

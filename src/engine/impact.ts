@@ -13,7 +13,7 @@
  * and spectral — the curated rating supplies a prior, and the result is labelled
  * so the UI can say which kind of number the player is looking at.
  */
-import { getConsumable, getJoker } from '../catalog/catalog';
+import { getBoss, getConsumable, getJoker } from '../catalog/catalog';
 import type {
   ConsumableDef, Edition, HandType, JokerDef, JokerStickers, Phase, RunState,
 } from '../types';
@@ -22,7 +22,7 @@ import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
 import {
-  asCandidate, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
+  asCandidate, boardOf, bossOutlook, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
   referenceHand, scoreTarget,
 } from './score';
 import { TUNING } from './tuning';
@@ -184,11 +184,39 @@ export function jokerImpact(
     }
   }
 
+  reasons.push(...bossReasons(run, def));
+
   const sticker = stickerMultiplier(stickers);
   multiplier *= sticker.multiplier;
   reasons.push(...sticker.reasons);
 
   return { multiplier, evidence, reasons };
+}
+
+/** Jokers that switch the current boss off, for good or for one sale. */
+const BOSS_DISABLERS: Record<string, string> = {
+  chicot: 'Disables',
+  luchador: 'Selling it disables',
+};
+
+/**
+ * What a boss disabler is worth against the boss actually waiting this ante.
+ * Context rather than a score change: the ranking judges the run a full ante
+ * ahead, and this boss is gone after one round.
+ */
+function bossReasons(run: RunState, def: JokerDef): string[] {
+  const verb = BOSS_DISABLERS[def.id];
+  const boss = run.boss ? getBoss(run.boss) : undefined;
+  if (!verb || !boss) return [];
+  const board = boardOf(run);
+  if (board.some(j => j.id === 'chicot')) return [];
+  const now = bossOutlook(run, boss, board);
+  const without = bossOutlook(run, boss, [...board, asCandidate(getJoker('chicot')!, 'base')]);
+  const fmt = (n: number) => n.toLocaleString('en-US');
+  return [
+    `${verb} ${boss.name} (${boss.effect}): your hand scores ~${fmt(without.score)} against`
+    + ` ${fmt(without.target)} instead of ~${fmt(now.score)} against ${fmt(now.target)}`,
+  ];
 }
 
 /**

@@ -659,3 +659,38 @@ export function asCandidate(def: JokerDef, edition: Edition, withAbility = true)
   const joker = toScoring(def, edition);
   return withAbility ? joker : { ...joker, score: undefined };
 }
+
+export interface BossOutlook {
+  boss: BossDef;
+  /** Score the boss asks for, back to a normal boss's size when it is disabled. */
+  target: number;
+  /** The reference hand's estimate under the boss's effects. */
+  score: number;
+  /** Hands of the reference hand the round allows. */
+  hands: number;
+  /** Hands the estimate needs to clear it, or null when it scores nothing. */
+  handsNeeded: number | null;
+  /** Chicot on the board: the boss does nothing. */
+  disabled: boolean;
+}
+
+/**
+ * How the board stands against a specific boss. Disabling a boss also undoes
+ * its size, as the game does for The Wall and Violet Vessel.
+ */
+export function bossOutlook(run: RunState, boss: BossDef, board: ScoringJoker[] = boardOf(run)): BossOutlook {
+  const disabled = board.some(j => j.id === 'chicot');
+  const hand = referenceHand(run);
+  const score = estimateWithBoard(run, hand, board, { boss }).score;
+  const target = disabled ? blindTargets(run.ante, run.deck, run.stake).boss : bossTarget(run, boss);
+  const roundHands = Math.max(1, (!disabled && boss.hands) || run.handsPerRound);
+  const hands = !disabled && boss.noRepeatHand ? 1 : roundHands;
+  return {
+    boss,
+    target,
+    score,
+    hands,
+    handsNeeded: score > 0 ? Math.ceil(target / score) : null,
+    disabled,
+  };
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
+import { bossesForAnte, getBoss, getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
 import { hasFreeJokerSlot, usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
@@ -28,6 +28,10 @@ export default function RunOverview() {
       the edition after adding is too late, the board is already full. */
   const [addEdition, setAddEdition] = useState<Edition>('base');
   const [addRefused, setAddRefused] = useState(false);
+  const current = run.boss ? getBoss(run.boss) : undefined;
+  const bossOptions = bossesForAnte(run.ante);
+  // A boss picked before the ante was corrected stays selectable rather than vanishing.
+  if (current && !bossOptions.includes(current)) bossOptions.unshift(current);
   return (
     <section className="screen">
       <header className="row spread">
@@ -51,6 +55,19 @@ export default function RunOverview() {
           <option value="">{t('primaryHandNone')}</option>
           {HAND_TYPES.map(hand => (
             <option key={hand} value={hand}>{hand}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="primary-hand">
+        <span>{t('bossBlind')}</span>
+        <select
+          value={run.boss ?? ''}
+          onChange={e => dispatch({ type: 'SET_BOSS', boss: e.target.value || null })}
+        >
+          <option value="">{t('bossUnknown')}</option>
+          {bossOptions.map(boss => (
+            <option key={boss.id} value={boss.id}>{boss.name} — {boss.effect}</option>
           ))}
         </select>
       </label>

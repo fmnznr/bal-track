@@ -1,6 +1,7 @@
-import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
+import { getBoss, getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
 import { hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
+import { packPrice, voucherPrice } from '../engine/prices';
 import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type {
@@ -39,6 +40,7 @@ export type RunAction =
   | { type: 'START_RUN'; deck: string; stake: string }
   | { type: 'SET_MONEY'; money: number }
   | { type: 'SET_ANTE'; ante: number }
+  | { type: 'SET_BOSS'; boss: string | null }
   | { type: 'SET_JOKER_SLOTS'; slots: number }
   | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; stickers?: JokerStickers; price?: number }
   | { type: 'SET_JOKER_EDITION'; index: number; edition: Edition }
@@ -123,6 +125,7 @@ export function newRunState(deck: string, stake: string): RunState {
     handsPerRound: DECK_HANDS[deck] ?? 4,
     discardsPerRound: Math.max(0, (DECK_DISCARDS[deck] ?? 3) - stakeDiscardPenalty(stake)),
     deckProfile: initialDeckProfile(deck),
+    boss: null,
     status: 'active',
   };
 }
@@ -157,7 +160,11 @@ function redeemVoucher(run: RunState, voucherId: string, price = 0): RunState | 
   let { jokerSlots, consumableSlots, ante } = run;
   if (voucherId === 'antimatter') jokerSlots += 1;
   if (voucherId === 'crystal-ball') consumableSlots += 1;
-  if (voucherId === 'hieroglyph' || voucherId === 'petroglyph') ante = Math.max(0, ante - 1);
+  let { boss } = run;
+  if (voucherId === 'hieroglyph' || voucherId === 'petroglyph') {
+    ante = Math.max(0, ante - 1);
+    boss = null;
+  }
   const resource = RESOURCE_VOUCHERS[voucherId];
   return {
     ...run,
@@ -165,6 +172,7 @@ function redeemVoucher(run: RunState, voucherId: string, price = 0): RunState | 
     jokerSlots,
     consumableSlots,
     ante,
+    boss,
     handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
     discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
     vouchers: [...run.vouchers, voucherId],
@@ -223,8 +231,14 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       return { ...state, packDraft: action.draft };
     case 'SET_MONEY':
       return push({ ...run, money: Math.max(0, action.money) });
-    case 'SET_ANTE':
-      return push({ ...run, ante: Math.max(0, action.ante) });
+    case 'SET_ANTE': {
+      const ante = Math.max(0, action.ante);
+      // A new ante has a new boss, which the player has not seen yet.
+      return push({ ...run, ante, boss: ante === run.ante ? run.boss : null });
+    }
+    case 'SET_BOSS':
+      if (action.boss === run.boss || (action.boss !== null && !getBoss(action.boss))) return state;
+      return push({ ...run, boss: action.boss });
     case 'SET_JOKER_SLOTS':
       return push({ ...run, jokerSlots: Math.max(1, action.slots) });
     case 'ADD_JOKER': {
@@ -361,7 +375,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const voucherId = shop?.voucherId;
       const def = voucherId ? getVoucher(voucherId) : undefined;
       if (!shop || !voucherId || !def) return state;
-      const next = redeemVoucher(run, voucherId, def.cost);
+      const next = redeemVoucher(run, voucherId, voucherPrice(run, def));
       if (!next) return state;
       return push(next, { shopDraft: { ...shop, voucherId: null } });
     }
@@ -369,9 +383,10 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const shop = state.shopDraft;
       const packId = shop?.packIds[action.index];
       const def = packId ? getPack(packId) : undefined;
-      if (!shop || !packId || !def || def.cost > run.money) return state;
+      const price = def ? packPrice(run, def) : 0;
+      if (!shop || !packId || !def || price > run.money) return state;
       return push(
-        { ...run, money: run.money - def.cost },
+        { ...run, money: run.money - price },
         {
           shopDraft: { ...shop, packIds: shop.packIds.filter((_, i) => i !== action.index) },
           // The pack you just paid for is the one you are about to open, so the
@@ -482,6 +497,7 @@ export function load(): StoreState | null {
         // v2 tracked when each joker was acquired to scale Green Joker and Ice
         // Cream; those signals are gone, so the counters go with them.
         jokers: r.jokers.map(({ jokerId, edition, stickers }) => ({ jokerId, edition, stickers })),
+        boss: r.boss ?? null,
         handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
         discardsPerRound: r.discardsPerRound
           ?? Math.max(0, (DECK_DISCARDS[r.deck] ?? 3) - stakeDiscardPenalty(r.stake)),

@@ -207,6 +207,11 @@ export interface RunState {
   handsPerRound: number;
   discardsPerRound: number;
   deckProfile: DeckProfile;
+  /**
+   * The boss blind of the current ante, once the player has looked it up. The
+   * game shows it from the start of the ante, so it is known in every shop.
+   */
+  boss: string | null;
   status: 'active' | 'won' | 'lost';
 }
 

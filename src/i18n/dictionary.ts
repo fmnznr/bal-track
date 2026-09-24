@@ -148,6 +148,11 @@ const en = {
   // Score panel
   typicalHand: 'Typical {hand} ~{score}',
   anteTargets: 'Ante {ante} targets {small} / {big} / {boss}',
+  bossVs: 'vs {boss}: ~{score} per hand against {target}, {needed} of {hands} hands',
+  bossVsNothing: 'vs {boss}: scores nothing against {target}',
+  bossDisabled: 'Chicot disables it',
+  bossBlind: 'Boss blind this ante',
+  bossUnknown: 'Not looked up yet',
   notCounted: 'Not counted: {names}',
   doesNotFire: 'Does not fire on {hand}: {names}',
   andMore: '{names} +{count} more',
@@ -318,6 +323,11 @@ const de: Phrases = {
 
   typicalHand: 'Typisch {hand} ~{score}',
   anteTargets: 'Ante {ante} verlangt {small} / {big} / {boss}',
+  bossVs: 'gegen {boss}: ~{score} pro Hand bei {target}, {needed} von {hands} Händen',
+  bossVsNothing: 'gegen {boss}: punktet nicht bei {target}',
+  bossDisabled: 'Chicot schaltet ihn ab',
+  bossBlind: 'Boss-Blind dieser Ante',
+  bossUnknown: 'Noch nicht nachgesehen',
   notCounted: 'Nicht mitgerechnet: {names}',
   doesNotFire: 'Löst bei {hand} nicht aus: {names}',
   andMore: '{names} +{count} weitere',

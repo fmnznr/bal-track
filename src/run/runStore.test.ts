@@ -501,3 +501,41 @@ describe('clearing the history', () => {
     expect(cleared).toBe(s);
   });
 });
+
+describe('boss blind', () => {
+  it('records the boss and forgets it when the ante moves on', () => {
+    let s = reduce(started(), { type: 'SET_BOSS', boss: 'the-club' });
+    expect(s.current?.boss).toBe('the-club');
+    s = reduce(s, { type: 'SET_ANTE', ante: 1 });
+    expect(s.current?.boss).toBe('the-club');
+    s = reduce(s, { type: 'SET_ANTE', ante: 2 });
+    expect(s.current?.boss).toBeNull();
+  });
+
+  it('ignores an unknown boss', () => {
+    const s = started();
+    expect(reduce(s, { type: 'SET_BOSS', boss: 'the-nothing' })).toBe(s);
+  });
+
+  it('backfills the boss on runs saved before it existed', () => {
+    const { boss: _boss, ...old } = newRunState('Red', 'White');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: old, past: [], finished: [] }));
+    expect(load()?.current?.boss).toBeNull();
+  });
+});
+
+describe('discounted shop purchases', () => {
+  it('charges the discounted price for packs and vouchers', () => {
+    let s = started();
+    s = reduce(s, { type: 'SET_MONEY', money: 30 });
+    s = reduce(s, { type: 'REDEEM_VOUCHER', voucherId: 'clearance-sale' });
+    s = reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [], voucherId: 'overstock', packIds: ['arcana-normal'], rerollCost: 5 },
+    });
+    s = reduce(s, { type: 'BUY_SHOP_PACK', index: 0 });
+    expect(s.current?.money).toBe(27); // $4 pack at 25% off
+    s = reduce(s, { type: 'BUY_SHOP_VOUCHER' });
+    expect(s.current?.money).toBe(20); // $10 voucher at 25% off
+  });
+});

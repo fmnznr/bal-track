@@ -361,6 +361,8 @@ details summary {
   padding: 8px 10px;
   font-variant-numeric: tabular-nums;
 }
+/* The board does not clear the boss in the hands the round allows. */
+.score-panel .warn { color: var(--bad); font-weight: 700; }
 
 /* The single declared input that drives strategy and the score estimate. */
 .primary-hand { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }

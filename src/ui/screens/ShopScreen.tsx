@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { hasFreeJokerSlot } from '../../engine/gameRules';
+import { consumablePrice, jokerPrice, packPrice, voucherPrice } from '../../engine/prices';
 import { recommend } from '../../engine/recommend';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
@@ -35,9 +36,10 @@ export default function ShopScreen({ onPackBought }: Props) {
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop) : [];
   const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
+  const voucherCost = voucherDef ? voucherPrice(run, voucherDef) : 0;
   const voucherBlocked = Boolean(
     voucherDef
-      && (voucherDef.cost > run.money
+      && (voucherCost > run.money
         || run.vouchers.includes(voucherDef.id)
         || (voucherDef.requires && !run.vouchers.includes(voucherDef.requires))),
   );
@@ -70,9 +72,9 @@ export default function ShopScreen({ onPackBought }: Props) {
         // The price on the tag beats the catalog: a shop under Clearance Sale
         // or Liquidation charges less than a card is listed at.
         if (kind === 'joker') {
-          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: price ?? getJoker(id)?.cost ?? 0 });
+          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: price ?? defaultJokerPrice(id, 'base') });
         } else if (kind === 'tarot') {
-          next.cards.push({ kind: 'consumable', consumableId: id, price: price ?? getConsumable(id)?.cost ?? 0 });
+          next.cards.push({ kind: 'consumable', consumableId: id, price: price ?? defaultConsumablePrice(id) });
         } else if (kind === 'voucher') {
           next.voucherId = id;
         } else {
@@ -81,6 +83,16 @@ export default function ShopScreen({ onPackBought }: Props) {
       }
       return next;
     });
+  };
+
+  /** What the shop charges for a card by default: catalog price, edition, discounts. */
+  const defaultJokerPrice = (id: string, edition: Edition) => {
+    const def = getJoker(id);
+    return def ? jokerPrice(run, def, edition) : 0;
+  };
+  const defaultConsumablePrice = (id: string) => {
+    const def = getConsumable(id);
+    return def ? consumablePrice(run, def) : 0;
   };
 
   const removeCard = (i: number) => setShop(s => ({ ...s, cards: s.cards.filter((_, j) => j !== i) }));
@@ -116,14 +128,18 @@ export default function ShopScreen({ onPackBought }: Props) {
                 <select
                   value={slot.edition}
                   aria-label={t('editionOf', { name: name ?? '' })}
-                  onChange={e =>
+                  onChange={e => {
+                    const edition = e.target.value as Edition;
                     setShop(s => ({
                       ...s,
-                      cards: s.cards.map((c, j) =>
-                        j === i && c.kind === 'joker' ? { ...c, edition: e.target.value as Edition } : c,
-                      ),
-                    }))
-                  }
+                      cards: s.cards.map((c, j) => {
+                        if (j !== i || c.kind !== 'joker') return c;
+                        // An edition costs extra. Follow it unless the price was typed in by hand.
+                        const followsDefault = c.price === defaultJokerPrice(c.jokerId, c.edition);
+                        return { ...c, edition, price: followsDefault ? defaultJokerPrice(c.jokerId, edition) : c.price };
+                      }),
+                    }));
+                  }}
                 >
                   {EDITIONS.map(ed => (
                     <option key={ed} value={ed}>{ed}</option>
@@ -170,8 +186,8 @@ export default function ShopScreen({ onPackBought }: Props) {
         onPick={item =>
           setShop(s =>
             item.kind === 'shop-joker'
-              ? { ...s, cards: [...s.cards, { kind: 'joker', jokerId: item.id, edition: 'base', price: getJoker(item.id)?.cost ?? 0 }] }
-              : { ...s, cards: [...s.cards, { kind: 'consumable', consumableId: item.id, price: getConsumable(item.id)?.cost ?? 0 }] },
+              ? { ...s, cards: [...s.cards, { kind: 'joker', jokerId: item.id, edition: 'base', price: defaultJokerPrice(item.id, 'base') }] }
+              : { ...s, cards: [...s.cards, { kind: 'consumable', consumableId: item.id, price: defaultConsumablePrice(item.id) }] },
           )
         }
       />
@@ -187,7 +203,7 @@ export default function ShopScreen({ onPackBought }: Props) {
               : undefined}
             onClick={() => dispatch({ type: 'BUY_SHOP_VOUCHER' })}
           >
-            {t('redeemed')}
+            {t('redeemed')} ${voucherCost}
           </button>
           <button className="ghost" aria-label={t('removeVoucher')} onClick={() => setShop(s => ({ ...s, voucherId: null }))}>✕</button>
         </div>
@@ -200,18 +216,19 @@ export default function ShopScreen({ onPackBought }: Props) {
         {shop.packIds.map((id, i) => {
           const def = getPack(id);
           if (!def) return null;
+          const cost = packPrice(run, def);
           return (
             <li key={i} className="row">
               <span className="grow">{def.name}</span>
               <button
-                disabled={def.cost > run.money}
-                title={def.cost > run.money ? t('notAffordable') : undefined}
+                disabled={cost > run.money}
+                title={cost > run.money ? t('notAffordable') : undefined}
                 onClick={() => {
                   dispatch({ type: 'BUY_SHOP_PACK', index: i });
                   onPackBought();
                 }}
               >
-                {t('bought')} ${def.cost}
+                {t('bought')} ${cost}
               </button>
               <button className="ghost" aria-label={t('removeX', { name: def.name })} onClick={() => removePack(i)}>✕</button>
             </li>

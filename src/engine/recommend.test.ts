@@ -433,3 +433,23 @@ describe('a card the model knows is dead', () => {
     expect(swap?.action).toMatch(/^Sell Crafty Joker/);
   });
 });
+
+describe('recommend — the boss this ante', () => {
+  it('says what Chicot would do against the boss you picked', () => {
+    const recs = recommend(
+      run({ money: 30, boss: 'the-plant', primaryHand: 'Pair', deckProfile: { ...initialDeckProfile('Red'), faceCards: 40 } }),
+      shop({ cards: [{ kind: 'joker', jokerId: 'chicot', edition: 'base', price: 20 }] }),
+    );
+    const chicot = recs.find(r => r.refId === 'chicot')!;
+    expect(chicot.reasons.join(' ')).toMatch(/Disables The Plant .*instead of/);
+  });
+
+  it('charges a discounted pack and voucher at their shop price', () => {
+    const recs = recommend(
+      run({ money: 30, vouchers: ['clearance-sale'] }),
+      shop({ voucherId: 'overstock', packIds: ['arcana-normal'] }),
+    );
+    expect(recs.find(r => r.kind === 'buy-voucher')?.action).toBe('Buy Overstock ($7)');
+    expect(recs.find(r => r.kind === 'buy-pack')?.action).toBe('Buy Arcana Pack ($3)');
+  });
+});
