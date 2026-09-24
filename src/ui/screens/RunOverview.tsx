@@ -9,6 +9,7 @@ import { HAND_TYPES } from '../../types';
 import type { Edition, HandType, Suit } from '../../types';
 import AutocompleteInput from '../components/AutocompleteInput';
 import DeckProfileSection from '../components/DeckProfileSection';
+import EconomyPanel from '../components/EconomyPanel';
 import JokerOrderPanel from '../components/JokerOrderPanel';
 import JokerStickerFields from '../components/JokerStickerFields';
 import NumberField from '../components/NumberField';
@@ -43,6 +44,7 @@ export default function RunOverview() {
 
       <StrategyPanel />
       <ScorePanel />
+      <EconomyPanel />
 
       <label className="primary-hand">
         <span>{t('primaryHand')}</span>

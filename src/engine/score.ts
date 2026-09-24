@@ -81,6 +81,11 @@ export function bossTarget(run: Pick<RunState, 'ante' | 'deck' | 'stake'>, boss:
   return Math.round(anteBase(run.ante, run.stake) * boss.size * deckBlindFactor(run.deck));
 }
 
+/** Cards a hand scores, which is also what the estimate assumes you play. */
+export function scoringCards(hand: HandType): number {
+  return byHand.get(hand)?.scoringCards ?? 5;
+}
+
 /** The hand the estimate should describe: what you build around, else what you levelled. */
 export function referenceHand(run: RunState): HandType {
   if (run.primaryHand) return run.primaryHand;

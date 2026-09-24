@@ -25,6 +25,7 @@ import {
   asCandidate, boardOf, bossOutlook, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
   referenceHand, scoreTarget,
 } from './score';
+import { earnsIncome, horizonRounds, jokerIncome } from './projection';
 import { TUNING } from './tuning';
 
 export type Evidence = 'modeled' | 'partial' | 'heuristic';
@@ -32,6 +33,11 @@ export type Evidence = 'modeled' | 'partial' | 'heuristic';
 export interface Impact {
   /** Estimated multiplier on the reference hand's score. 1 = changes nothing. */
   multiplier: number;
+  /**
+   * Dollars the card earns over the planning horizon, interest included. Kept
+   * apart from the multiplier because it belongs on the cost side of a buy.
+   */
+  incomeDollars: number;
   evidence: Evidence;
   reasons: string[];
 }
@@ -130,8 +136,17 @@ export function jokerImpact(
   // does not show, so its rating decides. What it copies now is still stated.
   const copies = def.score?.copies !== undefined;
   const modelled = def.score ? contribution(true) : null;
+  // What an income joker earns is counted in dollars, so its rating — which
+  // mostly stands for that income — does not count it a second time.
+  const income = earnsIncome(def) ? jokerIncome(run, def, ownedIndex) : 0;
 
-  if (modelled?.modelled && !copies) {
+  if (earnsIncome(def) && !def.score) {
+    multiplier = marginalMultiplier(run, hand, editionScore);
+    evidence = 'modeled';
+    reasons.push(
+      `Earns about $${Math.round(income)} over the next ${horizonRounds(run.ante)} rounds, interest included`,
+    );
+  } else if (modelled?.modelled && !copies) {
     // Geometric, so a modelled contribution of zero carries through: a joker the
     // model knows cannot fire is not rescued by a good rating.
     const w = TUNING.prior.modelWeight;
@@ -190,7 +205,7 @@ export function jokerImpact(
   multiplier *= sticker.multiplier;
   reasons.push(...sticker.reasons);
 
-  return { multiplier, evidence, reasons };
+  return { multiplier, incomeDollars: income, evidence, reasons };
 }
 
 /** Jokers that switch the current boss off, for good or for one sale. */
@@ -238,7 +253,7 @@ export function consumableImpact(
     if (def.hand === hand) {
       const multiplier = handLevelMultiplier(run, hand, 1);
       reasons.push(`Levels ${def.hand}, the hand your estimate is built on`);
-      return { multiplier, evidence: 'modeled', reasons };
+      return { multiplier, incomeDollars: 0, evidence: 'modeled', reasons };
     }
     // Levels a hand the current estimate is not about, so the gain lands only if
     // the player switches to it. Worth something when the build points that way.
@@ -261,10 +276,10 @@ export function consumableImpact(
       multiplier *= TUNING.planet.perExistingLevel ** (level - 1);
       reasons.push(`${def.hand} is already level ${level} — keep stacking it`);
     }
-    return { multiplier, evidence: 'heuristic', reasons };
+    return { multiplier, incomeDollars: 0, evidence: 'heuristic', reasons };
   }
 
-  return { multiplier: priorFromRating(run, hand, def.rating), evidence: 'heuristic', reasons };
+  return { multiplier: priorFromRating(run, hand, def.rating), incomeDollars: 0, evidence: 'heuristic', reasons };
 }
 
 /** Impact of a card in a shop slot, resolved from the catalog. */

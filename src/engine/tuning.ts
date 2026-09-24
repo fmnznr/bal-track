@@ -169,16 +169,22 @@ export const TUNING = {
      */
     dollarsPerDoubling: 25,
     /**
-     * How long a dented bankroll stays dented.
+     * Rounds ahead a purchase is judged over: two antes. The bankroll is played
+     * forward this far, once banking and once buying, and the gap at the end —
+     * interest compounding included — is what the purchase costs. Income
+     * jokers are valued the same way.
      *
-     * Spending drops you an interest tier, but you earn through the next blinds
-     * and climb back, so the loss is transient. Charging it for every remaining
-     * round instead would price a $10 buy at ante 1 as if the money were gone
-     * forever — it made a $10 joker cost $58 and nothing ever looked worth
-     * buying. Recurring costs that genuinely never stop, like rental upkeep,
-     * are charged against the real rounds remaining.
+     * Longer horizons price money as if nothing will ever be spent, which made a
+     * $10 joker cost $58 at ante 1 when every remaining round was charged; a
+     * horizon of zero ignores interest entirely. Recurring costs that genuinely
+     * never stop, like rental upkeep, are still charged against every round left.
      */
-    interestRecoveryRounds: 2,
+    planningHorizonRounds: 6,
+    /**
+     * Share of discards a round leaves unused, for Green Deck's $1 per spare
+     * discard and Delayed Gratification's payout for not discarding at all.
+     */
+    unusedDiscardShare: 0.5,
     /** Blinds per ante, for turning "antes left" into "rounds left". */
     roundsPerAnte: 3,
     /** Antes in a standard run, used to judge how long a voucher has to pay off. */

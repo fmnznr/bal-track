@@ -361,6 +361,16 @@ details summary {
   padding: 8px 10px;
   font-variant-numeric: tabular-nums;
 }
+/* Money gets the game's own gold edge, as the score line gets chips blue. */
+.economy-panel {
+  border-left: 6px solid var(--money);
+  background: var(--panel);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
 /* The board does not clear the boss in the hands the round allows. */
 .score-panel .warn { color: var(--bad); font-weight: 700; }
 

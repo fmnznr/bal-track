@@ -168,3 +168,11 @@ it('scores the board against the boss blind you pick', async () => {
   await userEvent.tab();
   expect(screen.getByLabelText('Boss blind this ante')).toHaveDisplayValue('Not looked up yet');
 });
+
+it('shows where the bankroll is heading if nothing is bought', () => {
+  render(<App />);
+  const panel = document.querySelector('.economy-panel');
+  expect(panel).toHaveTextContent('Blind reward $4');
+  expect(panel).toHaveTextContent('Golden Joker $4');
+  expect(panel).toHaveTextContent(/Banking everything: \$20 next shop, \$\d+ in 6 rounds/);
+});
