@@ -319,12 +319,12 @@
   "hand": "Three of a Kind",
   "estimate": "216x104.67=22609 modeled:3 inactive:1 unmodeled:1",
   "order": "|-",
-  "reasons": "329555bb"
+  "reasons": "c2c3813f"
  },
  {
   "i": 16,
   "recs": [
-   "buy-joker 3.115 high modeled Buy Delayed Gratification ($9)",
+   "buy-joker 2.773 high modeled Buy Delayed Gratification ($9)",
    "buy-joker 2.619 high partial Buy Steel Joker ($0)",
    "buy-pack 2.149 high heuristic Buy Celestial Pack ($4)",
    "buy-pack 2.149 high heuristic Buy Spectral Pack ($4)",
@@ -344,7 +344,7 @@
   "hand": "Two Pair",
   "estimate": "233x18.22=4245 modeled:0 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "1f66675c"
+  "reasons": "f6d72417"
  },
  {
   "i": 17,
@@ -462,13 +462,13 @@
    "1.81 high heuristic Take Justice",
    "1.714 high partial Take Baron",
    "1.365 medium heuristic Take Jupiter",
-   "0.994 low modeled Take Delayed Gratification"
+   "1.117 medium modeled Take Delayed Gratification"
   ],
   "strategy": "commit flush:7.5 straight:3 pairs:3",
   "hand": "Three of a Kind",
   "estimate": "179x80.55=14418 modeled:1 inactive:1 unmodeled:1",
   "order": "brainstorm-leftmost|120",
-  "reasons": "c5b5e18d"
+  "reasons": "491ecf28"
  },
  {
   "i": 23,
@@ -604,14 +604,14 @@
    "2.874 high heuristic Take Pareidolia",
    "2.443 high heuristic Take Obelisk",
    "2.443 high heuristic Take Obelisk",
-   "1.316 medium modeled Take Delayed Gratification",
+   "1.395 medium modeled Take Delayed Gratification",
    "1.05 low heuristic Take Jupiter"
   ],
   "strategy": "lean pairs:3 flush:1.5 straight:0",
   "hand": "Four of a Kind",
   "estimate": "109x16.73=1824 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "b56d2b98"
+  "reasons": "15708846"
  },
  {
   "i": 30,
@@ -769,7 +769,7 @@
    "buy-joker 2.239 high heuristic Buy Pareidolia ($9)",
    "buy-pack 2.226 high heuristic Buy Spectral Pack ($4)",
    "buy-pack 2.226 high heuristic Buy Celestial Pack ($4)",
-   "buy-joker 1.926 high modeled Buy Delayed Gratification ($12)",
+   "buy-joker 1.714 high modeled Buy Delayed Gratification ($12)",
    "reroll 1.06 low heuristic Reroll ($2)",
    "skip 1 low heuristic Buy nothing"
   ],
@@ -782,7 +782,7 @@
   "hand": "High Card",
   "estimate": "73x7.56=552 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "8e197896"
+  "reasons": "e04bb3ef"
  },
  {
   "i": 38,
@@ -1138,14 +1138,14 @@
    "2.131 high heuristic Take The Chariot",
    "2.131 high heuristic Take The Chariot",
    "1.537 high partial Take Greedy Joker",
-   "1.114 medium modeled Take Delayed Gratification",
+   "1.181 medium modeled Take Delayed Gratification",
    "1.053 low partial Take Joker"
   ],
   "strategy": "lean flush:5 scaling:2 pairs:1.5",
   "hand": "Five of a Kind",
   "estimate": "277x169.4=46924 modeled:1 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "23c24b8b"
+  "reasons": "e02854ed"
  },
  {
   "i": 55,
@@ -1157,7 +1157,7 @@
   ],
   "picks": [
    "4.2 high heuristic Take Blueprint",
-   "2.581 high modeled Take Delayed Gratification",
+   "2.297 high modeled Take Delayed Gratification",
    "1.81 high heuristic Take Justice",
    "1.05 low heuristic Take Mercury"
   ],
@@ -1165,7 +1165,7 @@
   "hand": "Straight Flush",
   "estimate": "474x89.69=42513 modeled:1 inactive:0 unmodeled:3",
   "order": "|-",
-  "reasons": "4aa9614f"
+  "reasons": "f4cd1f66"
  },
  {
   "i": 56,
@@ -1281,10 +1281,10 @@
    "buy-joker 0.9 low partial Buy Joker ($9)"
   ],
   "picks": [
-   "2.12 high modeled Take Delayed Gratification",
-   "2.12 high modeled Take Delayed Gratification",
    "2 high modeled Take Golden Joker",
    "2 high modeled Take Golden Joker",
+   "2 high modeled Take Delayed Gratification",
+   "2 high modeled Take Delayed Gratification",
    "1.952 high heuristic Take The Chariot",
    "1.681 high heuristic Take Justice"
   ],
@@ -1292,7 +1292,7 @@
   "hand": "Straight Flush",
   "estimate": "202x26.48=5349 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "4b84abe3"
+  "reasons": "fa4af607"
  },
  {
   "i": 62,
@@ -1503,7 +1503,7 @@
    "reroll 0.826 low heuristic Reroll ($11)"
   ],
   "picks": [
-   "1.703 high modeled Take Delayed Gratification",
+   "1.516 high modeled Take Delayed Gratification",
    "1.365 medium heuristic Take Venus",
    "1.101 medium heuristic Take Ice Cream",
    "1 low partial Take Steel Joker",
@@ -1513,7 +1513,7 @@
   "hand": "Two Pair",
   "estimate": "82x4.71=386 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "c81159a9"
+  "reasons": "c3f907ec"
  },
  {
   "i": 73,
@@ -1556,7 +1556,7 @@
  {
   "i": 75,
   "recs": [
-   "buy-joker 1.846 high modeled Buy Delayed Gratification ($4)",
+   "buy-joker 1.741 high modeled Buy Delayed Gratification ($4)",
    "skip 1 low heuristic Buy nothing",
    "buy-pack 0.999 low heuristic Buy Standard Pack ($4)",
    "buy-voucher 0.976 low heuristic Buy Overstock ($10)",
@@ -1564,8 +1564,8 @@
    "buy-joker 0.902 low heuristic Buy Glass Joker ($18)"
   ],
   "picks": [
-   "2.062 high modeled Take Delayed Gratification",
    "1.945 high modeled Take Golden Joker",
+   "1.945 high modeled Take Delayed Gratification",
    "1.493 medium partial Take Banner",
    "1.251 medium heuristic Take The Fool",
    "1.098 low partial Take Greedy Joker",
@@ -1575,7 +1575,7 @@
   "hand": "Five of a Kind",
   "estimate": "182x39.7=7225 modeled:1 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "2341ec23"
+  "reasons": "c8405901"
  },
  {
   "i": 76,
@@ -1616,14 +1616,14 @@
    "2.131 high heuristic Take The Chariot",
    "2.131 high heuristic Take The Fool",
    "2.131 high heuristic Take Hex",
-   "1.355 medium partial Take Greedy Joker",
-   "1.316 medium modeled Take Delayed Gratification"
+   "1.395 medium modeled Take Delayed Gratification",
+   "1.355 medium partial Take Greedy Joker"
   ],
   "strategy": "lean flush:4.5 straight:0 pairs:0",
   "hand": "High Card",
   "estimate": "14x2.62=37 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "862fcacd"
+  "reasons": "bf58cdcd"
  },
  {
   "i": 78,
@@ -1637,7 +1637,7 @@
    "skip 1 low heuristic Buy nothing"
   ],
   "picks": [
-   "2.581 high modeled Take Delayed Gratification",
+   "2.297 high modeled Take Delayed Gratification",
    "2.131 high heuristic Take The Fool",
    "2.131 high heuristic Take The Fool"
   ],
@@ -1645,7 +1645,7 @@
   "hand": "Straight",
   "estimate": "260x13.3=3458 modeled:1 inactive:1 unmodeled:0",
   "order": "blueprint-rightmost|10",
-  "reasons": "db0d923a"
+  "reasons": "b3147b9b"
  },
  {
   "i": 79,
@@ -1703,15 +1703,15 @@
    "4 high heuristic Take Blueprint",
    "3.29 high heuristic Take Obelisk",
    "1.641 high partial Take Driver's License",
-   "1.607 high modeled Take Delayed Gratification",
-   "1.607 high modeled Take Delayed Gratification",
+   "1.516 high modeled Take Delayed Gratification",
+   "1.516 high modeled Take Delayed Gratification",
    "1.05 low heuristic Take Venus"
   ],
   "strategy": "commit flush:6.5 face-cards:3.5 pairs:3",
   "hand": "Four of a Kind",
   "estimate": "368x46.75=17204 modeled:2 inactive:0 unmodeled:0",
   "order": "xmult-before-plus-mult|10",
-  "reasons": "cf0e5edf"
+  "reasons": "913d0edf"
  },
  {
   "i": 82,
@@ -1760,9 +1760,9 @@
   "recs": [
    "buy-voucher 2.311 high heuristic Buy Antimatter ($10)",
    "buy-pack 2.226 high heuristic Buy Spectral Pack ($4)",
+   "buy-joker 1.01 low modeled Buy Delayed Gratification ($11)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.975 low heuristic Reroll ($5)",
-   "buy-joker 0.899 low modeled Buy Delayed Gratification ($11)"
+   "reroll 0.975 low heuristic Reroll ($5)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -1774,7 +1774,7 @@
   "hand": "High Card",
   "estimate": "99x12.85=1272 modeled:1 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "2f15c4c7"
+  "reasons": "833774a8"
  },
  {
   "i": 85,
@@ -1877,7 +1877,7 @@
   "i": 90,
   "recs": [
    "buy-joker 2.719 high heuristic Buy Pareidolia ($2)",
-   "buy-joker 1.728 high modeled Buy Delayed Gratification ($0)",
+   "buy-joker 1.538 high modeled Buy Delayed Gratification ($0)",
    "buy-joker 1.241 medium partial Buy Driver's License ($4)",
    "buy-pack 1.151 medium heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
@@ -1896,7 +1896,7 @@
   "hand": "Straight",
   "estimate": "74x35.41=2620 modeled:0 inactive:1 unmodeled:4",
   "order": "|-",
-  "reasons": "249bb12e"
+  "reasons": "b14aeec7"
  },
  {
   "i": 91,
@@ -1950,7 +1950,7 @@
  {
   "i": 93,
   "recs": [
-   "buy-joker 2.581 high modeled Buy Delayed Gratification ($0)",
+   "buy-joker 2.297 high modeled Buy Delayed Gratification ($0)",
    "skip 1 low heuristic Buy nothing",
    "buy-pack 0.967 low heuristic Buy Spectral Pack ($4)",
    "reroll 0.849 low heuristic Reroll ($10)",
@@ -1968,7 +1968,7 @@
   "hand": "Flush",
   "estimate": "528x87.92=46422 modeled:3 inactive:1 unmodeled:1",
   "order": "brainstorm-leftmost|24130",
-  "reasons": "92454521"
+  "reasons": "4fb8ac1c"
  },
  {
   "i": 94,
@@ -2050,14 +2050,14 @@
   ],
   "picks": [
    "1.81 high heuristic Take Justice",
-   "1.316 medium modeled Take Delayed Gratification",
+   "1.395 medium modeled Take Delayed Gratification",
    "1.15 medium partial Take Crafty Joker"
   ],
   "strategy": "lean flush:3 pairs:3 straight:2.25",
   "hand": "Pair",
   "estimate": "123x21.99=2705 modeled:0 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "6ffc27c5"
+  "reasons": "8a235ffd"
  },
  {
   "i": 98,
@@ -2388,14 +2388,14 @@
    "4 high heuristic Take Blueprint",
    "2.874 high heuristic Take Pareidolia",
    "2.131 high heuristic Take The Chariot",
-   "0.84 low modeled Take Delayed Gratification",
-   "0.84 low modeled Take Delayed Gratification"
+   "1 low modeled Take Delayed Gratification",
+   "1 low modeled Take Delayed Gratification"
   ],
   "strategy": "lean scaling:4 pairs:3 flush:1.5",
   "hand": "Pair",
   "estimate": "115x38.44=4421 modeled:1 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "47b72160"
+  "reasons": "889720ee"
  },
  {
   "i": 114,
@@ -2462,8 +2462,8 @@
  {
   "i": 117,
   "recs": [
-   "buy-joker 1.554 high modeled Buy Delayed Gratification ($6)",
    "buy-consumable 1.49 medium heuristic Buy The Star ($7)",
+   "buy-joker 1.383 medium modeled Buy Delayed Gratification ($6)",
    "buy-consumable 1.328 medium heuristic Buy Jupiter ($1)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.922 low heuristic Reroll ($7)"
@@ -2477,7 +2477,7 @@
   "hand": "Four of a Kind",
   "estimate": "279x77.49=21620 modeled:3 inactive:2 unmodeled:0",
   "order": "brainstorm-leftmost|12340",
-  "reasons": "b69a541f"
+  "reasons": "503c9866"
  },
  {
   "i": 118,
@@ -2601,13 +2601,13 @@
   ],
   "picks": [
    "2.052 high heuristic Take Jupiter",
-   "0.84 low modeled Take Delayed Gratification"
+   "1 low modeled Take Delayed Gratification"
   ],
   "strategy": "commit flush:7.5 pairs:3 scaling:1",
   "hand": "Flush Five",
   "estimate": "211x23.89=13793 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "dc40c257"
+  "reasons": "dfdada57"
  },
  {
   "i": 124,
@@ -3104,7 +3104,7 @@
    "reroll 0.922 low heuristic Reroll ($7)"
   ],
   "picks": [
-   "2.062 high modeled Take Delayed Gratification",
+   "1.945 high modeled Take Delayed Gratification",
    "1.15 medium partial Take Droll Joker",
    "0.737 low partial Take Baron"
   ],
@@ -3112,7 +3112,7 @@
   "hand": "Four of a Kind",
   "estimate": "308x34.81=10721 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "1e339d70"
+  "reasons": "1f8b97d6"
  },
  {
   "i": 148,
@@ -3214,7 +3214,7 @@
   "picks": [
    "2.238 high heuristic Take Glass Joker",
    "2.238 high heuristic Take Glass Joker",
-   "2.062 high modeled Take Delayed Gratification",
+   "1.945 high modeled Take Delayed Gratification",
    "1.031 low heuristic Take The Chariot",
    "1.022 low heuristic Take The Star"
   ],
@@ -3222,7 +3222,7 @@
   "hand": "Flush Five",
   "estimate": "499x290.67=145044 modeled:3 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|23401",
-  "reasons": "901f9bb6"
+  "reasons": "7486e9e2"
  },
  {
   "i": 153,
@@ -3317,13 +3317,13 @@
    "1.455 medium heuristic Take Glass Joker",
    "1.346 medium heuristic Take The Fool",
    "1.248 medium heuristic Take The Star",
-   "1.051 low modeled Take Delayed Gratification"
+   "1.181 medium modeled Take Delayed Gratification"
   ],
   "strategy": "commit flush:9.5 pairs:6 face-cards:3.5",
   "hand": "Three of a Kind",
   "estimate": "178x23.86=4247 modeled:2 inactive:2 unmodeled:0",
   "order": "|-",
-  "reasons": "a941de36"
+  "reasons": "5f9e454b"
  },
  {
   "i": 158,
@@ -3465,13 +3465,13 @@
    "2.131 high heuristic Take Hex",
    "1.81 high heuristic Take The Star",
    "1.05 low heuristic Take Venus",
-   "0.84 low modeled Take Delayed Gratification"
+   "1 low modeled Take Delayed Gratification"
   ],
   "strategy": "lean face-cards:5.5 pairs:3 scaling:2",
   "hand": "High Card",
   "estimate": "66x3.84=253 modeled:2 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "e0cec179"
+  "reasons": "e174e17b"
  },
  {
   "i": 165,
@@ -3823,14 +3823,14 @@
    "1.81 high heuristic Take The Star",
    "1.395 medium modeled Take Golden Joker",
    "1.042 low partial Take Joker",
-   "0.84 low modeled Take Delayed Gratification",
+   "1 low modeled Take Delayed Gratification",
    "0.729 low partial Take Baron"
   ],
   "strategy": "commit flush:8 economy:3.5 pairs:3",
   "hand": "Flush House",
   "estimate": "179x28.65=5128 modeled:2 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "b2ef32b0"
+  "reasons": "d6069d42"
  },
  {
   "i": 182,
@@ -3906,13 +3906,13 @@
    "3.219 high heuristic Take Supernova",
    "3.104 high heuristic Take Glass Joker",
    "2.131 high heuristic Take Hex",
-   "0.967 low modeled Take Delayed Gratification"
+   "1.087 low modeled Take Delayed Gratification"
   ],
   "strategy": "lean flush:3 straight:3 pairs:3",
   "hand": "Straight",
   "estimate": "99x6.74=667 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "5bfb7972"
+  "reasons": "9092f8fb"
  },
  {
   "i": 186,
@@ -4053,14 +4053,14 @@
   "picks": [
    "2.131 high heuristic Take The Chariot",
    "1.81 high heuristic Take The Star",
-   "1 low partial Take Banner",
-   "0.94 low modeled Take Delayed Gratification"
+   "1.12 medium modeled Take Delayed Gratification",
+   "1 low partial Take Banner"
   ],
   "strategy": "lean scaling:5.5 economy:5.5 straight:4.5",
   "hand": "Straight",
   "estimate": "122x10.04=1225 modeled:0 inactive:0 unmodeled:4",
   "order": "|-",
-  "reasons": "30506aef"
+  "reasons": "08c30561"
  },
  {
   "i": 193,
@@ -4071,7 +4071,7 @@
    "reroll 0.975 low heuristic Reroll ($5)"
   ],
   "picks": [
-   "2.062 high modeled Take Delayed Gratification",
+   "1.945 high modeled Take Delayed Gratification",
    "1.436 medium heuristic Take Blueprint",
    "1.424 medium partial Take Steel Joker",
    "1.263 medium heuristic Take The Chariot",
@@ -4081,7 +4081,7 @@
   "hand": "Straight",
   "estimate": "218x25.65=5592 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "c7dd0132"
+  "reasons": "a1d6e8ea"
  },
  {
   "i": 194,
@@ -4184,13 +4184,13 @@
    "1.312 medium heuristic Take Glass Joker",
    "1.096 low heuristic Take Blueprint",
    "1.058 low heuristic Take The Chariot",
-   "0.84 low modeled Take Delayed Gratification"
+   "1 low modeled Take Delayed Gratification"
   ],
   "strategy": "commit flush:12 economy:3.5 straight:3",
   "hand": "Straight",
   "estimate": "328x77.23=25331 modeled:1 inactive:2 unmodeled:2",
   "order": "xmult-before-plus-mult|01243",
-  "reasons": "8fcc9a89"
+  "reasons": "4ebd8ae7"
  },
  {
   "i": 199,
@@ -4322,7 +4322,7 @@
   ],
   "picks": [
    "2.056 high modeled Take Golden Joker",
-   "1.391 medium modeled Take Delayed Gratification",
+   "1.474 medium modeled Take Delayed Gratification",
    "1.251 medium heuristic Take Mercury",
    "1.021 low partial Take Joker"
   ],
@@ -4330,7 +4330,7 @@
   "hand": "High Card",
   "estimate": "15x11.17=168 modeled:0 inactive:2 unmodeled:1",
   "order": "|-",
-  "reasons": "1afdb5a2"
+  "reasons": "a4435190"
  },
  {
   "i": 206,
@@ -4359,7 +4359,7 @@
  {
   "i": 207,
   "recs": [
-   "buy-joker 1.846 high modeled Buy Delayed Gratification ($4)",
+   "buy-joker 1.741 high modeled Buy Delayed Gratification ($4)",
    "reroll 1.12 medium heuristic Reroll ($0)",
    "buy-consumable 1.093 low heuristic Buy Venus ($8)",
    "skip 1 low heuristic Buy nothing",
@@ -4373,7 +4373,7 @@
   "hand": "Four of a Kind",
   "estimate": "329x36.87=12130 modeled:0 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "594d8a0d"
+  "reasons": "0d327895"
  },
  {
   "i": 208,
@@ -4928,14 +4928,14 @@
   "picks": [
    "2.387 high heuristic Take Supernova",
    "1.81 high heuristic Take Justice",
-   "1.554 high modeled Take Delayed Gratification",
+   "1.647 high modeled Take Delayed Gratification",
    "1.05 low heuristic Take Venus"
   ],
   "strategy": "commit flush:7 straight:0 pairs:0",
   "hand": "High Card",
   "estimate": "67x3.81=255 modeled:1 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "31ccbb1a"
+  "reasons": "bcd0123a"
  },
  {
   "i": 235,
@@ -4943,7 +4943,7 @@
    "buy-joker 2.009 high partial Buy Steel Joker ($4)",
    "buy-pack 1.552 high heuristic Buy Arcana Pack ($4)",
    "buy-pack 1.552 high heuristic Buy Celestial Pack ($4)",
-   "buy-joker 1.284 medium modeled Buy Delayed Gratification ($19)",
+   "buy-joker 1.143 medium modeled Buy Delayed Gratification ($19)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.922 low heuristic Reroll ($7)",
    "buy-voucher 0.886 low heuristic Buy Seed Money ($10)"
@@ -4959,7 +4959,7 @@
   "hand": "Flush House",
   "estimate": "339x81.34=27574 modeled:1 inactive:0 unmodeled:3",
   "order": "xmult-before-plus-mult|0312",
-  "reasons": "f7b476c2"
+  "reasons": "1046862b"
  },
  {
   "i": 236,
@@ -5200,7 +5200,7 @@
    "buy-joker 0.784 low heuristic Buy Ice Cream ($19)"
   ],
   "picks": [
-   "2.581 high modeled Take Delayed Gratification",
+   "2.297 high modeled Take Delayed Gratification",
    "1.582 high partial Take Banner",
    "1.522 high heuristic Take The Fool",
    "1.374 medium heuristic Take Justice"
@@ -5209,7 +5209,7 @@
   "hand": "Three of a Kind",
   "estimate": "213x183.12=39005 modeled:2 inactive:3 unmodeled:0",
   "order": "xmult-before-plus-mult|02134",
-  "reasons": "e3133063"
+  "reasons": "0d742144"
  },
  {
   "i": 247,
@@ -5468,14 +5468,14 @@
    "buy-consumable 0.914 low heuristic Buy Venus ($5)"
   ],
   "picks": [
-   "2.581 high modeled Take Delayed Gratification",
+   "2.297 high modeled Take Delayed Gratification",
    "1.051 low partial Take Joker"
   ],
   "strategy": "lean face-cards:5.5 pairs:4.5 economy:3.5",
   "hand": "Two Pair",
   "estimate": "155x17.44=2703 modeled:3 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "013082a0"
+  "reasons": "f21b7089"
  },
  {
   "i": 260,
@@ -5567,7 +5567,7 @@
   "i": 264,
   "recs": [
    "buy-joker 1.928 high partial Buy Driver's License ($4)",
-   "buy-joker 1.554 high modeled Buy Delayed Gratification ($1)",
+   "buy-joker 1.647 high modeled Buy Delayed Gratification ($1)",
    "skip 1 low heuristic Buy nothing",
    "buy-pack 0.96 low heuristic Buy Standard Pack ($4)",
    "buy-voucher 0 low heuristic Buy Hieroglyph ($10)",
@@ -5584,7 +5584,7 @@
   "hand": "Five of a Kind",
   "estimate": "429x121.86=52278 modeled:0 inactive:2 unmodeled:1",
   "order": "|-",
-  "reasons": "cf34364d"
+  "reasons": "fb6f9aed"
  },
  {
   "i": 265,
@@ -5684,13 +5684,13 @@
   ],
   "picks": [
    "2.209 high partial Take Steel Joker",
-   "1.316 medium modeled Take Delayed Gratification"
+   "1.395 medium modeled Take Delayed Gratification"
   ],
   "strategy": "commit flush:6.5 scaling:3.5 straight:0",
   "hand": "Flush",
   "estimate": "292x41.13=12010 modeled:1 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "ff95c67c"
+  "reasons": "c6a8cf16"
  },
  {
   "i": 270,
@@ -5872,7 +5872,7 @@
   ],
   "picks": [
    "3.732 high heuristic Take Blueprint",
-   "2.581 high modeled Take Delayed Gratification",
+   "2.297 high modeled Take Delayed Gratification",
    "2.131 high heuristic Take Hex",
    "1.95 high heuristic Take Glass Joker",
    "1.95 high heuristic Take Glass Joker",
@@ -5882,7 +5882,7 @@
   "hand": "Four of a Kind",
   "estimate": "176x24.64=4337 modeled:0 inactive:1 unmodeled:3",
   "order": "|-",
-  "reasons": "504d95ef"
+  "reasons": "0396afa0"
  },
  {
   "i": 279,
@@ -6221,14 +6221,14 @@
   "picks": [
    "1.81 high heuristic Take The Star",
    "1.706 high heuristic Take Jupiter",
-   "1.114 medium modeled Take Delayed Gratification",
+   "1.181 medium modeled Take Delayed Gratification",
    "1.088 low partial Take Banner"
   ],
   "strategy": "commit flush:7 scaling:2 economy:2",
   "hand": "Pair",
   "estimate": "44x34.11=1501 modeled:0 inactive:2 unmodeled:2",
   "order": "xmult-before-plus-mult|0231",
-  "reasons": "b2e7df2f"
+  "reasons": "cf704035"
  },
  {
   "i": 295,

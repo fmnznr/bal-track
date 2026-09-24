@@ -22,7 +22,6 @@ const NEUTRAL: PlaySignal = { multiplier: 1, reasons: [] };
  */
 export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal {
   const primary = run.primaryHand;
-  const extraDiscards = run.discardsPerRound - TUNING.play.baselineDiscardsPerRound;
 
   switch (def.id) {
     // Scales with repeat plays of one hand, so a declared plan is what makes it good.
@@ -41,13 +40,9 @@ export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal
       };
     // Banner used to be here too. Its +30 Chips per discard is now modelled from
     // the real discard count, so this would charge the same fact twice.
-    case 'delayed-gratification': {
-      if (extraDiscards === 0) return NEUTRAL;
-      return {
-        multiplier: TUNING.play.perExtraDiscard ** extraDiscards,
-        reasons: [`${run.discardsPerRound} discards per round`],
-      };
-    }
+    // Delayed Gratification used to be here too. Its $2 per unused discard is
+    // now money in the projection, so this would charge the same fact twice —
+    // the same reason Banner left.
     default:
       return NEUTRAL;
   }

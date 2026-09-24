@@ -96,14 +96,30 @@ function faceShare(r: Round): number {
  *
  * Rocket's payout grows by $2 for every boss beaten after it was bought, which
  * the app does not record, so it is counted at its starting $1 plus the growth
- * a new copy would see over the horizon.
+ * a new copy would see over the horizon — averaged over the rounds, because
+ * the last boss of the horizon is beaten at the end of it and pays for almost
+ * none of the span.
+ *
+ * Egg is deliberately absent. Its $3 a round is sell value, not money in hand:
+ * it cannot be spent, cannot earn interest, and arrives once, if the joker is
+ * ever sold. Counting it here made an Egg project like a Golden Joker.
  */
+/** Rocket pays $1, and $2 more after each boss. Averaged over the rounds of
+    the horizon: with three rounds to an ante, six rounds see $1, $1, $1, $3,
+    $3, $3 — two dollars a round, not three. */
+function rocketAverage(rounds: number): number {
+  if (rounds <= 0) return 1;
+  let total = 0;
+  for (let i = 0; i < rounds; i += 1) {
+    total += 1 + 2 * Math.floor(i / TUNING.economy.roundsPerAnte);
+  }
+  return total / rounds;
+}
+
 const INCOME: Record<string, (r: Round) => number> = {
   'golden-joker': () => 4,
-  // $1, then $2 more per boss: over the horizon it averages half the growth.
-  rocket: r => 1 + (2 * horizonRounds(r.run.ante) / TUNING.economy.roundsPerAnte) / 2,
+  rocket: r => rocketAverage(horizonRounds(r.run.ante)),
   'cloud-9': r => r.run.deckProfile.deckSize * r.types.reduce((s, c) => s + (c.rank === '9' ? c.p : 0), 0),
-  egg: () => 3,
   'delayed-gratification': r => 2 * r.run.discardsPerRound * TUNING.economy.unusedDiscardShare,
   'business-card': r => r.played * r.scoring * faceShare(r) * Math.min(1, 0.5 * r.chance) * 2,
   'rough-gem': r => r.played * r.scoring * r.types.reduce(

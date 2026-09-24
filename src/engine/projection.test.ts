@@ -30,7 +30,18 @@ describe('round income', () => {
 
   it('adds what income jokers pay', () => {
     expect(dollars(runWith(['golden-joker'])) - dollars(runWith())).toBe(4);
-    expect(dollars(runWith(['egg']))).toBe(dollars(runWith()) + 3);
+  });
+
+  it('leaves out a joker that only grows its own sell value', () => {
+    // Egg's $3 a round cannot be spent or earn interest, and arrives once, if
+    // it is ever sold. As income it made an Egg project like a Golden Joker.
+    expect(dollars(runWith(['egg']))).toBe(dollars(runWith()));
+  });
+
+  it('averages a growing payout over the rounds it is paid in', () => {
+    // Rocket pays $1, and $2 more after each boss. Over two antes that is
+    // three rounds at $1 and three at $3 — two dollars a round, not three.
+    expect(dollars(runWith(['rocket'])) - dollars(runWith())).toBe(2);
   });
 });
 
