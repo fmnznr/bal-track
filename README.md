@@ -59,7 +59,7 @@ Corrections section exists only for when a run drifts from what was recorded.
   scale over time or depend on what was played before are named but excluded.
   Copy jokers are ranked on their rating, since what they will copy over a run
   is not on today's board.
-- Income is counted for ten jokers (Golden Joker, To the Moon, Rocket and
+- Income is counted for nine jokers (Golden Joker, To the Moon, Rocket and
   others) and valued in dollars over the horizon instead of their rating.
 - Ratings and the score model both estimate a score contribution, so they are
   blended on equal footing, but the weights behind the rating half
