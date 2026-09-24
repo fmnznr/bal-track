@@ -259,6 +259,17 @@ function timingWeight(timing: ScoreTiming, ctx: Context): number {
   return w;
 }
 
+/**
+ * A joker's scoring definition, but only when its own condition holds for this
+ * hand. The per-card, held and retrigger passes read abilities directly rather
+ * than going through the joker loop, so without this a joker that needs a
+ * Flush would still retrigger cards on a High Card.
+ */
+function activeScore(ability: Ability, ctx: Context): JokerScore | undefined {
+  if (ability.kind !== 'score' || !applies(ability.score, ctx)) return undefined;
+  return ability.score;
+}
+
 function debuffed(card: CardType, ctx: Context): boolean {
   const debuff = ctx.boss?.debuff;
   if (!debuff) return false;
@@ -272,7 +283,7 @@ function playedTriggers(card: CardType, ctx: Context): number {
   if (debuffed(card, ctx)) return 0;
   let triggers = 1;
   for (const a of ctx.abilities) {
-    const r = a.kind === 'score' ? a.score.retrigger : undefined;
+    const r = activeScore(a, ctx)?.retrigger;
     if (!r || r.firstOnly) continue;
     triggers += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules);
   }
@@ -284,7 +295,7 @@ function firstCardExtra(card: CardType, ctx: Context): number {
   if (debuffed(card, ctx)) return 0;
   let extra = 0;
   for (const a of ctx.abilities) {
-    const r = a.kind === 'score' ? a.score.retrigger : undefined;
+    const r = activeScore(a, ctx)?.retrigger;
     if (!r?.firstOnly) continue;
     extra += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules);
   }
@@ -295,7 +306,8 @@ function heldTriggers(card: CardType, ctx: Context): number {
   if (debuffed(card, ctx)) return 0;
   let triggers = 1;
   for (const a of ctx.abilities) {
-    if (a.kind === 'score' && a.score.retriggerHeld) triggers += a.score.retriggerHeld;
+    const held = activeScore(a, ctx)?.retriggerHeld;
+    if (held) triggers += held;
   }
   return triggers;
 }
@@ -329,7 +341,7 @@ function scoreCardSlot(tally: Tally, ctx: Context, triggers: number[]): void {
   tally.mult *= ENHANCEMENT.glassXmult ** glass;
 
   for (const a of ctx.abilities) {
-    const per = a.kind === 'score' ? a.score.perCard : undefined;
+    const per = activeScore(a, ctx)?.perCard;
     if (!per || per.firstOnly) continue;
     const count = ctx.types.reduce((sum, c, t) => sum + c.p * triggers[t] * matchWeight(c, per.match, ctx.rules), 0);
     applyRepeated(tally, per, count, timingWeight(per, ctx));
@@ -349,7 +361,7 @@ function applyRepeated(tally: Tally, part: ScoreContribution, count: number, w: 
 /** "Only the first matching card" effects (Photograph), including that card's retriggers. */
 function scoreFirstMatches(tally: Tally, ctx: Context, scoring: number): void {
   for (const a of ctx.abilities) {
-    const per = a.kind === 'score' ? a.score.perCard : undefined;
+    const per = activeScore(a, ctx)?.perCard;
     if (!per?.firstOnly) continue;
     const share = ctx.types.reduce(
       (sum, c) => sum + c.p * (debuffed(c, ctx) ? 0 : matchWeight(c, per.match, ctx.rules)), 0,
@@ -374,7 +386,7 @@ function scoreHeldSlot(tally: Tally, ctx: Context): void {
   );
   tally.mult *= ENHANCEMENT.steelHeldXmult ** steel;
   for (const a of ctx.abilities) {
-    const per = a.kind === 'score' ? a.score.perHeld : undefined;
+    const per = activeScore(a, ctx)?.perHeld;
     if (!per) continue;
     const count = ctx.types.reduce((sum, c, t) => sum + c.p * ctx.held[t] * matchWeight(c, per.match, ctx.rules), 0);
     applyRepeated(tally, per, count, 1);
@@ -465,7 +477,7 @@ export function estimateWithBoard(
   for (let i = 0; i < ctx.heldCards; i++) scoreHeldSlot(tally, ctx);
   for (const a of ctx.abilities) {
     if (a.kind !== 'score' || !a.score.lowestHeldMult) continue;
-    const mime = ctx.abilities.reduce((n, b) => n + (b.kind === 'score' ? b.score.retriggerHeld ?? 0 : 0), 0);
+    const mime = ctx.abilities.reduce((n, b) => n + (activeScore(b, ctx)?.retriggerHeld ?? 0), 0);
     tally.mult += a.score.lowestHeldMult * expectedLowestRankValue(ctx.types, ctx.heldCards) * (1 + mime);
   }
 

@@ -629,7 +629,7 @@ describe('the decision log and undo', () => {
 
     // Round-trip through storage, the way a reload does.
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    const reloaded = load();
+    const reloaded = load()!;
     expect(reloaded.decisions).toHaveLength(1);
 
     const undone = reduce(reloaded, { type: 'UNDO' });
@@ -653,6 +653,6 @@ describe('the decision log and undo', () => {
 
     const undone = reduce(state, { type: 'UNDO' });
     expect(undone.current?.jokers).toHaveLength(0);
-    expect(undone.decisions.at(-1)).toEqual(filler);
+    expect(undone.decisions[undone.decisions.length - 1]).toEqual(filler);
   });
 });
