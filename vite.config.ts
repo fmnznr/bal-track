@@ -32,15 +32,33 @@ export default defineConfig({
     }),
   ],
   test: {
-    environment: 'jsdom',
     // Node >= 24 ships an experimental localStorage global that reads as
     // undefined without --localstorage-file; its presence stops vitest from
     // copying jsdom's real Storage onto the test global. Disable it so the
     // jsdom implementation wins.
     execArgv: ['--no-experimental-webstorage'],
     setupFiles: './src/test-setup.ts',
-    // e2e/ belongs to Playwright; vitest cannot run test.use() and would fail
-    // to collect it.
-    exclude: [...configDefaults.exclude, '**/.claude/**', 'e2e/**'],
+    // Building a jsdom window was well over half of the suite's run time, and
+    // the engine, data and vision tests never touch it. Only components, and
+    // the store's localStorage round trip, get a DOM.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          exclude: [...configDefaults.exclude, 'src/run/runStore.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          environment: 'jsdom',
+          include: ['src/**/*.test.tsx', 'src/run/runStore.test.ts'],
+        },
+      },
+    ],
   },
 });
