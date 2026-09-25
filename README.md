@@ -83,13 +83,19 @@ exists only for when a run drifts from what was recorded.
   Liquidation from what they add or save with your bankroll held steady;
   Antimatter as the joker it keeps on a full board; Reroll Surplus, Reroll
   Glut, Overstock and Overstock Plus from how often you reroll, counted from
-  the reroll price on your shop screenshots once five shops are in; Blank at
-  nothing. The other 18 are valued from their rating on a curve that is zero
-  for a voucher that does nothing and whose scale is fitted to the modelled
-  ones (`scripts/calibrate-voucher-prior.mjs`). Some need concepts the engine
-  does not have yet: how a board grows over time (Hieroglyph, Petroglyph, and
-  Antimatter while slots are free) and how likely a hand is to come together
-  (the discard and hand-size vouchers). See
+  the reroll price on your shop screenshots once five shops are in; Wasteful,
+  Recyclomancy, Paint Brush and Palette from how much more often your declared
+  hand comes together; Blank at nothing. The other 14 are valued from their
+  rating on a curve that is zero for a voucher that does nothing and whose
+  scale is fitted to the modelled ones (`scripts/calibrate-voucher-prior.mjs`).
+  Hieroglyph, Petroglyph and Antimatter while slots are free need a notion of
+  how a board grows over time, which the engine does not have yet.
+- How likely a hand is to come together is simulated from the deck, the hand
+  size and the discards (`src/engine/handOdds.ts`), with a plain
+  keep-and-discard strategy, so the odds are a floor. It feeds the voucher
+  models only; the score estimate still assumes the reference hand every hand.
+  See
+  [`docs/superpowers/specs/2026-09-25-hand-odds-design.md`](docs/superpowers/specs/2026-09-25-hand-odds-design.md). See
   [`docs/superpowers/specs/2026-09-25-voucher-models-design.md`](docs/superpowers/specs/2026-09-25-voucher-models-design.md).
 - Ratings and the score model both estimate a score contribution, so they are
   blended on equal footing, but the weights behind the rating half

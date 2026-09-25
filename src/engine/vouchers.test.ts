@@ -131,13 +131,23 @@ describe('vouchers valued by what they do', () => {
     });
   });
 
+  it('values a discard by how much more often your hand comes together', () => {
+    const flush = voucherValue(board({ primaryHand: 'Flush' }), 'wasteful', 10)!;
+    expect(flush.multiplier).toBeGreaterThan(1);
+    expect(flush.evidence).toBe('partial');
+    expect(flush.reasons.join(' ')).toMatch(/Your Flush comes together about \d+% of the time, \d+% with it/);
+    // High Card always comes together, so there is nothing to find.
+    expect(voucherValue(board({ primaryHand: 'High Card' }), 'wasteful', 10)!.multiplier).toBe(1);
+  });
+
+  it('values a bigger hand the same way', () => {
+    expect(voucherValue(board({ primaryHand: 'Straight' }), 'paint-brush', 10)!.multiplier).toBeGreaterThan(1);
+  });
+
   it('leaves the vouchers the engine cannot yet judge to their rating', () => {
-    // Hieroglyph and Petroglyph buy an extra ante of time; Wasteful and the
-    // hand-size vouchers help find a hand. Neither is something the engine models.
-    // Crystal Ball depends on consumables the run cannot foresee.
-    for (const id of [
-      'hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette', 'crystal-ball',
-    ]) {
+    // Hieroglyph and Petroglyph buy time; Crystal Ball depends on consumables
+    // the run cannot foresee.
+    for (const id of ['hieroglyph', 'petroglyph', 'crystal-ball']) {
       expect(voucherValue(board(), id, 10), id).toBeNull();
     }
   });

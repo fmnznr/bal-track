@@ -366,7 +366,7 @@
   "hand": "Five of a Kind",
   "estimate": "173x25.69=4444 modeled:0 inactive:0 unmodeled:4",
   "order": "xmult-before-plus-mult|0132",
-  "reasons": "908fb8bb"
+  "reasons": "22c9b441"
  },
  {
   "i": 18,
@@ -2420,8 +2420,8 @@
   "i": 115,
   "recs": [
    "reroll 1.06 low heuristic Reroll ($2)",
-   "buy-voucher 1.051 low modeled Buy Grabber ($10)",
-   "skip 1 low heuristic Buy nothing"
+   "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.844 low modeled Buy Grabber ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Fool",
@@ -2433,7 +2433,7 @@
   "hand": "Three of a Kind",
   "estimate": "181x17.21=3115 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "36d7ecac"
+  "reasons": "120699b4"
  },
  {
   "i": 116,
@@ -3248,7 +3248,7 @@
   "recs": [
    "reroll 1.06 low heuristic Reroll ($2)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.757 low modeled Buy Grabber ($10)"
+   "buy-voucher 0.767 low modeled Buy Grabber ($10)"
   ],
   "picks": [
    "1.947 high heuristic Take Brainstorm",
@@ -3260,7 +3260,7 @@
   "hand": "Straight Flush",
   "estimate": "150x342.34=51351 modeled:2 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "9876a2e0"
+  "reasons": "754a00af"
  },
  {
   "i": 155,
@@ -3696,7 +3696,7 @@
    "buy-pack 1.366 medium heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.849 low heuristic Reroll ($8)",
-   "buy-voucher 0.83 low modeled Buy Grabber ($10)"
+   "buy-voucher 0.829 low modeled Buy Grabber ($10)"
   ],
   "picks": [
    "2.487 high heuristic Take Pareidolia",
@@ -3710,7 +3710,7 @@
   "hand": "Three of a Kind",
   "estimate": "58x14.83=860 modeled:0 inactive:2 unmodeled:0",
   "order": "|-",
-  "reasons": "90b2b8ab"
+  "reasons": "dfd1a22d"
  },
  {
   "i": 176,
@@ -4089,7 +4089,7 @@
    "skip 1 low heuristic Buy nothing",
    "buy-consumable 0.878 low heuristic Buy The Fool ($2)",
    "reroll 0.739 low heuristic Reroll ($8)",
-   "buy-voucher 0.678 low modeled Buy Grabber ($10)",
+   "buy-voucher 0.701 low modeled Buy Grabber ($10)",
    "buy-joker 0.66 low heuristic Buy Pareidolia ($10)",
    "buy-joker 0.438 low heuristic Buy Blueprint ($16)"
   ],
@@ -4103,7 +4103,7 @@
   "hand": "Five of a Kind",
   "estimate": "365x138.39=50512 modeled:1 inactive:1 unmodeled:1",
   "order": "brainstorm-leftmost|210",
-  "reasons": "4c6781ef"
+  "reasons": "7a1607ad"
  },
  {
   "i": 195,
@@ -4373,7 +4373,7 @@
   "hand": "Four of a Kind",
   "estimate": "329x36.87=12130 modeled:0 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "5a871b90"
+  "reasons": "a540a94a"
  },
  {
   "i": 208,
@@ -4506,7 +4506,7 @@
   "i": 214,
   "recs": [
    "buy-joker 2.874 high heuristic Buy Supernova ($0)",
-   "buy-voucher 1.42 medium modeled Buy Grabber ($10)",
+   "buy-voucher 1.356 medium modeled Buy Grabber ($10)",
    "buy-joker 1.223 medium partial Buy Steel Joker ($8)",
    "reroll 1.002 low heuristic Reroll ($4)",
    "skip 1 low heuristic Buy nothing",
@@ -4520,7 +4520,7 @@
   "hand": "Three of a Kind",
   "estimate": "156x39.24=6121 modeled:3 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|42013",
-  "reasons": "4ba0a167"
+  "reasons": "fa10da54"
  },
  {
   "i": 215,
@@ -4566,9 +4566,9 @@
  {
   "i": 217,
   "recs": [
-   "buy-voucher 1.395 medium modeled Buy Grabber ($10)",
    "reroll 1.002 low heuristic Reroll ($3)",
-   "skip 1 low heuristic Buy nothing"
+   "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.936 low modeled Buy Grabber ($10)"
   ],
   "picks": [
    "4 high heuristic Take Blueprint",
@@ -4582,7 +4582,7 @@
   "hand": "Straight",
   "estimate": "175x19.61=3432 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "a652f64c"
+  "reasons": "a8190840"
  },
  {
   "i": 218,
@@ -5319,11 +5319,11 @@
  {
   "i": 252,
   "recs": [
+   "buy-voucher 1.075 low modeled Buy Grabber ($10)",
    "skip 1 low heuristic Buy nothing",
    "buy-joker 0.959 low partial Buy Driver's License ($15)",
    "reroll 0.948 low heuristic Reroll ($6)",
    "buy-pack 0.92 low heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 0.895 low modeled Buy Grabber ($10)",
    "buy-joker 0.887 low partial Buy Steel Joker ($12)"
   ],
   "picks": [
@@ -5335,7 +5335,7 @@
   "hand": "Flush House",
   "estimate": "445x118.87=52897 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "4c7d5483"
+  "reasons": "67296662"
  },
  {
   "i": 253,
@@ -5712,7 +5712,7 @@
   "hand": "High Card",
   "estimate": "109x100.02=10902 modeled:2 inactive:2 unmodeled:0",
   "order": "xmult-before-plus-mult|0312",
-  "reasons": "b4b3549c"
+  "reasons": "0c371bea"
  },
  {
   "i": 271,

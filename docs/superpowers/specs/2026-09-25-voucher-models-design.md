@@ -225,3 +225,9 @@ script when a voucher gets a model.
 in five; it is in one now, and that one is Grabber, which is modelled. The
 four that fell were all rated: Telescope twice, Hieroglyph and Overstock, and
 a joker, a pack or buying nothing leads there instead.
+
+## Later: the discard and hand-size vouchers
+
+Wasteful, Recyclomancy, Paint Brush and Palette are modelled since hand odds
+arrived; see `2026-09-25-hand-odds-design.md`. Reach now uses the effective
+score throughout, and the voucher curve was refitted to fourteen models.

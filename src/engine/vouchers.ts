@@ -17,7 +17,8 @@ import { interestCapFor, INTEREST_TIER_DOLLARS } from './economy';
 import { applyVoucher, baseRerollCost, shopCardSlots, usedJokerSlots } from './gameRules';
 import { discountPercent } from './prices';
 import { horizonRounds, incomeGap, interestVoucherIncome, steadySpend } from './projection';
-import { blindTargets, bossOutlook, estimateHandScore, referenceHand } from './score';
+import { effectiveScore } from './handOdds';
+import { blindTargets, bossOutlook, referenceHand } from './score';
 import { TUNING } from './tuning';
 
 /** What a voucher's value can depend on beyond the run itself. */
@@ -62,16 +63,22 @@ interface AnteReach {
   bosses: number[];
 }
 
+/**
+ * The score behind reach is the effective one: the reference hand's score
+ * averaged with the Pair it falls back to when it does not come together. A
+ * boss's score is scaled by the same hit rate.
+ */
 function anteReach(run: RunState): AnteReach {
-  const score = estimateHandScore(run, referenceHand(run)).score;
+  const effective = effectiveScore(run);
+  const hitRate = effective.made > 0 ? effective.score / effective.made : 1;
   const hands = Math.max(1, run.handsPerRound);
   const targets = blindTargets(run.ante, run.deck, run.stake);
   return {
-    small: reachOf(score, hands, targets.small),
-    big: reachOf(score, hands, targets.big),
+    small: reachOf(effective.score, hands, targets.small),
+    big: reachOf(effective.score, hands, targets.big),
     bosses: bossesForAnte(run.ante).map(boss => {
       const o = bossOutlook(run, boss);
-      return reachOf(o.score, o.hands, o.target);
+      return reachOf(o.score * hitRate, o.hands, o.target);
     }),
   };
 }
@@ -195,7 +202,7 @@ function interestCap(voucherId: string) {
  * ante's reach with it and without, plus the money that changes with it: a
  * spare hand pays a dollar at the end of the round.
  */
-function resources(voucherId: string, what: string) {
+function resources(voucherId: string, what: string, finding = false) {
   return (run: RunState, price: number): VoucherValue => {
     const spent = { ...run, money: run.money - price };
     const after = applyVoucher(spent, voucherId);
@@ -210,11 +217,17 @@ function resources(voucherId: string, what: string) {
         ? `${what} makes the ante's rounds about ${pct(multiplier)} easier to clear with your board`
         : `${what} changes little for a board that already clears this ante's blinds`,
     ];
+    if (finding) {
+      const odds = (r: RunState) => Math.round(effectiveScore(r).odds * 100);
+      reasons.push(`Your ${referenceHand(run)} comes together about ${odds(spent)}% of the time,`
+        + ` ${odds(after)}% with it`);
+      reasons.push('Odds from a plain keep-and-discard strategy; a careful player does better with or without it');
+    }
     if (income >= 1) {
       reasons.push(`About $${Math.round(income)} more over the next ${horizonRounds(run.ante)} rounds`
-        + ' from the hand you would not need');
+        + ' from spare hands and discards');
     }
-    return { multiplier, incomeDollars: income, evidence: 'modeled', reasons };
+    return { multiplier, incomeDollars: income, evidence: finding ? 'partial' : 'modeled', reasons };
   };
 }
 
@@ -345,6 +358,10 @@ const MODELS: Record<string, Model> = {
   'overstock-plus': extraCard,
   grabber: resources('grabber', 'One more hand a round'),
   'nacho-tong': resources('nacho-tong', 'One more hand a round'),
+  wasteful: resources('wasteful', 'One more discard a round', true),
+  recyclomancy: resources('recyclomancy', 'One more discard a round', true),
+  'paint-brush': resources('paint-brush', 'One more card in hand', true),
+  palette: resources('palette', 'One more card in hand', true),
   'directors-cut': directorsCut,
   retcon,
   'seed-money': interestCap('seed-money'),

@@ -25,7 +25,7 @@ const { voucherCalibrationPair } = await server.ssrLoadModule('/src/engine/recom
 
 const MODELLED = [
   'directors-cut', 'retcon', 'seed-money', 'money-tree', 'blank', 'grabber', 'nacho-tong',
-  'clearance-sale', 'liquidation', 'antimatter',
+  'wasteful', 'recyclomancy', 'paint-brush', 'palette', 'clearance-sale', 'liquidation', 'antimatter',
 ];
 
 // The model side does not depend on the scale, and it is the slow part: work
