@@ -36,6 +36,10 @@ of the board — and disagree with.
 - Money over the next two antes: blind rewards, spare hands, interest and
   income jokers, which is what purchases are priced against.
 - Shop discounts from Clearance Sale, Liquidation and Astronomer.
+- Reading a screenshot of the shop or a pack: which cards are on offer, which
+  jokers you already hold, the price on each tag, and the money, reroll cost,
+  hands, discards, ante and round from the status column. Everything read is
+  shown for confirmation before any of it reaches the run.
 - A local log of the advice against what you did, summarised on the History
   tab and exportable as JSON for calibrating the weights.
 - Local run history, persistent shop/pack drafts and complete transaction undo.
@@ -43,13 +47,23 @@ of the board — and disagree with.
   clearing the run history outright.
 
 Routine input is deliberately small: money, the cards on offer, and one
-declared hand per run. Hand levels, per-round resources and deck composition
-are booked from the planets, vouchers and consumables you record, and the
-Corrections section exists only for when a run drifts from what was recorded.
+declared hand per run — and a screenshot can supply all but the declared hand.
+Hand levels, per-round resources and deck composition are booked from the
+planets, vouchers and consumables you record, and the Corrections section
+exists only for when a run drifts from what was recorded.
 
 ## Current limitations
 
-- Shop and run state are entered manually; the app does not read Balatro saves.
+- Shop and run state are entered by hand or read from a screenshot; the app
+  does not read Balatro saves.
+- A screenshot is matched against 281 card drawings by perceptual fingerprint.
+  Cards under an overlay ("Upgrade!", "Sell $1") are not read, a **Negative
+  joker is not recognised** at all because the game redraws it dark, and the
+  reference table is built from the English artwork. In a shop the hands and
+  discards on display are the next round's allowance, which is what the run
+  tracks; a screenshot taken mid-round would show what is left of that round
+  instead. See
+  [`docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md`](docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md).
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
 - Score contribution is modeled for 64 of the 150 Jokers: flat effects,
   per-card and held-card effects, retriggers, copies, listed chances and
@@ -124,6 +138,8 @@ worker.
 - `src/engine/tuning.ts` — every tunable heuristic weight, in one annotated table.
 - `src/run/` — versioned local persistence and the transactional reducer.
 - `src/ui/` — mobile-first React screens and reusable controls.
+- `src/vision/` — screenshot reading: card detection, fingerprint matching and
+  the pixel-font reader for prices and the status column.
 - `src/i18n/` — English and German UI wording behind a language switch.
 - `e2e/` — Playwright smoke tests against the production build.
 
@@ -181,7 +197,9 @@ separate piece of work from a wording pass.
 
 Bal-Track has no backend or analytics. Run data, including the advice log,
 stays in the browser's local storage until you export it yourself, and the
-static app remains usable offline after its first successful load.
+static app remains usable offline after its first successful load. A screenshot
+is decoded and matched in a web worker on the device; it is never uploaded, and
+nothing of it is kept once the reading is confirmed or discarded.
 
 ## License
 
