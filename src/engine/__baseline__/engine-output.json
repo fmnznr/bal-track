@@ -164,7 +164,7 @@
    "buy-pack 0.942 low heuristic Buy Arcana Pack ($4)",
    "buy-pack 0.904 low heuristic Buy Standard Pack ($4)",
    "reroll 0.803 low heuristic Reroll ($9)",
-   "buy-voucher 0.755 low heuristic Buy Money Tree ($10)"
+   "buy-voucher 0.697 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "1.355 medium partial Take Banner",
@@ -178,7 +178,7 @@
   "hand": "Full House",
   "estimate": "181x37.91=6862 modeled:0 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "31dbe6f2"
+  "reasons": "771dfdae"
  },
  {
   "i": 9,
@@ -189,7 +189,7 @@
    "buy-consumable 1.256 medium heuristic Buy Jupiter ($2)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.922 low heuristic Reroll ($5)",
-   "buy-voucher 0.87 low heuristic Buy Money Tree ($10)"
+   "buy-voucher 0.678 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "4.48 high heuristic Take Blueprint",
@@ -199,15 +199,15 @@
   "hand": "High Card",
   "estimate": "254x31=20306 modeled:1 inactive:2 unmodeled:1",
   "order": "|-",
-  "reasons": "7fae785d"
+  "reasons": "b273c400"
  },
  {
   "i": 10,
   "recs": [
    "buy-pack 1.908 high heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 1.187 medium heuristic Buy Money Tree ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.948 low heuristic Reroll ($6)"
+   "reroll 0.948 low heuristic Reroll ($6)",
+   "buy-voucher 0.758 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Fool",
@@ -219,7 +219,7 @@
   "hand": "Full House",
   "estimate": "96x7.94=762 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "947f5638"
+  "reasons": "ef0770f0"
  },
  {
   "i": 11,
@@ -683,8 +683,8 @@
    "buy-pack 1.257 medium heuristic Buy Standard Pack ($4)",
    "buy-pack 1.257 medium heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.951 low heuristic Buy Money Tree ($10)",
-   "reroll 0.68 low heuristic Reroll ($10)"
+   "reroll 0.68 low heuristic Reroll ($10)",
+   "buy-voucher 0.607 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "3.732 high heuristic Take Brainstorm",
@@ -696,7 +696,7 @@
   "hand": "Flush Five",
   "estimate": "562x51.02=28673 modeled:1 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|021",
-  "reasons": "f72fa6e2"
+  "reasons": "c9b0eca8"
  },
  {
   "i": 34,
@@ -704,9 +704,9 @@
    "buy-consumable 2.073 high heuristic Buy The Fool ($1)",
    "buy-pack 1.908 high heuristic Buy Buffoon Pack ($4)",
    "buy-pack 1.908 high heuristic Buy Buffoon Pack ($4)",
-   "buy-voucher 1.603 high heuristic Buy Seed Money ($10)",
    "reroll 1.12 medium heuristic Reroll ($0)",
    "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.758 low modeled Buy Seed Money ($10)",
    "buy-joker 0.752 low partial Buy Banner ($17)"
   ],
   "picks": [
@@ -720,7 +720,7 @@
   "hand": "High Card",
   "estimate": "78x13.16=1026 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "06a3436b"
+  "reasons": "bfc796d7"
  },
  {
   "i": 35,
@@ -1195,7 +1195,7 @@
   "recs": [
    "skip 1 low heuristic Buy nothing",
    "reroll 0.948 low heuristic Reroll ($5)",
-   "buy-voucher 0.743 low heuristic Buy Seed Money ($10)"
+   "buy-voucher 0.717 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "1.489 medium heuristic Take Mercury",
@@ -1207,7 +1207,7 @@
   "hand": "Flush Five",
   "estimate": "412x112.82=46482 modeled:1 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "02420cca"
+  "reasons": "f29950d5"
  },
  {
   "i": 58,
@@ -1275,10 +1275,10 @@
   "i": 61,
   "recs": [
    "buy-joker 1.603 high heuristic Buy Green Joker ($10)",
-   "buy-voucher 1.244 medium heuristic Buy Seed Money ($10)",
    "reroll 1.002 low heuristic Reroll ($3)",
    "skip 1 low heuristic Buy nothing",
-   "buy-joker 0.9 low partial Buy Joker ($9)"
+   "buy-joker 0.9 low partial Buy Joker ($9)",
+   "buy-voucher 0.642 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "2 high modeled Take Golden Joker",
@@ -1292,7 +1292,7 @@
   "hand": "Straight Flush",
   "estimate": "202x26.48=5349 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "fa4af607"
+  "reasons": "0634114c"
  },
  {
   "i": 62,
@@ -1632,9 +1632,9 @@
    "buy-consumable 1.712 high heuristic Buy Justice ($2)",
    "buy-joker 1.418 medium partial Buy Greedy Joker ($12)",
    "buy-pack 1.328 medium heuristic Buy Standard Pack ($4)",
-   "buy-voucher 1.25 medium heuristic Buy Seed Money ($10)",
    "reroll 1.089 low heuristic Reroll ($1)",
-   "skip 1 low heuristic Buy nothing"
+   "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.717 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "2.297 high modeled Take Delayed Gratification",
@@ -1645,7 +1645,7 @@
   "hand": "Straight",
   "estimate": "260x13.3=3458 modeled:1 inactive:1 unmodeled:0",
   "order": "blueprint-rightmost|10",
-  "reasons": "b3147b9b"
+  "reasons": "27748301"
  },
  {
   "i": 79,
@@ -1718,10 +1718,10 @@
   "recs": [
    "buy-pack 1.908 high heuristic Buy Spectral Pack ($4)",
    "buy-pack 1.62 high heuristic Buy Buffoon Pack ($4)",
-   "buy-voucher 1.05 low heuristic Buy Money Tree ($10)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.948 low heuristic Reroll ($6)",
-   "buy-joker 0.902 low partial Buy Joker ($9)"
+   "buy-joker 0.902 low partial Buy Joker ($9)",
+   "buy-voucher 0.737 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "1.81 high heuristic Take The Star",
@@ -1733,7 +1733,7 @@
   "hand": "Three of a Kind",
   "estimate": "128x27.15=3475 modeled:2 inactive:2 unmodeled:1",
   "order": "xmult-before-plus-mult|04123",
-  "reasons": "2dba913e"
+  "reasons": "d9644a33"
  },
  {
   "i": 83,
@@ -1928,8 +1928,8 @@
    "buy-pack 1.407 medium heuristic Buy Celestial Pack ($4)",
    "buy-pack 1.407 medium heuristic Buy Spectral Pack ($4)",
    "buy-joker 1.163 medium partial Buy Steel Joker ($19)",
+   "buy-voucher 1.057 low modeled Buy Seed Money ($10)",
    "buy-joker 1.045 low heuristic Buy Pareidolia ($18)",
-   "buy-voucher 1.029 low heuristic Buy Seed Money ($10)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.873 low heuristic Reroll ($9)"
   ],
@@ -1945,7 +1945,7 @@
   "hand": "Straight Flush",
   "estimate": "289x49.47=14297 modeled:2 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "1102672a"
+  "reasons": "d5367acd"
  },
  {
   "i": 93,
@@ -1955,7 +1955,7 @@
    "buy-pack 0.967 low heuristic Buy Spectral Pack ($4)",
    "reroll 0.849 low heuristic Reroll ($10)",
    "buy-consumable 0.827 low heuristic Buy The Chariot ($9)",
-   "buy-voucher 0.792 low heuristic Buy Money Tree ($10)"
+   "buy-voucher 0.758 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "1.361 medium heuristic Take Glass Joker",
@@ -1968,7 +1968,7 @@
   "hand": "Flush",
   "estimate": "528x87.92=46422 modeled:3 inactive:1 unmodeled:1",
   "order": "brainstorm-leftmost|24130",
-  "reasons": "4fb8ac1c"
+  "reasons": "0263d449"
  },
  {
   "i": 94,
@@ -2022,10 +2022,10 @@
    "buy-pack 2.226 high heuristic Buy Celestial Pack ($4)",
    "buy-consumable 2.073 high heuristic Buy The Fool ($1)",
    "buy-pack 1.908 high heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 1.187 medium heuristic Buy Money Tree ($10)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.975 low heuristic Reroll ($5)",
-   "buy-consumable 0.966 low heuristic Buy Mercury ($3)"
+   "buy-consumable 0.966 low heuristic Buy Mercury ($3)",
+   "buy-voucher 0.758 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Fool",
@@ -2037,7 +2037,7 @@
   "hand": "Flush House",
   "estimate": "206x39.99=8238 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "40c99450"
+  "reasons": "f5fa04b6"
  },
  {
   "i": 97,
@@ -2125,9 +2125,9 @@
   "recs": [
    "buy-joker 1.752 high partial Buy Driver's License ($16)",
    "buy-joker 1.742 high modeled Buy Golden Joker ($9)",
-   "buy-voucher 1.154 medium heuristic Buy Money Tree ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.922 low heuristic Reroll ($7)"
+   "reroll 0.922 low heuristic Reroll ($7)",
+   "buy-voucher 0.737 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -2140,7 +2140,7 @@
   "hand": "Flush",
   "estimate": "195x55.81=10883 modeled:3 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|12403",
-  "reasons": "ffdc90bf"
+  "reasons": "50dfd439"
  },
  {
   "i": 102,
@@ -2211,10 +2211,10 @@
   "i": 105,
   "recs": [
    "buy-joker 1.358 medium partial Buy Greedy Joker ($2)",
-   "buy-voucher 1.181 medium heuristic Buy Seed Money ($10)",
    "reroll 1.06 low heuristic Reroll ($2)",
    "skip 1 low heuristic Buy nothing",
-   "buy-joker 0.772 low partial Buy Crafty Joker ($17)"
+   "buy-joker 0.772 low partial Buy Crafty Joker ($17)",
+   "buy-voucher 0.758 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -2226,7 +2226,7 @@
   "hand": "Pair",
   "estimate": "207x10.21=2113 modeled:0 inactive:2 unmodeled:0",
   "order": "brainstorm-leftmost|10",
-  "reasons": "ae072b20"
+  "reasons": "10f3fb6e"
  },
  {
   "i": 106,
@@ -2357,9 +2357,9 @@
   "i": 112,
   "recs": [
    "buy-pack 1.855 high heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 1.51 high heuristic Buy Seed Money ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.661 low heuristic Reroll ($11)"
+   "reroll 0.661 low heuristic Reroll ($11)",
+   "buy-voucher 0.607 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Fool",
@@ -2373,7 +2373,7 @@
   "hand": "High Card",
   "estimate": "17x1.47=25 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "eb14eb17"
+  "reasons": "435b14f6"
  },
  {
   "i": 113,
@@ -2800,7 +2800,7 @@
    "skip 1 low heuristic Buy nothing",
    "buy-joker 0.901 low partial Buy Crafty Joker ($7)",
    "reroll 0.592 low heuristic Reroll ($8)",
-   "buy-voucher 0.583 low heuristic Buy Money Tree ($10)",
+   "buy-voucher 0.46 low modeled Buy Money Tree ($10)",
    "buy-joker 0.276 low heuristic Buy Ice Cream ($18)"
   ],
   "picks": [
@@ -2815,7 +2815,7 @@
   "hand": "Flush",
   "estimate": "287x50.65=14537 modeled:3 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "5218d2f6"
+  "reasons": "515a2a5e"
  },
  {
   "i": 134,
@@ -2863,7 +2863,7 @@
    "buy-pack 1.151 medium heuristic Buy Standard Pack ($4)",
    "reroll 1.031 low heuristic Reroll ($3)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.972 low heuristic Buy Money Tree ($10)"
+   "buy-voucher 0.758 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "3.605 high heuristic Take Pareidolia",
@@ -2876,17 +2876,17 @@
   "hand": "Full House",
   "estimate": "166x106.13=17618 modeled:3 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "a8dc125e"
+  "reasons": "8dfbb4f0"
  },
  {
   "i": 137,
   "recs": [
    "buy-pack 1.918 high heuristic Buy Celestial Pack ($4)",
    "buy-joker 1.616 high partial Buy Crafty Joker ($3)",
-   "buy-voucher 1.117 medium heuristic Buy Seed Money ($10)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.948 low heuristic Reroll ($5)",
-   "buy-consumable 0.872 low modeled Buy Jupiter ($8)"
+   "buy-consumable 0.872 low modeled Buy Jupiter ($8)",
+   "buy-voucher 0.697 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "3.21 high heuristic Take Brainstorm",
@@ -2897,7 +2897,7 @@
   "hand": "Flush",
   "estimate": "237x93.9=22254 modeled:1 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "7930c7be"
+  "reasons": "3f7efdd7"
  },
  {
   "i": 138,
@@ -2927,7 +2927,7 @@
    "buy-pack 1.331 medium heuristic Buy Celestial Pack ($4)",
    "reroll 1.12 medium heuristic Reroll ($0)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.927 low heuristic Buy Money Tree ($10)",
+   "buy-voucher 0.737 low modeled Buy Money Tree ($10)",
    "buy-joker 0.625 low partial Buy Greedy Joker ($14)",
    "buy-joker 0.459 low partial Buy Greedy Joker ($15)"
   ],
@@ -2942,7 +2942,7 @@
   "hand": "Flush",
   "estimate": "193x25.89=4997 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "42d45bd1"
+  "reasons": "514ef4d0"
  },
  {
   "i": 140,
@@ -3378,7 +3378,7 @@
    "skip 1 low heuristic Buy nothing",
    "buy-joker 0.946 low heuristic Buy Brainstorm ($2)",
    "buy-pack 0.895 low heuristic Buy Standard Pack ($4)",
-   "buy-voucher 0.737 low heuristic Buy Seed Money ($10)"
+   "buy-voucher 0.737 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "1 low heuristic Take Hex",
@@ -3388,7 +3388,7 @@
   "hand": "Straight Flush",
   "estimate": "265x437.4=115911 modeled:3 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|31204",
-  "reasons": "1fccfa1f"
+  "reasons": "395fbba2"
  },
  {
   "i": 161,
@@ -3719,8 +3719,8 @@
    "buy-pack 1.908 high heuristic Buy Spectral Pack ($4)",
    "buy-pack 1.62 high heuristic Buy Arcana Pack ($4)",
    "reroll 1.089 low heuristic Reroll ($1)",
-   "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.899 low heuristic Buy Seed Money ($10)"
+   "buy-voucher 1.057 low modeled Buy Seed Money ($10)",
+   "skip 1 low heuristic Buy nothing"
   ],
   "picks": [
    "4 high heuristic Take Blueprint",
@@ -3730,7 +3730,7 @@
   "hand": "Four of a Kind",
   "estimate": "332x83.51=27725 modeled:1 inactive:0 unmodeled:3",
   "order": "xmult-before-plus-mult|1230",
-  "reasons": "31a1c4c9"
+  "reasons": "a84f00e8"
  },
  {
   "i": 177,
@@ -4340,7 +4340,7 @@
    "reroll 1.06 low heuristic Reroll ($1)",
    "sell-and-buy 1.012 low heuristic Sell Banner, buy Green Joker ($8)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.942 low heuristic Buy Seed Money ($10)"
+   "buy-voucher 0.574 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "2.056 high modeled Take Golden Joker",
@@ -4354,7 +4354,7 @@
   "hand": "Straight",
   "estimate": "354x19.69=6970 modeled:2 inactive:1 unmodeled:2",
   "order": "brainstorm-leftmost|24130",
-  "reasons": "1ce524f1"
+  "reasons": "be425dd8"
  },
  {
   "i": 207,
@@ -4466,10 +4466,10 @@
    "buy-pack 1.413 medium heuristic Buy Spectral Pack ($4)",
    "buy-pack 1.032 low heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.985 low heuristic Buy Seed Money ($10)",
    "buy-consumable 0.938 low heuristic Buy The Fool ($9)",
    "reroll 0.922 low heuristic Reroll ($4)",
-   "buy-consumable 0.818 low heuristic Buy Mercury ($5)"
+   "buy-consumable 0.818 low heuristic Buy Mercury ($5)",
+   "buy-voucher 0.574 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "1.902 high heuristic Take Brainstorm",
@@ -4482,7 +4482,7 @@
   "hand": "High Card",
   "estimate": "56x16.7=935 modeled:0 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "d01f90ce"
+  "reasons": "b73d8726"
  },
  {
   "i": 213,
@@ -4657,7 +4657,7 @@
    "buy-pack 0.988 low heuristic Buy Buffoon Pack ($4)",
    "reroll 0.975 low heuristic Reroll ($5)",
    "buy-joker 0.797 low partial Buy Driver's License ($18)",
-   "buy-voucher 0.795 low heuristic Buy Money Tree ($10)"
+   "buy-voucher 0.737 low modeled Buy Money Tree ($10)"
   ],
   "picks": [
    "1.739 high heuristic Take Glass Joker",
@@ -4668,7 +4668,7 @@
   "hand": "Three of a Kind",
   "estimate": "154x37.25=5737 modeled:0 inactive:1 unmodeled:2",
   "order": "|-",
-  "reasons": "479b48bb"
+  "reasons": "5fb93c00"
  },
  {
   "i": 222,
@@ -4776,8 +4776,8 @@
    "skip 1 low heuristic Buy nothing",
    "buy-pack 0.992 low heuristic Buy Standard Pack ($4)",
    "reroll 0.922 low heuristic Reroll ($5)",
-   "buy-voucher 0.905 low heuristic Buy Seed Money ($10)",
    "buy-consumable 0.865 low heuristic Buy Venus ($5)",
+   "buy-voucher 0.678 low modeled Buy Seed Money ($10)",
    "buy-joker 0.59 low partial Buy Droll Joker ($18)"
   ],
   "picks": [
@@ -4792,7 +4792,7 @@
   "hand": "Flush House",
   "estimate": "310x94.29=29230 modeled:1 inactive:0 unmodeled:3",
   "order": "|-",
-  "reasons": "0e44185d"
+  "reasons": "25cff6de"
  },
  {
   "i": 228,
@@ -4815,7 +4815,7 @@
   "i": 229,
   "recs": [
    "buy-pack 1.64 high heuristic Buy Buffoon Pack ($4)",
-   "buy-voucher 1.379 medium heuristic Buy Seed Money ($10)",
+   "buy-voucher 1.057 low modeled Buy Seed Money ($10)",
    "reroll 1.002 low heuristic Reroll ($4)",
    "skip 1 low heuristic Buy nothing"
   ],
@@ -4827,7 +4827,7 @@
   "hand": "Straight Flush",
   "estimate": "214x28.6=6120 modeled:1 inactive:0 unmodeled:2",
   "order": "xmult-before-plus-mult|120",
-  "reasons": "c09bafcc"
+  "reasons": "af8ea4cb"
  },
  {
   "i": 230,
@@ -4944,9 +4944,9 @@
    "buy-pack 1.552 high heuristic Buy Arcana Pack ($4)",
    "buy-pack 1.552 high heuristic Buy Celestial Pack ($4)",
    "buy-joker 1.143 medium modeled Buy Delayed Gratification ($19)",
+   "buy-voucher 1.057 low modeled Buy Seed Money ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.922 low heuristic Reroll ($7)",
-   "buy-voucher 0.886 low heuristic Buy Seed Money ($10)"
+   "reroll 0.922 low heuristic Reroll ($7)"
   ],
   "picks": [
    "2.033 high partial Take Baron",
@@ -4959,7 +4959,7 @@
   "hand": "Flush House",
   "estimate": "339x81.34=27574 modeled:1 inactive:0 unmodeled:3",
   "order": "xmult-before-plus-mult|0312",
-  "reasons": "1046862b"
+  "reasons": "9eb33263"
  },
  {
   "i": 236,
@@ -5636,7 +5636,7 @@
    "buy-joker 2.971 high partial Buy Driver's License ($10)",
    "skip 1 low heuristic Buy nothing",
    "reroll 0.897 low heuristic Reroll ($8)",
-   "buy-voucher 0.884 low heuristic Buy Seed Money ($10)"
+   "buy-voucher 0.824 low modeled Buy Seed Money ($10)"
   ],
   "picks": [
    "4.572 high heuristic Take Glass Joker",
@@ -5648,7 +5648,7 @@
   "hand": "Full House",
   "estimate": "113x493.95=55816 modeled:3 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "5371f465"
+  "reasons": "39abcf5e"
  },
  {
   "i": 268,
@@ -5759,8 +5759,8 @@
   "i": 273,
   "recs": [
    "sell-and-buy 1.754 high heuristic Sell Banner, buy Supernova ($0)",
+   "buy-voucher 1.248 medium modeled Buy Seed Money ($10)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.962 low heuristic Buy Seed Money ($10)",
    "reroll 0.948 low heuristic Reroll ($6)"
   ],
   "picks": [
@@ -5774,7 +5774,7 @@
   "hand": "Flush House",
   "estimate": "466x106.67=49708 modeled:2 inactive:0 unmodeled:3",
   "order": "xmult-before-plus-mult|12304",
-  "reasons": "9d112431"
+  "reasons": "3bb26bff"
  },
  {
   "i": 274,

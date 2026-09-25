@@ -12,6 +12,7 @@ import { packPrice, voucherPrice } from './prices';
 import { horizonRounds, interestCost, projectMoney, roundsRemaining } from './projection';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
+import { voucherValue } from './vouchers';
 
 export { roundsRemaining };
 
@@ -214,9 +215,17 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
     return unavailable('buy-voucher', action, `Not affordable ($${price} > $${run.money})`, def.id);
   }
 
-  // A voucher pays out over the rest of the run, so the same voucher is worth
-  // less the later it is bought. That replaces a flat late-game penalty with
-  // the reason behind it.
+  const cost = costOf(run, price);
+  const modelled = voucherValue(run, def.id, price);
+  if (modelled) {
+    return rec(
+      'buy-voucher', action, modelled.multiplier, cost.dollars - modelled.incomeDollars,
+      [def.effect, ...modelled.reasons, ...cost.reasons], def.id, modelled.evidence,
+    );
+  }
+
+  // Not modelled yet: the rating stands in. A voucher pays out over the rest of
+  // the run, so the same one is worth less the later it is bought.
   const rounds = roundsRemaining(ante);
   const fullRun = TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte;
   const share = rounds / fullRun;
@@ -225,7 +234,6 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
   const reasons = [def.effect];
   if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
 
-  const cost = costOf(run, price);
   return rec('buy-voucher', action, multiplier, cost.dollars, [...reasons, ...cost.reasons], def.id);
 }
 

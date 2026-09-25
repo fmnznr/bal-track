@@ -194,6 +194,23 @@ export function interestCost(run: RunState, price: number): number {
 }
 
 /**
+ * What a raised interest cap adds over the horizon, at the bankroll left once
+ * the voucher is paid for and held there.
+ *
+ * Deliberately not played forward. The projection assumes you bank everything,
+ * which is the careful reading for what a purchase costs, but it would be the
+ * generous one here: every dollar an interest voucher earns comes from money
+ * you did not spend. Played forward, Money Tree outranked every pack in a
+ * dozen baseline shops on money nobody had yet.
+ */
+export function interestVoucherIncome(run: RunState, voucherId: string, price: number): number {
+  const left = { ...run, money: run.money - price };
+  const raised = { ...left, vouchers: [...run.vouchers, voucherId] };
+  const perRound = interestOn(raised, left.money) - interestOn(left, left.money);
+  return Math.max(0, perRound) * horizonRounds(run.ante);
+}
+
+/**
  * What owning a joker earns over the horizon, compounding included, measured
  * as the difference it makes to the bankroll at the end.
  */
