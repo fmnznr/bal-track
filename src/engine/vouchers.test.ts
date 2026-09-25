@@ -74,10 +74,40 @@ describe('vouchers valued by what they do', () => {
     expect(value.incomeDollars).toBeCloseTo(6, 0);
   });
 
+  it('prices a discount as what a steady bankroll saves', () => {
+    const clearance = voucherValue(board(), 'clearance-sale', 10)!;
+    expect(clearance.multiplier).toBe(1);
+    expect(clearance.incomeDollars).toBeGreaterThan(0);
+    // On top of Clearance Sale, Liquidation takes a half of list price where a
+    // quarter was already off: a third of what is spent now, not a half.
+    const owned = board({ vouchers: ['clearance-sale'] });
+    const liquidation = voucherValue(owned, 'liquidation', 7)!;
+    const spendOnce = clearance.incomeDollars / 0.25;
+    expect(liquidation.incomeDollars / spendOnce).toBeCloseTo(1 / 3, 1);
+  });
+
+  it('values Antimatter as the joker it saves you from selling', () => {
+    const recs = recommend(board({ vouchers: ['blank'] }), offer('antimatter'));
+    const antimatter = recs.find(r => r.kind === 'buy-voucher')!;
+    expect(antimatter.reasons.join(' ')).toMatch(/Keeps Walkie Talkie/);
+    expect(antimatter.impact).toBeGreaterThan(1);
+  });
+
+  it('gives Antimatter nothing while slots are free', () => {
+    const roomy = board({ vouchers: ['blank'], jokers: [{ jokerId: 'joker', edition: 'base' }] });
+    const recs = recommend(roomy, offer('antimatter'));
+    expect(recs.find(r => r.kind === 'buy-voucher')!.impact).toBe(1);
+  });
+
   it('leaves the vouchers the engine cannot yet judge to their rating', () => {
     // Hieroglyph and Petroglyph buy an extra ante of time; Wasteful and the
     // hand-size vouchers help find a hand. Neither is something the engine models.
-    for (const id of ['hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette']) {
+    // Rerolls and extra shop cards depend on how often you reroll, which the run
+    // does not record; Crystal Ball on consumables held, likewise.
+    for (const id of [
+      'hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette',
+      'reroll-surplus', 'reroll-glut', 'overstock', 'overstock-plus', 'crystal-ball',
+    ]) {
       expect(voucherValue(board(), id, 10), id).toBeNull();
     }
   });

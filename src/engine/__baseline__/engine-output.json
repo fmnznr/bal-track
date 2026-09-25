@@ -84,7 +84,7 @@
   "recs": [
    "skip 1 low heuristic Buy nothing",
    "reroll 0.975 low heuristic Reroll ($5)",
-   "buy-voucher 0.758 low heuristic Buy Antimatter ($10)"
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.15 medium partial Take Crafty Joker",
@@ -96,7 +96,7 @@
   "hand": "Straight",
   "estimate": "318x1124.68=357648 modeled:3 inactive:2 unmodeled:0",
   "order": "xmult-before-plus-mult,brainstorm-leftmost|42301",
-  "reasons": "542fa138"
+  "reasons": "09dc482e"
  },
  {
   "i": 5,
@@ -435,10 +435,10 @@
  {
   "i": 21,
   "recs": [
-   "buy-voucher 2.499 high heuristic Buy Antimatter ($10)",
    "buy-pack 2.226 high heuristic Buy Buffoon Pack ($4)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.803 low heuristic Reroll ($11)"
+   "reroll 0.803 low heuristic Reroll ($11)",
+   "buy-voucher 0.737 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.81 high heuristic Take The Star",
@@ -448,7 +448,7 @@
   "hand": "High Card",
   "estimate": "16x1.56=25 modeled:0 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "dd2b9672"
+  "reasons": "00327147"
  },
  {
   "i": 22,
@@ -618,7 +618,7 @@
   "recs": [
    "skip 1 low heuristic Buy nothing",
    "reroll 0.922 low heuristic Reroll ($7)",
-   "buy-voucher 0.81 low heuristic Buy Antimatter ($10)"
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.203 high partial Take Driver's License",
@@ -630,7 +630,7 @@
   "hand": "Flush Five",
   "estimate": "256x176.95=45299 modeled:2 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "4854f6ec"
+  "reasons": "b9900659"
  },
  {
   "i": 31,
@@ -1110,9 +1110,9 @@
    "skip 1 low heuristic Buy nothing",
    "buy-consumable 0.956 low heuristic Buy The Star ($4)",
    "buy-consumable 0.911 low heuristic Buy Hex ($6)",
-   "buy-voucher 0.902 low heuristic Buy Antimatter ($10)",
    "reroll 0.849 low heuristic Reroll ($7)",
-   "buy-joker 0.687 low heuristic Buy Pareidolia ($18)"
+   "buy-joker 0.687 low heuristic Buy Pareidolia ($18)",
+   "buy-voucher 0.678 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.757 high heuristic Take Glass Joker",
@@ -1125,7 +1125,7 @@
   "hand": "Flush",
   "estimate": "104x31.81=3308 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "0f4f6845"
+  "reasons": "623dd480"
  },
  {
   "i": 54,
@@ -1380,7 +1380,7 @@
    "buy-pack 0.889 low heuristic Buy Spectral Pack ($4)",
    "buy-pack 0.879 low heuristic Buy Arcana Pack ($4)",
    "buy-joker 0.794 low heuristic Buy Supernova ($8)",
-   "buy-voucher 0.674 low heuristic Buy Antimatter ($10)",
+   "buy-voucher 0.624 low modeled Buy Antimatter ($10)",
    "reroll 0 low heuristic Reroll ($11)"
   ],
   "picks": [
@@ -1393,7 +1393,7 @@
   "hand": "Straight",
   "estimate": "494x61.04=30154 modeled:3 inactive:1 unmodeled:1",
   "order": "xmult-before-plus-mult|03142",
-  "reasons": "1c4af270"
+  "reasons": "026d8932"
  },
  {
   "i": 67,
@@ -1758,11 +1758,11 @@
  {
   "i": 84,
   "recs": [
-   "buy-voucher 2.311 high heuristic Buy Antimatter ($10)",
    "buy-pack 2.226 high heuristic Buy Spectral Pack ($4)",
    "buy-joker 1.01 low modeled Buy Delayed Gratification ($11)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.975 low heuristic Reroll ($5)"
+   "reroll 0.975 low heuristic Reroll ($5)",
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -1774,7 +1774,7 @@
   "hand": "High Card",
   "estimate": "99x12.85=1272 modeled:1 inactive:0 unmodeled:2",
   "order": "|-",
-  "reasons": "833774a8"
+  "reasons": "2e2cb3eb"
  },
  {
   "i": 85,
@@ -2085,8 +2085,8 @@
   "recs": [
    "buy-consumable 1.961 high heuristic Buy The Fool ($1)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.814 low heuristic Buy Antimatter ($10)",
-   "reroll 0.781 low heuristic Reroll ($7)"
+   "reroll 0.781 low heuristic Reroll ($7)",
+   "buy-voucher 0.607 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take Green Joker",
@@ -2098,7 +2098,7 @@
   "hand": "Pair",
   "estimate": "41x5.88=241 modeled:0 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "8aa3018e"
+  "reasons": "930e35ba"
  },
  {
   "i": 100,
@@ -2170,10 +2170,10 @@
  {
   "i": 103,
   "recs": [
-   "buy-voucher 1.914 high heuristic Buy Antimatter ($10)",
    "buy-pack 1.158 medium heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.873 low heuristic Reroll ($9)"
+   "reroll 0.873 low heuristic Reroll ($9)",
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.154 high heuristic Take Jupiter",
@@ -2186,7 +2186,7 @@
   "hand": "Two Pair",
   "estimate": "75x10.74=806 modeled:0 inactive:2 unmodeled:2",
   "order": "|-",
-  "reasons": "b2124332"
+  "reasons": "fb436a2d"
  },
  {
   "i": 104,
@@ -2906,8 +2906,8 @@
    "skip 1 low heuristic Buy nothing",
    "buy-pack 0.997 low heuristic Buy Celestial Pack ($4)",
    "buy-pack 0.972 low heuristic Buy Buffoon Pack ($4)",
-   "buy-voucher 0.876 low heuristic Buy Antimatter ($10)",
-   "reroll 0.873 low heuristic Reroll ($9)"
+   "reroll 0.873 low heuristic Reroll ($9)",
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.548 high heuristic Take Supernova",
@@ -2919,7 +2919,7 @@
   "hand": "Flush",
   "estimate": "291x180.16=52427 modeled:1 inactive:0 unmodeled:3",
   "order": "xmult-before-plus-mult|3021",
-  "reasons": "babd94e6"
+  "reasons": "064c08e0"
  },
  {
   "i": 139,
@@ -3096,12 +3096,12 @@
   "i": 147,
   "recs": [
    "buy-joker 1.901 high heuristic Buy Obelisk ($4)",
-   "buy-voucher 1.422 medium heuristic Buy Antimatter ($10)",
    "buy-pack 1.415 medium heuristic Buy Buffoon Pack ($4)",
    "buy-pack 1.136 medium heuristic Buy Standard Pack ($4)",
    "buy-consumable 1.093 low heuristic Buy Jupiter ($8)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.922 low heuristic Reroll ($7)"
+   "reroll 0.922 low heuristic Reroll ($7)",
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.945 high modeled Take Delayed Gratification",
@@ -3112,7 +3112,7 @@
   "hand": "Four of a Kind",
   "estimate": "308x34.81=10721 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "1f8b97d6"
+  "reasons": "9bc3d2d0"
  },
  {
   "i": 148,
@@ -3288,11 +3288,11 @@
   "i": 156,
   "recs": [
    "buy-consumable 1.961 high heuristic Buy Hex ($2)",
-   "buy-voucher 1.941 high heuristic Buy Antimatter ($10)",
    "buy-joker 1.107 medium partial Buy Baron ($10)",
    "buy-joker 1.036 low partial Buy Baron ($16)",
    "reroll 1.002 low heuristic Reroll ($3)",
-   "skip 1 low heuristic Buy nothing"
+   "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.717 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "3.732 high heuristic Take Blueprint",
@@ -3303,7 +3303,7 @@
   "hand": "High Card",
   "estimate": "86x18.37=1580 modeled:0 inactive:1 unmodeled:1",
   "order": "xmult-before-plus-mult|10",
-  "reasons": "7060341c"
+  "reasons": "a032c7d5"
  },
  {
   "i": 157,
@@ -3333,7 +3333,7 @@
    "buy-pack 1.151 medium heuristic Buy Standard Pack ($4)",
    "reroll 1.06 low heuristic Reroll ($2)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.962 low heuristic Buy Antimatter ($10)"
+   "buy-voucher 0.717 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.751 high partial Take Driver's License",
@@ -3344,7 +3344,7 @@
   "hand": "Flush Five",
   "estimate": "563x64.27=36184 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "cd8d2375"
+  "reasons": "7c78b258"
  },
  {
   "i": 159,
@@ -4112,9 +4112,9 @@
    "sell-and-buy 1.711 high heuristic Sell Steel Joker, buy Green Joker ($12)",
    "buy-pack 1.62 high heuristic Buy Celestial Pack ($4)",
    "sell-and-buy 1.525 high heuristic Sell Steel Joker, buy Green Joker ($16)",
-   "buy-voucher 1.276 medium heuristic Buy Antimatter ($10)",
    "reroll 1.06 low heuristic Reroll ($2)",
-   "skip 1 low heuristic Buy nothing"
+   "skip 1 low heuristic Buy nothing",
+   "buy-voucher 0.865 low partial Buy Antimatter ($10)"
   ],
   "picks": [
    "3.605 high heuristic Take Supernova",
@@ -4126,7 +4126,7 @@
   "hand": "High Card",
   "estimate": "224x31.13=6973 modeled:3 inactive:1 unmodeled:1",
   "order": "|-",
-  "reasons": "b68253a2"
+  "reasons": "fc3c10f4"
  },
  {
   "i": 196,
@@ -4527,10 +4527,10 @@
   "recs": [
    "buy-joker 3.485 high heuristic Buy Glass Joker ($5)",
    "buy-pack 2.226 high heuristic Buy Celestial Pack ($4)",
-   "buy-voucher 1.888 high heuristic Buy Antimatter ($10)",
    "reroll 1.089 low heuristic Reroll ($1)",
    "skip 1 low heuristic Buy nothing",
-   "buy-joker 0.706 low partial Buy Greedy Joker ($16)"
+   "buy-joker 0.706 low partial Buy Greedy Joker ($16)",
+   "buy-voucher 0.697 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.121 medium partial Take Joker",
@@ -4541,7 +4541,7 @@
   "hand": "Three of a Kind",
   "estimate": "77x11.74=904 modeled:0 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "772ddc30"
+  "reasons": "f94255ad"
  },
  {
   "i": 216,
@@ -4733,9 +4733,9 @@
   "recs": [
    "buy-pack 1.738 high heuristic Buy Spectral Pack ($4)",
    "buy-pack 1.519 high heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 1.317 medium heuristic Buy Antimatter ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.739 low heuristic Reroll ($7)"
+   "reroll 0.739 low heuristic Reroll ($7)",
+   "buy-voucher 0.473 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.864 high partial Take Crafty Joker",
@@ -4745,7 +4745,7 @@
   "hand": "Straight Flush",
   "estimate": "147x11.85=1742 modeled:0 inactive:0 unmodeled:0",
   "order": "|-",
-  "reasons": "5f4f7fc0"
+  "reasons": "38c08e1d"
  },
  {
   "i": 226,
@@ -4878,10 +4878,10 @@
    "buy-consumable 1.961 high heuristic Buy Hex ($2)",
    "buy-pack 1.532 high heuristic Buy Celestial Pack ($4)",
    "buy-pack 1.532 high heuristic Buy Arcana Pack ($4)",
-   "buy-voucher 1.373 medium heuristic Buy Antimatter ($10)",
    "buy-joker 1.168 medium partial Buy Steel Joker ($14)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.922 low heuristic Reroll ($5)"
+   "reroll 0.922 low heuristic Reroll ($5)",
+   "buy-voucher 0.678 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "3.732 high heuristic Take Brainstorm",
@@ -4895,7 +4895,7 @@
   "hand": "Flush House",
   "estimate": "204x89.95=18350 modeled:2 inactive:0 unmodeled:1",
   "order": "xmult-before-plus-mult|201",
-  "reasons": "40b396fc"
+  "reasons": "bb0fff2d"
  },
  {
   "i": 233,
@@ -5057,7 +5057,7 @@
    "buy-pack 1.62 high heuristic Buy Buffoon Pack ($4)",
    "reroll 1.002 low heuristic Reroll ($4)",
    "skip 1 low heuristic Buy nothing",
-   "buy-voucher 0.989 low heuristic Buy Antimatter ($10)"
+   "buy-voucher 0.737 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -5070,7 +5070,7 @@
   "hand": "Five of a Kind",
   "estimate": "395x62.74=24782 modeled:1 inactive:1 unmodeled:1",
   "order": "xmult-before-plus-mult|102",
-  "reasons": "1911f767"
+  "reasons": "863712f6"
  },
  {
   "i": 241,
@@ -5399,11 +5399,11 @@
  {
   "i": 256,
   "recs": [
-   "buy-voucher 1.367 medium heuristic Buy Antimatter ($10)",
    "buy-pack 1.317 medium heuristic Buy Arcana Pack ($4)",
    "buy-pack 1.091 low heuristic Buy Standard Pack ($4)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.826 low heuristic Reroll ($10)"
+   "reroll 0.826 low heuristic Reroll ($10)",
+   "buy-voucher 0.737 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.041 high heuristic Take Glass Joker",
@@ -5416,7 +5416,7 @@
   "hand": "Flush",
   "estimate": "380x28.39=10788 modeled:2 inactive:0 unmodeled:1",
   "order": "xmult-before-plus-mult|021",
-  "reasons": "e486fb0d"
+  "reasons": "decb6021"
  },
  {
   "i": 257,
@@ -6084,12 +6084,12 @@
   "i": 288,
   "recs": [
    "buy-joker 2.908 high heuristic Buy Brainstorm ($9)",
-   "buy-voucher 2.311 high heuristic Buy Antimatter ($10)",
    "buy-pack 2.226 high heuristic Buy Spectral Pack ($4)",
    "buy-consumable 1.908 high heuristic Buy The Fool ($4)",
    "buy-joker 1.444 medium partial Buy Greedy Joker ($10)",
    "skip 1 low heuristic Buy nothing",
-   "reroll 0.826 low heuristic Reroll ($11)"
+   "reroll 0.826 low heuristic Reroll ($11)",
+   "buy-voucher 0.758 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "3.947 high heuristic Take Glass Joker",
@@ -6103,7 +6103,7 @@
   "hand": "Pair",
   "estimate": "102x12.74=1299 modeled:1 inactive:1 unmodeled:0",
   "order": "|-",
-  "reasons": "0268c327"
+  "reasons": "8cd1235a"
  },
  {
   "i": 289,
@@ -6195,7 +6195,7 @@
    "buy-pack 0.987 low heuristic Buy Celestial Pack ($4)",
    "buy-pack 0.963 low heuristic Buy Spectral Pack ($4)",
    "buy-consumable 0.947 low heuristic Buy The Star ($3)",
-   "buy-voucher 0.794 low heuristic Buy Antimatter ($10)"
+   "buy-voucher 0.678 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "1.538 high partial Take Steel Joker",
@@ -6208,7 +6208,7 @@
   "hand": "Straight Flush",
   "estimate": "283x64.53=18262 modeled:0 inactive:0 unmodeled:1",
   "order": "|-",
-  "reasons": "beb62bd8"
+  "reasons": "25871c57"
  },
  {
   "i": 294,
@@ -6311,11 +6311,11 @@
    "buy-pack 1.908 high heuristic Buy Spectral Pack ($4)",
    "buy-pack 1.62 high heuristic Buy Celestial Pack ($4)",
    "buy-consumable 1.45 medium heuristic Buy Justice ($7)",
-   "buy-voucher 1.241 medium heuristic Buy Antimatter ($10)",
    "skip 1 low heuristic Buy nothing",
    "buy-joker 0.984 low partial Buy Baron ($8)",
    "buy-consumable 0.966 low heuristic Buy Jupiter ($3)",
-   "reroll 0.873 low heuristic Reroll ($8)"
+   "reroll 0.873 low heuristic Reroll ($8)",
+   "buy-voucher 0.737 low modeled Buy Antimatter ($10)"
   ],
   "picks": [
    "2.131 high heuristic Take The Chariot",
@@ -6326,6 +6326,6 @@
   "hand": "Pair",
   "estimate": "33x14.02=463 modeled:0 inactive:1 unmodeled:2",
   "order": "blueprint-rightmost|021",
-  "reasons": "53a4759f"
+  "reasons": "c47ae1b4"
  }
 ]

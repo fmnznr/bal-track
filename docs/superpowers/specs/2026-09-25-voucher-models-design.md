@@ -20,8 +20,9 @@ is staged so each step's effect on the rankings can be read on its own:
 1. Director's Cut, Retcon, Seed Money, Money Tree, Blank — **done**.
 2. Hands: Grabber, Nacho Tong — **done**. The other six planned here turned
    out to need something the engine does not have; see below.
-3. Shop economy and slots: Clearance Sale, Liquidation, Reroll Surplus,
-   Reroll Glut, Overstock, Overstock Plus, Crystal Ball, Antimatter.
+3. Shop economy and slots: Clearance Sale, Liquidation, Antimatter — **done**.
+   Reroll Surplus, Reroll Glut, Overstock, Overstock Plus and Crystal Ball
+   stayed on their rating; see below.
 4. The rest keep a rating, on a curve with a zero point.
 
 ## Reach: the measure shared by every model that touches a blind
@@ -115,3 +116,40 @@ Splash), so it is worth building as its own piece.
 top picks changed, both on boards with no modelled joker: Grabber rose to the
 top where the board is far from the blinds, and fell just behind a $2 reroll
 where it is less so.
+
+## Stage 3 decisions
+
+**A discount saves on what a steady bankroll spends.** Under the projection's
+"bank everything", nothing is ever spent and a discount saves nothing, which
+no one who has bought Clearance Sale would recognise. Held steady — the same
+reading the interest vouchers use — a round spends everything it pays,
+interest included, and the discount saves its share of that over the
+horizon. Liquidation is measured from the discount already owned: half off
+list where a quarter was already off is a third of what is spent now. Rerolls
+are left out, since the game does not discount them. It is `partial`, because
+"everything a round pays is spent in the shop" is an assumption.
+
+On the ante-3 board a round pays about $7, so Clearance Sale saves about $11
+over six rounds — close to its own price. Its rating had it at +141%.
+
+**A joker slot is worth the joker it saves you from selling.** On a full
+board, the next joker worth buying displaces the weakest, so Antimatter is
+worth what that joker is worth, judged exactly as the sell-and-buy
+recommendations judge it. With a slot free it is worth nothing yet.
+
+That last part is a snapshot, and it understates a permanent slot: the board
+will fill, and the joker it then keeps will be a better one than today's
+weakest. It is the same gap as Hieroglyph's extra ante — the engine has no
+notion of how the board will grow — so it is stated in the reasons rather than
+guessed.
+
+**Five vouchers stayed on their rating.** Reroll Surplus and Reroll Glut save
+on rerolls, and Overstock and Overstock Plus add a card to every shop, which
+is worth most to someone who rerolls. How often a player rerolls is not in the
+run; it is in the advice log, which is where it should come from once the
+engine reads it. Crystal Ball's extra consumable slot depends on consumables
+the run cannot foresee.
+
+**Effect.** 21 of the 300 baseline scenarios moved, all through Antimatter.
+Its rating put it at +205%, the top pick in four shops; in all four the board
+had free slots, and a pack now leads.

@@ -210,6 +210,20 @@ export function interestVoucherIncome(run: RunState, voucherId: string, price: n
   return Math.max(0, perRound) * horizonRounds(run.ante);
 }
 
+/**
+ * What a round spends when the bankroll is held where it is: everything the
+ * round pays, interest included.
+ *
+ * The counterpart to the projection's "bank everything". That reading is the
+ * careful one for what a purchase costs, but a shop discount only saves on
+ * money that is spent, and under it nothing ever is. Holding the bankroll
+ * steady is the same reading the interest vouchers are valued under.
+ */
+export function steadySpend(run: RunState): number {
+  const income = roundIncome(run).reduce((sum, s) => sum + s.dollars, 0);
+  return income + interestOn(run, run.money);
+}
+
 /** Money one run ends the horizon with over another, compounding included. */
 export function incomeGap(withIt: RunState, without: RunState): number {
   return moneyAtHorizon(withIt) - moneyAtHorizon(without);

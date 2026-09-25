@@ -206,7 +206,7 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
   );
 }
 
-function evalVoucher(run: RunState, voucherId: string, ante: number): Recommendation {
+function evalVoucher(run: RunState, voucherId: string, ante: number, ctx: JokerContext): Recommendation {
   const def = getVoucher(voucherId);
   if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
   const price = voucherPrice(run, def);
@@ -216,7 +216,15 @@ function evalVoucher(run: RunState, voucherId: string, ante: number): Recommenda
   }
 
   const cost = costOf(run, price);
-  const modelled = voucherValue(run, def.id, price);
+  const modelled = voucherValue(run, def.id, price, {
+    weakest: () => {
+      const w = findWeakestOwned(run, ctx);
+      return w && {
+        name: w.name, multiplier: w.impact.multiplier, incomeDollars: w.impact.incomeDollars,
+        modelled: w.impact.evidence === 'modeled',
+      };
+    },
+  });
   if (modelled) {
     return rec(
       'buy-voucher', action, modelled.multiplier, cost.dollars - modelled.incomeDollars,
@@ -327,7 +335,7 @@ export function recommend(run: RunState, shop: ShopState): Recommendation[] {
   const ctx = contextFor(run, phase, planFor(run));
   const recs: Recommendation[] = [];
   for (const slot of shop.cards) recs.push(evalShopCard(run, slot, ctx));
-  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante));
+  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante, ctx));
   for (const packId of shop.packIds) recs.push(evalPack(run, packId, phase));
   recs.push(evalReroll(run, shop), evalSkip(run, ctx.plan));
   return finalize(recs);

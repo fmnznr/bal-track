@@ -14,10 +14,20 @@
 import { bossesForAnte, getVoucher } from '../catalog/catalog';
 import type { RunState } from '../types';
 import { interestCapFor, INTEREST_TIER_DOLLARS } from './economy';
-import { applyVoucher } from './gameRules';
-import { horizonRounds, incomeGap, interestVoucherIncome } from './projection';
+import { applyVoucher, usedJokerSlots } from './gameRules';
+import { discountPercent } from './prices';
+import { horizonRounds, incomeGap, interestVoucherIncome, steadySpend } from './projection';
 import { blindTargets, bossOutlook, estimateHandScore, referenceHand } from './score';
 import { TUNING } from './tuning';
+
+/** What a voucher's value can depend on beyond the run itself. */
+export interface VoucherContext {
+  /**
+   * The owned joker that would be sold to make room, with its worth on the
+   * ranking scale. Null when nothing on the board could be sold.
+   */
+  weakest: () => { name: string; multiplier: number; incomeDollars: number; modelled: boolean } | null;
+}
 
 export interface VoucherValue {
   /** Multiplier on hand score; exactly 1 for a voucher that adds none. */
@@ -206,7 +216,67 @@ function resources(voucherId: string, what: string) {
   };
 }
 
-const MODELS: Record<string, (run: RunState, price: number) => VoucherValue> = {
+/**
+ * A shop discount, as the money it saves on what a steady bankroll spends.
+ * The step is measured from the discount the run already has, so Liquidation
+ * on top of Clearance Sale saves a third of what is spent, not a half.
+ */
+function discount(voucherId: string) {
+  return (run: RunState, price: number): VoucherValue => {
+    const left = { ...run, money: run.money - price };
+    const before = discountPercent(run.vouchers) / 100;
+    const after = discountPercent([...run.vouchers, voucherId]) / 100;
+    const spend = steadySpend(left);
+    const share = 1 - (1 - after) / (1 - before);
+    const rounds = horizonRounds(run.ante);
+    const saved = spend * share * rounds;
+    return {
+      multiplier: 1,
+      incomeDollars: saved,
+      evidence: 'partial',
+      reasons: [
+        `Spending what you earn, about $${Math.round(spend)} a round, it saves about $${Math.round(saved)}`
+        + ` over the next ${rounds} rounds`,
+        'Assumes a steady bankroll: every dollar a round pays is spent, none of it on rerolls,'
+        + ' which the game does not discount',
+      ],
+    };
+  };
+}
+
+/**
+ * A joker slot, as the joker it saves you from selling. On a full board the
+ * next joker worth buying displaces the weakest one; with room to spare, a
+ * slot does nothing until the board fills.
+ */
+function antimatter(run: RunState, _price: number, context?: VoucherContext): VoucherValue | null {
+  const free = run.jokerSlots - usedJokerSlots(run);
+  if (free > 0) {
+    return {
+      multiplier: 1, incomeDollars: 0, evidence: 'modeled',
+      reasons: [`You have ${free} free joker slot${free === 1 ? '' : 's'} already;`
+        + ' another only pays once the board is full'],
+    };
+  }
+  const weakest = context?.weakest();
+  // Nothing on a full board can be sold (Eternal, Negative): no joker to measure the slot by.
+  if (!weakest) return null;
+  return {
+    multiplier: weakest.multiplier,
+    incomeDollars: weakest.incomeDollars,
+    evidence: weakest.modelled ? 'modeled' : 'partial',
+    reasons: [`Keeps ${weakest.name}, your weakest joker, when the next one arrives:`
+      + ` it is worth +${pct(weakest.multiplier)}${weakest.incomeDollars >= 1
+        ? ` and $${Math.round(weakest.incomeDollars)}` : ''}`],
+  };
+}
+
+type Model = (run: RunState, price: number, context?: VoucherContext) => VoucherValue | null;
+
+const MODELS: Record<string, Model> = {
+  'clearance-sale': discount('clearance-sale'),
+  liquidation: discount('liquidation'),
+  antimatter,
   grabber: resources('grabber', 'One more hand a round'),
   'nacho-tong': resources('nacho-tong', 'One more hand a round'),
   'directors-cut': directorsCut,
@@ -229,12 +299,14 @@ const MODELS: Record<string, (run: RunState, price: number) => VoucherValue> = {
  * it is judged on top of that tier even when the run does not record it —
  * Money Tree without Seed Money would otherwise be credited with both.
  */
-export function voucherValue(run: RunState, voucherId: string, price: number): VoucherValue | null {
+export function voucherValue(
+  run: RunState, voucherId: string, price: number, context?: VoucherContext,
+): VoucherValue | null {
   const model = MODELS[voucherId];
   if (!model) return null;
   const requires = getVoucher(voucherId)?.requires;
   const owned = requires && !run.vouchers.includes(requires)
     ? { ...run, vouchers: [...run.vouchers, requires] }
     : run;
-  return model(owned, price);
+  return model(owned, price, context);
 }
