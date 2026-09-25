@@ -59,13 +59,15 @@ exists only for when a run drifts from what was recorded.
 - A screenshot is matched against 281 card drawings by perceptual fingerprint.
   Cards under an overlay ("Upgrade!", "Sell $1") are not read, a **Negative
   joker is not recognised** at all because the game redraws it dark, and the
-  reference table is built from the English artwork. In a shop the hands and
-  discards on display are the next round's allowance, which is what the run
-  tracks; a screenshot taken mid-round would show what is left of that round
-  instead. See
+  reference table is built from the English artwork. A joker's edition is not
+  read from the picture; on a shop card it is taken from the price tag when the
+  surcharge names exactly one, and a held joker stays base until you set it.
+  In a shop the hands and discards on display are the next round's allowance,
+  which is what the run tracks; a screenshot taken mid-round would show what is
+  left of that round instead. See
   [`docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md`](docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md).
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Score contribution is modeled for 64 of the 150 Jokers: flat effects,
+- Score contribution is modeled for 65 of the 150 Jokers: flat effects,
   per-card and held-card effects, retriggers, copies, listed chances and
   effects that scale with something the run tracks. Ranks are assumed evenly
   spread within the face and non-face cards, since only the face count is

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { hasFreeJokerSlot } from '../../engine/gameRules';
-import { consumablePrice, jokerPrice, packPrice, voucherPrice } from '../../engine/prices';
+import { consumablePrice, editionFromPrice, jokerPrice, packPrice, voucherPrice } from '../../engine/prices';
 import { recommend } from '../../engine/recommend';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
@@ -79,7 +79,12 @@ export default function ShopScreen({ onPackBought }: Props) {
         // The price on the tag beats the catalog: a shop under Clearance Sale
         // or Liquidation charges less than a card is listed at.
         if (kind === 'joker') {
-          next.cards.push({ kind: 'joker', jokerId: id, edition: 'base', price: price ?? defaultJokerPrice(id, 'base') });
+          // The picture does not show an edition the reader can trust, but the
+          // tag does: a $5 joker selling for $10 is Polychrome. It lands in the
+          // row's edition select, where a wrong guess is one tap to undo.
+          const def = getJoker(id);
+          const edition = (price !== null && def ? editionFromPrice(run, def, price) : null) ?? 'base';
+          next.cards.push({ kind: 'joker', jokerId: id, edition, price: price ?? defaultJokerPrice(id, edition) });
         } else if (kind === 'tarot') {
           next.cards.push({ kind: 'consumable', consumableId: id, price: price ?? defaultConsumablePrice(id) });
         } else if (kind === 'voucher') {

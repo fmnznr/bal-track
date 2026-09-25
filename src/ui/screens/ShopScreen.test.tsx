@@ -11,7 +11,8 @@ vi.mock('../../vision/client', () => ({
     height: 1179,
     hud: { money: 29, rerollCost: 6, hands: 4, discards: 3, ante: 4, round: 10 },
     cards: [
-      { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80 },
+      // $15 on the tag for a $10 joker: the $5 surcharge of a Polychrome.
+      { kind: 'joker', cell: [0, 0], ids: ['blueprint'], box: { x0: 100, y0: 500, x1: 280, y1: 744 }, score: 90, margin: 80, price: 15 },
       { kind: 'joker', cell: [0, 1], ids: ['madness'], box: { x0: 100, y0: 44, x1: 280, y1: 288 }, score: 95, margin: 70 },
       { kind: 'pack', cell: [0, 3], ids: ['arcana-normal'], box: { x0: 400, y0: 800, x1: 580, y1: 1110 }, score: 140, margin: 60 },
     ],
@@ -109,6 +110,8 @@ it('fills the shop from a screenshot once the reading is confirmed', async () =>
   await userEvent.click(screen.getByRole('button', { name: 'Add ticked cards' }));
   expect(screen.getByText(/Buy Blueprint/)).toBeInTheDocument();
   expect(screen.getByText('Arcana Pack')).toBeInTheDocument();
+  // The picture shows no edition the reader trusts, but the price does.
+  expect(screen.getByLabelText('Blueprint edition')).toHaveValue('polychrome');
   // The status column is part of the shop too: what you hold and what a
   // reroll costs decide whether any of it is affordable.
   expect(screen.getByLabelText('Money $')).toHaveDisplayValue('29');
