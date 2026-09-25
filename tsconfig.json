@@ -12,7 +12,12 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    // Named rather than left to whatever sits in node_modules/@types. TypeScript
+    // 7 no longer includes them on its own, and without this the Node built-ins
+    // the scripts and the vision table use, and the CSS side-effect import in
+    // main.tsx, all stop resolving.
+    "types": ["node", "vite/client"]
   },
   "include": ["src"]
 }
