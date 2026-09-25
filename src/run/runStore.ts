@@ -1,6 +1,6 @@
 import { getBoss, getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { applyVoucher, hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
+import { applyVoucher, baseRerollCost, hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
 import { packPrice, voucherPrice } from '../engine/prices';
 import { recommend, recommendPackPick } from '../engine/recommend';
 import { appendDecision, makeDecision } from './decisionLog';
@@ -9,7 +9,7 @@ import { applyProfileEffects, hasProfileEffect } from './profileEffects';
 import { ENHANCEMENT_TYPES, HAND_TYPES } from '../types';
 import type {
   DeckProfile, Edition, EnhancementType, HandType, JokerStickers, OwnedJoker, PackKind, RecKind, Recommendation,
-  RunState, ShopState, Suit,
+  RunState, ShopHabits, ShopState, Suit,
 } from '../types';
 
 export interface FinishedRun {
@@ -20,6 +20,9 @@ export interface FinishedRun {
   ante: number;
   result: 'won' | 'lost';
   endedAt: string; // ISO date
+  /** Shops the screenshots showed and the rerolls they took. Absent on older runs. */
+  shops?: number;
+  rerolls?: number;
 }
 
 export interface PackDraft {
@@ -60,6 +63,7 @@ export type RunAction =
   | { type: 'SET_MONEY'; money: number }
   | { type: 'SET_ANTE'; ante: number }
   | { type: 'SET_ROUND'; round: number }
+  | { type: 'RECORD_SHOP_VISIT'; round: number; rerollCost: number }
   | { type: 'SET_BOSS'; boss: string | null }
   | { type: 'SET_JOKER_SLOTS'; slots: number }
   | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; stickers?: JokerStickers; price?: number }
@@ -145,6 +149,7 @@ export function newRunState(deck: string, stake: string): RunState {
     discardsPerRound: Math.max(0, (DECK_DISCARDS[deck] ?? 3) - stakeDiscardPenalty(stake)),
     deckProfile: initialDeckProfile(deck),
     boss: null,
+    shopVisits: [],
     status: 'active',
   };
 }
@@ -176,6 +181,22 @@ function redeemVoucher(run: RunState, voucherId: string, price = 0): RunState | 
   if (!def || run.vouchers.includes(voucherId) || price < 0 || price > run.money) return null;
   if (def.requires && !run.vouchers.includes(def.requires)) return null;
   return { ...applyVoucher(run, voucherId), money: run.money - price };
+}
+
+/**
+ * How the player shops, over every finished run and the one in progress. An
+ * abandoned run is not in the history, so its shops are not counted either.
+ */
+export function shopHabits(state: Pick<StoreState, 'current' | 'finished'>): ShopHabits {
+  const past = state.finished.reduce(
+    (sum, f) => ({ shops: sum.shops + (f.shops ?? 0), rerolls: sum.rerolls + (f.rerolls ?? 0) }),
+    { shops: 0, rerolls: 0 },
+  );
+  const visits = state.current?.shopVisits ?? [];
+  return {
+    shops: past.shops + visits.length,
+    rerolls: past.rerolls + visits.reduce((sum, v) => sum + v.rerolls, 0),
+  };
 }
 
 export function initialStore(): StoreState {
@@ -272,6 +293,19 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     }
     case 'SET_ROUND':
       return push({ ...run, round: Math.max(1, action.round) });
+    case 'RECORD_SHOP_VISIT': {
+      // Every reroll of a shop adds a dollar to the next one, so the price on
+      // the last screenshot of a round says how many were taken. A screenshot
+      // taken earlier in the same shop reads lower and changes nothing.
+      const rerolls = Math.max(0, action.rerollCost - baseRerollCost(run.vouchers));
+      const seen = run.shopVisits.find(v => v.round === action.round);
+      if (seen && seen.rerolls >= rerolls) return state;
+      const shopVisits = [
+        ...run.shopVisits.filter(v => v.round !== action.round),
+        { round: action.round, rerolls },
+      ].sort((a, b) => a.round - b.round);
+      return push({ ...run, shopVisits });
+    }
     case 'SET_BOSS':
       if (action.boss === run.boss || (action.boss !== null && !getBoss(action.boss))) return state;
       return push({ ...run, boss: action.boss });
@@ -405,7 +439,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
         : addConsumable(run, slot.consumableId, slot.price);
       if (!next) return state;
       const id = slot.kind === 'joker' ? slot.jokerId : slot.consumableId;
-      const recs = recommend(run, shop);
+      const recs = recommend(run, shop, shopHabits(state));
       return push(next, {
         shopDraft: { ...shop, cards: shop.cards.filter((_, i) => i !== action.index) },
         ...logged('shop', recs, shopChoice(recs, ['buy-joker', 'buy-consumable', 'sell-and-buy'], id)),
@@ -418,7 +452,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       if (!shop || !voucherId || !def) return state;
       const next = redeemVoucher(run, voucherId, voucherPrice(run, def));
       if (!next) return state;
-      const recs = recommend(run, shop);
+      const recs = recommend(run, shop, shopHabits(state));
       return push(next, {
         shopDraft: { ...shop, voucherId: null },
         ...logged('shop', recs, shopChoice(recs, ['buy-voucher'])),
@@ -430,7 +464,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const def = packId ? getPack(packId) : undefined;
       const price = def ? packPrice(run, def) : 0;
       if (!shop || !packId || !def || price > run.money) return state;
-      const recs = recommend(run, shop);
+      const recs = recommend(run, shop, shopHabits(state));
       return push(
         { ...run, money: run.money - price },
         {
@@ -446,7 +480,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     case 'REROLL_SHOP': {
       const shop = state.shopDraft ?? EMPTY_SHOP;
       if (shop.rerollCost < 0 || shop.rerollCost > run.money) return state;
-      const recs = hasOffer(shop) ? recommend(run, shop) : [];
+      const recs = hasOffer(shop) ? recommend(run, shop, shopHabits(state)) : [];
       return push(
         { ...run, money: run.money - shop.rerollCost },
         {
@@ -458,7 +492,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
     case 'LEAVE_SHOP': {
       const shop = state.shopDraft;
       if (!shop) return state;
-      const recs = hasOffer(shop) ? recommend(run, shop) : [];
+      const recs = hasOffer(shop) ? recommend(run, shop, shopHabits(state)) : [];
       return push(run, {
         shopDraft: null,
         ...(recs.length > 0 ? logged('shop', recs, shopChoice(recs, ['skip'])) : {}),
@@ -509,6 +543,8 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
             ante: run.ante,
             result: action.result,
             endedAt: new Date().toISOString(),
+            shops: run.shopVisits.length,
+            rerolls: run.shopVisits.reduce((sum, v) => sum + v.rerolls, 0),
           },
           ...state.finished,
         ],
@@ -597,6 +633,7 @@ export function load(): StoreState | null {
         // and its result still meet.
         id: r.id ?? 'legacy',
         round: r.round ?? 1,
+        shopVisits: Array.isArray(r.shopVisits) ? r.shopVisits : [],
         handsPerRound: r.handsPerRound ?? DECK_HANDS[r.deck] ?? 4,
         discardsPerRound: r.discardsPerRound
           ?? Math.max(0, (DECK_DISCARDS[r.deck] ?? 3) - stakeDiscardPenalty(r.stake)),

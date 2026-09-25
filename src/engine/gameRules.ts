@@ -37,6 +37,22 @@ export function hasFreeJokerSlot(run: Pick<RunState, 'jokers' | 'jokerSlots'>, e
   return edition === 'negative' || usedJokerSlots(run) < run.jokerSlots;
 }
 
+/** What the first reroll of a shop costs: $5, less $2 for each reroll voucher. */
+export function baseRerollCost(vouchers: readonly string[]): number {
+  let cost = 5;
+  if (vouchers.includes('reroll-surplus')) cost -= 2;
+  if (vouchers.includes('reroll-glut')) cost -= 2;
+  return cost;
+}
+
+/** Cards a shop offers: two, and one more for each Overstock voucher. */
+export function shopCardSlots(vouchers: readonly string[]): number {
+  let slots = 2;
+  if (vouchers.includes('overstock')) slots += 1;
+  if (vouchers.includes('overstock-plus')) slots += 1;
+  return slots;
+}
+
 /** Hands and discards a voucher adds to every round from now on. */
 const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> = {
   grabber: { hands: 1 },

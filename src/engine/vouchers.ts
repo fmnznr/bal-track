@@ -12,9 +12,9 @@
  * fall back to their rating until they get a model of their own.
  */
 import { bossesForAnte, getVoucher } from '../catalog/catalog';
-import type { RunState } from '../types';
+import type { RunState, ShopHabits } from '../types';
 import { interestCapFor, INTEREST_TIER_DOLLARS } from './economy';
-import { applyVoucher, usedJokerSlots } from './gameRules';
+import { applyVoucher, baseRerollCost, shopCardSlots, usedJokerSlots } from './gameRules';
 import { discountPercent } from './prices';
 import { horizonRounds, incomeGap, interestVoucherIncome, steadySpend } from './projection';
 import { blindTargets, bossOutlook, estimateHandScore, referenceHand } from './score';
@@ -27,6 +27,8 @@ export interface VoucherContext {
    * ranking scale. Null when nothing on the board could be sold.
    */
   weakest: () => { name: string; multiplier: number; incomeDollars: number; modelled: boolean } | null;
+  /** How this player shops, if the app has seen enough of it. */
+  habits?: ShopHabits;
 }
 
 export interface VoucherValue {
@@ -271,12 +273,76 @@ function antimatter(run: RunState, _price: number, context?: VoucherContext): Vo
   };
 }
 
+/**
+ * Shops the player must have been counted through before their reroll rate is
+ * trusted. Below it the reroll vouchers fall back to their rating rather than
+ * to a guess at how people in general shop.
+ */
+const MIN_SHOPS = 5;
+
+function rerollRate(habits: ShopHabits | undefined): number | null {
+  return habits && habits.shops >= MIN_SHOPS ? habits.rerolls / habits.shops : null;
+}
+
+function yourShopping(habits: ShopHabits, rate: number): string {
+  return `You reroll about ${rate.toFixed(1)} times a shop, counted over your last ${habits.shops} shops`;
+}
+
+/** $2 off every reroll, at the rate this player actually rerolls. */
+function rerollDiscount(run: RunState, _price: number, context?: VoucherContext): VoucherValue | null {
+  const rate = rerollRate(context?.habits);
+  if (rate === null) return null;
+  const rounds = horizonRounds(run.ante);
+  const saved = 2 * rate * rounds;
+  return {
+    multiplier: 1,
+    incomeDollars: saved,
+    evidence: 'modeled',
+    reasons: [
+      yourShopping(context!.habits!, rate),
+      `$2 off each saves about $${Math.round(saved)} over the next ${rounds} rounds`,
+    ],
+  };
+}
+
+/**
+ * One more card in every shop, counted as the rerolls it saves. With s cards
+ * a shop, each page of it — the first and one per reroll — shows one card
+ * more, so a player who rerolls r times sees as many cards as (1 + r) / s
+ * more rerolls would have shown. Those rerolls come after the player's own,
+ * so each costs the escalated price.
+ */
+function extraCard(run: RunState, _price: number, context?: VoucherContext): VoucherValue | null {
+  const rate = rerollRate(context?.habits);
+  if (rate === null) return null;
+  const slots = shopCardSlots(run.vouchers);
+  const saved = (1 + rate) / slots;
+  const first = baseRerollCost(run.vouchers) + rate;
+  const perShop = saved * (first + Math.max(0, saved - 1) / 2);
+  const rounds = horizonRounds(run.ante);
+  return {
+    multiplier: 1,
+    incomeDollars: perShop * rounds,
+    evidence: 'partial',
+    reasons: [
+      yourShopping(context!.habits!, rate),
+      `A card more in every shop shows as much as ${saved.toFixed(1)} more rerolls would,`
+      + ` about $${perShop.toFixed(0)} a shop: $${Math.round(perShop * rounds)} over the next ${rounds} rounds`,
+      'Counted as the rerolls it saves, which assumes you would have wanted to see those cards',
+    ],
+  };
+}
+
 type Model = (run: RunState, price: number, context?: VoucherContext) => VoucherValue | null;
 
 const MODELS: Record<string, Model> = {
   'clearance-sale': discount('clearance-sale'),
   liquidation: discount('liquidation'),
   antimatter,
+  'reroll-surplus': rerollDiscount,
+  'reroll-glut': rerollDiscount,
+  overstock: extraCard,
+  'overstock-plus': extraCard,
   grabber: resources('grabber', 'One more hand a round'),
   'nacho-tong': resources('nacho-tong', 'One more hand a round'),
   'directors-cut': directorsCut,

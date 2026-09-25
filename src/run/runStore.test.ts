@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MAX_DECISIONS, makeDecision } from './decisionLog';
-import { STORAGE_KEY, initialStore, load, newRunState, reduce, save } from './runStore';
+import { STORAGE_KEY, initialStore, load, newRunState, reduce, save, shopHabits } from './runStore';
 import type { StoreState } from './runStore';
 
 function started(deck = 'Red', stake = 'White'): StoreState {
@@ -667,5 +667,47 @@ describe('the decision log and undo', () => {
     const undone = reduce(state, { type: 'UNDO' });
     expect(undone.current?.jokers).toHaveLength(0);
     expect(undone.decisions[undone.decisions.length - 1]).toEqual(filler);
+  });
+});
+
+describe('counting how you shop from screenshots', () => {
+  const visit = (state: StoreState, round: number, rerollCost: number) =>
+    reduce(state, { type: 'RECORD_SHOP_VISIT', round, rerollCost });
+
+  it('reads the rerolls of a shop off its climbing reroll price', () => {
+    let s = visit(started(), 7, 5);
+    expect(s.current!.shopVisits).toEqual([{ round: 7, rerolls: 0 }]);
+    // Two rerolls later the same shop asks $7.
+    s = visit(s, 7, 7);
+    expect(s.current!.shopVisits).toEqual([{ round: 7, rerolls: 2 }]);
+    // A screenshot from earlier in that shop changes nothing.
+    expect(visit(s, 7, 6)).toBe(s);
+    s = visit(s, 8, 5);
+    expect(shopHabits(s)).toEqual({ shops: 2, rerolls: 2 });
+  });
+
+  it('measures from the discounted price once a reroll voucher is owned', () => {
+    const owned = { ...started(), current: { ...started().current!, vouchers: ['reroll-surplus'] } };
+    // Reroll Surplus makes the first reroll $3, so $4 is one reroll taken.
+    expect(visit(owned, 4, 4).current!.shopVisits).toEqual([{ round: 4, rerolls: 1 }]);
+  });
+
+  it('keeps the count when a run ends, and adds the next run to it', () => {
+    let s = visit(visit(started(), 3, 6), 4, 5);
+    s = reduce(s, { type: 'END_RUN', result: 'lost' });
+    expect(s.finished[0]).toMatchObject({ shops: 2, rerolls: 1 });
+    s = visit(reduce(s, { type: 'START_RUN', deck: 'Red', stake: 'White' }), 1, 7);
+    expect(shopHabits(s)).toEqual({ shops: 3, rerolls: 3 });
+  });
+
+  it('takes a recorded shop back with undo', () => {
+    const s = visit(started(), 7, 6);
+    expect(reduce(s, { type: 'UNDO' }).current!.shopVisits).toEqual([]);
+  });
+
+  it('starts runs saved before the count existed with no shops', () => {
+    const { shopVisits: _visits, ...old } = newRunState('Red', 'White');
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: old, finished: [], past: [] }));
+    expect(load()?.current?.shopVisits).toEqual([]);
   });
 });

@@ -21,8 +21,9 @@ is staged so each step's effect on the rankings can be read on its own:
 2. Hands: Grabber, Nacho Tong — **done**. The other six planned here turned
    out to need something the engine does not have; see below.
 3. Shop economy and slots: Clearance Sale, Liquidation, Antimatter — **done**.
-   Reroll Surplus, Reroll Glut, Overstock, Overstock Plus and Crystal Ball
-   stayed on their rating; see below.
+   Crystal Ball stayed on its rating; see below.
+3b. Reroll Surplus, Reroll Glut, Overstock, Overstock Plus — **done**, from how
+   often the player actually rerolls.
 4. The rest keep a rating, on a curve with a zero point.
 
 ## Reach: the measure shared by every model that touches a blind
@@ -153,3 +154,34 @@ the run cannot foresee.
 **Effect.** 21 of the 300 baseline scenarios moved, all through Antimatter.
 Its rating put it at +205%, the top pick in four shops; in all four the board
 had free slots, and a pack now leads.
+
+## Stage 3b: the player's own reroll rate
+
+Four vouchers depend on how often you reroll, and no single run knows that.
+The advice log looked like the source, but it cannot be: a reroll or leaving
+the shop is only logged while the shop still has something on offer, so the
+common "buy everything, then reroll" goes unrecorded on both sides of the
+count.
+
+**Counted from screenshots.** The player reads a new screenshot after every
+reroll. Each one carries the round, which names the shop, and the reroll
+price, which climbs a dollar with every reroll of it. So a shop's rerolls are
+its highest price seen minus the base price ($5, less $2 per reroll voucher
+owned), and nothing has to be pressed. A screenshot from earlier in the same
+shop reads lower and changes nothing. The visits live on the run, so undo
+takes them back; a finished run keeps their totals in the history. An
+abandoned run is not in the history, and neither are its shops.
+
+Known undercounts: Chaos the Clown's free reroll and the D6 Tag's $0 rerolls
+do not raise the price, so they are not seen.
+
+**No rate until five shops.** Below that the four vouchers fall back to their
+rating rather than to a guess at how people shop in general.
+
+**The models.** Reroll Surplus and Glut save $2 a reroll at that rate. An
+Overstock adds a card to every page of the shop — the first page and one per
+reroll — so with s cards a page, a player who rerolls r times sees as many
+cards as (1 + r) / s more rerolls would show, each at the escalated price that
+comes after their own. That is `partial`: it assumes you wanted to see those
+cards. At 0.8 rerolls a shop on the ante-3 board, Overstock is worth about $5
+a shop, and Reroll Surplus about $10 over six rounds, just under its price.

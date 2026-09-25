@@ -1,8 +1,6 @@
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { phaseForAnte } from '../types';
-import type {
-  Edition, JokerStickers, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopState,
-} from '../types';
+import type { Edition, JokerStickers, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopHabits, ShopState } from '../types';
 import { interestCapFor, runInterest, sellValue } from './economy';
 import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
 import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution } from './impact';
@@ -206,7 +204,9 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
   );
 }
 
-function evalVoucher(run: RunState, voucherId: string, ante: number, ctx: JokerContext): Recommendation {
+function evalVoucher(
+  run: RunState, voucherId: string, ante: number, ctx: JokerContext, habits?: ShopHabits,
+): Recommendation {
   const def = getVoucher(voucherId);
   if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
   const price = voucherPrice(run, def);
@@ -217,6 +217,7 @@ function evalVoucher(run: RunState, voucherId: string, ante: number, ctx: JokerC
 
   const cost = costOf(run, price);
   const modelled = voucherValue(run, def.id, price, {
+    habits,
     weakest: () => {
       const w = findWeakestOwned(run, ctx);
       return w && {
@@ -330,12 +331,12 @@ function planFor(run: RunState): JokerContext['plan'] {
   };
 }
 
-export function recommend(run: RunState, shop: ShopState): Recommendation[] {
+export function recommend(run: RunState, shop: ShopState, habits?: ShopHabits): Recommendation[] {
   const phase = phaseForAnte(run.ante);
   const ctx = contextFor(run, phase, planFor(run));
   const recs: Recommendation[] = [];
   for (const slot of shop.cards) recs.push(evalShopCard(run, slot, ctx));
-  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante, ctx));
+  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante, ctx, habits));
   for (const packId of shop.packIds) recs.push(evalPack(run, packId, phase));
   recs.push(evalReroll(run, shop), evalSkip(run, ctx.plan));
   return finalize(recs);

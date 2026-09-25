@@ -225,7 +225,18 @@ export interface RunState {
    * game shows it from the start of the ante, so it is known in every shop.
    */
   boss: string | null;
+  /**
+   * The shops of this run the screenshots showed, one per round, with the
+   * rerolls each took. Read off the reroll price, which climbs a dollar with
+   * every reroll of a shop.
+   */
+  shopVisits: ShopVisit[];
   status: 'active' | 'won' | 'lost';
+}
+
+export interface ShopVisit {
+  round: number;
+  rerolls: number;
 }
 
 export type ShopCardSlot =
@@ -343,4 +354,14 @@ export interface BossDef {
   playCards?: number;
   /** Each hand type can be played only once this round (The Eye). */
   noRepeatHand?: boolean;
+}
+
+/**
+ * How the player shops, counted as they go: the shops they visited and the
+ * rerolls they paid for. What a reroll voucher is worth depends on this, and
+ * nothing in a single run can supply it.
+ */
+export interface ShopHabits {
+  shops: number;
+  rerolls: number;
 }

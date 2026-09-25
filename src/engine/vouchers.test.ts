@@ -99,14 +99,41 @@ describe('vouchers valued by what they do', () => {
     expect(recs.find(r => r.kind === 'buy-voucher')!.impact).toBe(1);
   });
 
+  describe('at the rate you reroll', () => {
+    const habits = (rerolls: number, shops = 10) => ({ weakest: () => null, habits: { shops, rerolls } });
+
+    it('saves $2 a reroll with Reroll Surplus', () => {
+      // One reroll a shop, six shops ahead.
+      expect(voucherValue(board(), 'reroll-surplus', 10, habits(10))!.incomeDollars).toBe(2 * 1 * 6);
+      expect(voucherValue(board(), 'reroll-surplus', 10, habits(0))!.incomeDollars).toBe(0);
+    });
+
+    it('counts Overstock as the rerolls it saves', () => {
+      // Never rerolling: a third card is half a reroll a shop, at $5.
+      expect(voucherValue(board(), 'overstock', 10, habits(0))!.incomeDollars).toBeCloseTo(0.5 * 5 * 6);
+      // Rerolling once: each page shows a card more, a whole reroll's worth,
+      // at the $6 a second reroll costs.
+      expect(voucherValue(board(), 'overstock', 10, habits(10))!.incomeDollars).toBeCloseTo(1 * 6 * 6);
+    });
+
+    it('gives Overstock Plus less than Overstock, since each page already shows three', () => {
+      const plus = voucherValue(board({ vouchers: ['overstock'] }), 'overstock-plus', 10, habits(10))!;
+      const first = voucherValue(board(), 'overstock', 10, habits(10))!;
+      expect(plus.incomeDollars).toBeLessThan(first.incomeDollars);
+    });
+
+    it('trusts no rate until enough shops are counted, and leaves the rating to stand', () => {
+      expect(voucherValue(board(), 'reroll-surplus', 10, habits(4, 4))).toBeNull();
+      expect(voucherValue(board(), 'overstock', 10)).toBeNull();
+    });
+  });
+
   it('leaves the vouchers the engine cannot yet judge to their rating', () => {
     // Hieroglyph and Petroglyph buy an extra ante of time; Wasteful and the
     // hand-size vouchers help find a hand. Neither is something the engine models.
-    // Rerolls and extra shop cards depend on how often you reroll, which the run
-    // does not record; Crystal Ball on consumables held, likewise.
+    // Crystal Ball depends on consumables the run cannot foresee.
     for (const id of [
-      'hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette',
-      'reroll-surplus', 'reroll-glut', 'overstock', 'overstock-plus', 'crystal-ball',
+      'hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette', 'crystal-ball',
     ]) {
       expect(voucherValue(board(), id, 10), id).toBeNull();
     }

@@ -150,6 +150,9 @@ it('carries the status column into the run: ante, round, hands and discards', as
   await userEvent.click(screen.getByText('Corrections'));
   expect(screen.getByLabelText('Hands per round')).toHaveValue(4);
   expect(screen.getByLabelText('Discards per round')).toHaveValue(3);
+  // Round 10 at a $6 reroll: one shop, rerolled once — how the app learns how you shop.
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+  expect(saved.current.shopVisits).toEqual([{ round: 10, rerolls: 1 }]);
 });
 
 it('logs what you did against the advice and shows it in the history', async () => {

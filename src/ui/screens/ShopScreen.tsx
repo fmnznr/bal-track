@@ -5,6 +5,7 @@ import { consumablePrice, editionFromPrice, jokerPrice, packPrice, voucherPrice 
 import { recommend } from '../../engine/recommend';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
+import { shopHabits } from '../../run/runStore';
 import type { Edition, ShopState } from '../../types';
 import { readScreenshot } from '../../vision/client';
 import AutocompleteInput from '../components/AutocompleteInput';
@@ -34,7 +35,7 @@ export default function ShopScreen({ onPackBought }: Props) {
   const setShop = (update: ShopState | ((s: ShopState) => ShopState)) =>
     dispatch({ type: 'SET_SHOP_DRAFT', draft: typeof update === 'function' ? update(shop) : update });
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
-  const recs = hasItems ? recommend(run, shop) : [];
+  const recs = hasItems ? recommend(run, shop, shopHabits(store)) : [];
   const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
   const voucherCost = voucherDef ? voucherPrice(run, voucherDef) : 0;
   const voucherBlocked = Boolean(
@@ -55,6 +56,9 @@ export default function ShopScreen({ onPackBought }: Props) {
     if (round !== null) dispatch({ type: 'SET_ROUND', round });
     if (hands !== null) dispatch({ type: 'SET_HANDS_PER_ROUND', value: hands });
     if (discards !== null) dispatch({ type: 'SET_DISCARDS_PER_ROUND', value: discards });
+    // The round names the shop and the reroll price says how often it was
+    // rerolled; together they are how the app learns how you shop.
+    if (round !== null && reroll !== null) dispatch({ type: 'RECORD_SHOP_VISIT', round, rerollCost: reroll });
 
     // What the screenshot showed you already holding goes into the run, not
     // into the offer: the engine needs your board to judge anything at all.
