@@ -77,6 +77,27 @@ export const TUNING = {
     modelWeight: 0.7,
   },
 
+  /**
+   * The rating curve for vouchers that have no model of their own yet.
+   *
+   * Vouchers used the joker curve, which has no zero point and credits every
+   * rating with a share of the hand score: Blank, which does nothing, came out
+   * at +8%. A voucher rarely changes a hand, so this curve is anchored at the
+   * vouchers that do have a model. `topShareOfTarget` is fitted by
+   * `scripts/calibrate-voucher-prior.mjs` so the curve and the models agree on
+   * average across the baseline scenarios; rerun it when a voucher gets a model.
+   */
+  voucherPrior: {
+    /** The rating of a voucher that does nothing (Blank): worth zero. */
+    zeroRating: 1,
+    /**
+     * Fitted: 0.209 over 2852 valuations of the ten modelled vouchers, which
+     * halved the log error against the joker scale of 0.8 (0.056 against
+     * 0.122). Every modelled voucher sits within x0.72 to x1.20 of the curve.
+     */
+    topShareOfTarget: 0.21,
+  },
+
   /** Owned jokers sharing a dominant tag with the card being judged. */
   synergy: {
     perMatchingTag: 1.12,

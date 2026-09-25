@@ -84,10 +84,12 @@ exists only for when a run drifts from what was recorded.
   Antimatter as the joker it keeps on a full board; Reroll Surplus, Reroll
   Glut, Overstock and Overstock Plus from how often you reroll, counted from
   the reroll price on your shop screenshots once five shops are in; Blank at
-  nothing. The other 18 still fall back to their rating, which overstates most
-  of them. Some need concepts the engine does not have yet: how a board grows
-  over time (Hieroglyph, Petroglyph, and Antimatter while slots are free) and
-  how likely a hand is to come together (the discard and hand-size vouchers). See
+  nothing. The other 18 are valued from their rating on a curve that is zero
+  for a voucher that does nothing and whose scale is fitted to the modelled
+  ones (`scripts/calibrate-voucher-prior.mjs`). Some need concepts the engine
+  does not have yet: how a board grows over time (Hieroglyph, Petroglyph, and
+  Antimatter while slots are free) and how likely a hand is to come together
+  (the discard and hand-size vouchers). See
   [`docs/superpowers/specs/2026-09-25-voucher-models-design.md`](docs/superpowers/specs/2026-09-25-voucher-models-design.md).
 - Ratings and the score model both estimate a score contribution, so they are
   blended on equal footing, but the weights behind the rating half

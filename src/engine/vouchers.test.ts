@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { newRunState } from '../run/runStore';
 import type { RunState } from '../types';
+import { voucherPriorContribution } from './impact';
 import { recommend } from './recommend';
+import { scoreTarget } from './score';
+import { TUNING } from './tuning';
 import { voucherValue } from './vouchers';
 
 /** The ante-3 board from a real shop that put Director's Cut at +85%. */
@@ -145,5 +148,26 @@ describe('vouchers valued by what they do', () => {
     const skip = recs.find(r => r.kind === 'skip')!;
     expect(cut.evidence).toBe('partial');
     expect(cut.score).toBeLessThan(skip.score);
+  });
+});
+
+describe('the curve for vouchers without a model', () => {
+  it('is zero at the rating of a voucher that does nothing', () => {
+    expect(voucherPriorContribution(board(), TUNING.voucherPrior.zeroRating)).toBe(0);
+  });
+
+  it('rises with the rating to its fitted scale at 10', () => {
+    const run = board();
+    const at = (r: number) => voucherPriorContribution(run, r);
+    expect(at(4)).toBeGreaterThan(0);
+    expect(at(6)).toBeGreaterThan(at(4));
+    expect(at(10)).toBeCloseTo(scoreTarget(run) * TUNING.voucherPrior.topShareOfTarget);
+  });
+
+  it('says a rated voucher is not modelled yet', () => {
+    const recs = recommend(board(), offer('observatory'));
+    const observatory = recs.find(r => r.kind === 'buy-voucher')!;
+    expect(observatory.evidence).toBe('heuristic');
+    expect(observatory.reasons.join(' ')).toMatch(/Not modelled yet: rated 8\/10/);
   });
 });

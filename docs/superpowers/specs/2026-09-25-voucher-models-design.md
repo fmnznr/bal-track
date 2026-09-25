@@ -24,7 +24,8 @@ is staged so each step's effect on the rankings can be read on its own:
    Crystal Ball stayed on its rating; see below.
 3b. Reroll Surplus, Reroll Glut, Overstock, Overstock Plus — **done**, from how
    often the player actually rerolls.
-4. The rest keep a rating, on a curve with a zero point.
+4. The rest keep a rating, on a curve with a zero point fitted to the
+   modelled vouchers — **done**.
 
 ## Reach: the measure shared by every model that touches a blind
 
@@ -185,3 +186,42 @@ cards as (1 + r) / s more rerolls would show, each at the escalated price that
 comes after their own. That is `partial`: it assumes you wanted to see those
 cards. At 0.8 rerolls a shop on the ante-3 board, Overstock is worth about $5
 a shop, and Reroll Surplus about $10 over six rounds, just under its price.
+
+## Stage 4: a rating curve fitted to the models
+
+Eighteen vouchers are still valued from their rating: the ones that need a
+concept the engine lacks (Hieroglyph, Petroglyph, the discard and hand-size
+vouchers), the ones that shape which cards turn up (Telescope, the merchants
+and tycoons, Hone, Glow Up, Omen Globe, Magic Trick, Illusion), Observatory,
+and Crystal Ball — plus the four reroll vouchers until five shops are counted.
+
+They no longer use the joker curve. That curve has no zero point, and its
+scale was set for jokers, which add to every hand. The voucher curve is zero
+at rating 1, the rating of Blank, and rises with the joker curve's shape to a
+scale of its own.
+
+**The scale is fitted, not chosen.** `scripts/calibrate-voucher-prior.mjs`
+values each of the ten modelled vouchers twice on every baseline run that
+does not own it — by its model, and by its rating on the curve — and picks the
+scale where the two agree on average in log terms. Over 2852 valuations that
+is 0.209 of the score target at rating 10, against the joker curve's 0.8, and
+it halves the error (0.056 against 0.122). The script prints each voucher's
+remaining gap, so an average that hides a voucher far off it would show: the
+worst are Liquidation, whose rating undersells its model by x0.72, and
+Antimatter, which it oversells by x1.20.
+
+What that gives, on the ante-3 board at $26: a rated 6 like Glow Up or
+Planet Merchant at +26%, where the joker curve had +112%; Observatory, the
+best-rated unmodelled voucher at 8, at +43%; and none of them above buying
+nothing at that price.
+
+The fit is only as good as the models it is fitted to, and it is a single
+scale for vouchers that do very different things. It is the best the engine
+can say about a voucher it cannot compute, and the reasons say so: "not
+modelled yet, rated N/10 on a curve fitted to the modelled vouchers". Rerun the
+script when a voucher gets a model.
+
+**Effect.** 56 of the 300 baseline scenarios moved. A voucher was the top pick
+in five; it is in one now, and that one is Grabber, which is modelled. The
+four that fell were all rated: Telescope twice, Hieroglyph and Overstock, and
+a joker, a pack or buying nothing leads there instead.

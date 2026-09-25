@@ -3,7 +3,7 @@ import { phaseForAnte } from '../types';
 import type { Edition, JokerStickers, Phase, RecKind, Recommendation, RunState, ShopCardSlot, ShopHabits, ShopState } from '../types';
 import { interestCapFor, runInterest, sellValue } from './economy';
 import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
-import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution } from './impact';
+import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution, voucherPriorContribution } from './impact';
 import type { Impact, JokerContext } from './impact';
 import { marginalMultiplier, referenceHand } from './score';
 import { packPrice, voucherPrice } from './prices';
@@ -233,17 +233,51 @@ function evalVoucher(
     );
   }
 
-  // Not modelled yet: the rating stands in. A voucher pays out over the rest of
-  // the run, so the same one is worth less the later it is bought.
+  // Not modelled yet: the rating stands in, on the voucher curve. A voucher
+  // pays out over the rest of the run, so the same one is worth less the later
+  // it is bought.
   const rounds = roundsRemaining(ante);
-  const fullRun = TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte;
-  const share = rounds / fullRun;
-  const hand = referenceHand(run);
-  const multiplier = marginalMultiplier(run, hand, priorContribution(run, def.rating) * share);
-  const reasons = [def.effect];
-  if (share < 1) reasons.push(`${rounds} rounds left to profit from it`);
+  const multiplier = ratedVoucherMultiplier(run, def.rating);
+  const reasons = [def.effect, `Not modelled yet: rated ${def.rating}/10 on a curve fitted to the modelled vouchers`];
+  if (rounds < TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte) {
+    reasons.push(`${rounds} rounds left to profit from it`);
+  }
 
   return rec('buy-voucher', action, multiplier, cost.dollars, [...reasons, ...cost.reasons], def.id);
+}
+
+/** A voucher's rating as a multiplier, scaled by the share of the run left to use it. */
+function ratedVoucherMultiplier(run: RunState, rating: number, topShare?: number): number {
+  const fullRun = TUNING.economy.antesPerRun * TUNING.economy.roundsPerAnte;
+  const share = roundsRemaining(run.ante) / fullRun;
+  return marginalMultiplier(run, referenceHand(run), voucherPriorContribution(run, rating, topShare) * share);
+}
+
+/**
+ * A modelled voucher's worth next to what its rating would say, both on the
+ * ranking scale before the price. Only the calibration script reads this: it
+ * is how the voucher curve's scale is fitted.
+ */
+export function voucherCalibrationPair(
+  run: RunState, voucherId: string,
+): { model: number; rating: (topShare: number) => number } | null {
+  const def = getVoucher(voucherId);
+  if (!def || run.vouchers.includes(voucherId)) return null;
+  const ctx = contextFor(run, phaseForAnte(run.ante), planFor(run));
+  const modelled = voucherValue(run, voucherId, voucherPrice(run, def), {
+    weakest: () => {
+      const w = findWeakestOwned(run, ctx);
+      return w && {
+        name: w.name, multiplier: w.impact.multiplier, incomeDollars: w.impact.incomeDollars,
+        modelled: w.impact.evidence === 'modeled',
+      };
+    },
+  });
+  if (!modelled) return null;
+  return {
+    model: modelled.multiplier * economyMultiplier(-modelled.incomeDollars),
+    rating: topShare => ratedVoucherMultiplier(run, def.rating, topShare),
+  };
 }
 
 function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {

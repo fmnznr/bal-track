@@ -59,6 +59,20 @@ export function priorContribution(run: RunState, rating: number): number {
   return scoreTarget(run) * TUNING.prior.topShareOfTarget * clamped ** TUNING.prior.ratingCurve;
 }
 
+/**
+ * What a voucher's rating is worth, for a voucher with no model of its own:
+ * zero at the rating of one that does nothing, on a scale fitted to the
+ * vouchers that are modelled. `topShare` is only overridden by the script that
+ * fits it.
+ */
+export function voucherPriorContribution(
+  run: RunState, rating: number, topShare: number = TUNING.voucherPrior.topShareOfTarget,
+): number {
+  const zero = TUNING.voucherPrior.zeroRating;
+  const above = Math.min(1, Math.max(0, (rating - zero) / (10 - zero)));
+  return scoreTarget(run) * topShare * above ** TUNING.prior.ratingCurve;
+}
+
 /** What a rating is worth as a multiplier on what the run is building toward. */
 export function priorFromRating(run: RunState, hand: HandType, rating: number): number {
   return marginalMultiplier(run, hand, priorContribution(run, rating));
