@@ -1,6 +1,6 @@
 import { getBoss, getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
-import { hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
+import { applyVoucher, hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
 import { packPrice, voucherPrice } from '../engine/prices';
 import { recommend, recommendPackPick } from '../engine/recommend';
 import { appendDecision, makeDecision } from './decisionLog';
@@ -114,15 +114,6 @@ const DECK_START: Record<string, { consumableSlots?: number; vouchers?: string[]
 };
 
 /** Hands/discards a voucher permanently adds to every round. */
-const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> = {
-  grabber: { hands: 1 },
-  'nacho-tong': { hands: 1 },
-  wasteful: { discards: 1 },
-  recyclomancy: { discards: 1 },
-  hieroglyph: { hands: -1 },
-  petroglyph: { discards: -1 },
-};
-
 export function initialDeckProfile(deck: string): DeckProfile {
   const enhanced = Object.fromEntries(ENHANCEMENT_TYPES.map(t => [t, 0])) as Record<EnhancementType, number>;
   if (deck === 'Checkered') {
@@ -184,27 +175,7 @@ function redeemVoucher(run: RunState, voucherId: string, price = 0): RunState | 
   const def = getVoucher(voucherId);
   if (!def || run.vouchers.includes(voucherId) || price < 0 || price > run.money) return null;
   if (def.requires && !run.vouchers.includes(def.requires)) return null;
-
-  let { jokerSlots, consumableSlots, ante } = run;
-  if (voucherId === 'antimatter') jokerSlots += 1;
-  if (voucherId === 'crystal-ball') consumableSlots += 1;
-  let { boss } = run;
-  if (voucherId === 'hieroglyph' || voucherId === 'petroglyph') {
-    ante = Math.max(0, ante - 1);
-    boss = null;
-  }
-  const resource = RESOURCE_VOUCHERS[voucherId];
-  return {
-    ...run,
-    money: run.money - price,
-    jokerSlots,
-    consumableSlots,
-    ante,
-    boss,
-    handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
-    discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
-    vouchers: [...run.vouchers, voucherId],
-  };
+  return { ...applyVoucher(run, voucherId), money: run.money - price };
 }
 
 export function initialStore(): StoreState {

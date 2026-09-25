@@ -77,11 +77,13 @@ exists only for when a run drifts from what was recorded.
   is not on today's board.
 - Income is counted for nine jokers (Golden Joker, To the Moon, Rocket and
   others) and valued in dollars over the horizon instead of their rating.
-- Vouchers are being moved off the rating one group at a time. Director's Cut
-  and Retcon are valued from how your board fares against each boss of the
-  ante, Seed Money and Money Tree from the interest they add at the money you
-  hold now, and Blank at nothing. The other 27 still fall back to their
-  rating, which overstates most of them. See
+- Vouchers are being moved off the rating one group at a time. Director's Cut,
+  Retcon, Grabber and Nacho Tong are valued from how close your board gets to
+  clearing the ante's blinds, Seed Money and Money Tree from the interest they
+  add at the money you hold now, and Blank at nothing. The other 25 still fall
+  back to their rating, which overstates most of them. Hieroglyph and
+  Petroglyph (an extra ante of time) and the discard and hand-size vouchers
+  (finding a hand) need concepts the engine does not have yet. See
   [`docs/superpowers/specs/2026-09-25-voucher-models-design.md`](docs/superpowers/specs/2026-09-25-voucher-models-design.md).
 - Ratings and the score model both estimate a score contribution, so they are
   blended on equal footing, but the weights behind the rating half

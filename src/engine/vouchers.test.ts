@@ -55,6 +55,33 @@ describe('vouchers valued by what they do', () => {
     expect(voucherValue(chicot, 'directors-cut', 10)!.multiplier).toBe(1);
   });
 
+  it('credits Grabber with the rounds a board cannot yet clear', () => {
+    // Nothing on the board at ante 4: every blind is out of reach, so a fifth
+    // hand is a quarter more of the way there.
+    const empty = { ...newRunState('Red', 'White'), ante: 4, money: 26 };
+    expect(voucherValue(empty, 'grabber', 10)!.multiplier).toBeCloseTo(5 / 4, 2);
+  });
+
+  it('pays Grabber only in spare-hand money once the board clears everything', () => {
+    const strong = board({
+      ante: 1, primaryHand: 'Flush',
+      jokers: ['cavendish', 'joker', 'greedy-joker', 'lusty-joker', 'baron']
+        .map(jokerId => ({ jokerId, edition: 'base' as const })),
+    });
+    const value = voucherValue(strong, 'grabber', 10)!;
+    expect(value.multiplier).toBe(1);
+    // A dollar for the unused hand, each of the six rounds.
+    expect(value.incomeDollars).toBeCloseTo(6, 0);
+  });
+
+  it('leaves the vouchers the engine cannot yet judge to their rating', () => {
+    // Hieroglyph and Petroglyph buy an extra ante of time; Wasteful and the
+    // hand-size vouchers help find a hand. Neither is something the engine models.
+    for (const id of ['hieroglyph', 'petroglyph', 'wasteful', 'recyclomancy', 'paint-brush', 'palette']) {
+      expect(voucherValue(board(), id, 10), id).toBeNull();
+    }
+  });
+
   it('no longer ranks Director\'s Cut above buying nothing in that shop', () => {
     const recs = recommend(board(), offer('directors-cut'));
     const cut = recs.find(r => r.kind === 'buy-voucher')!;

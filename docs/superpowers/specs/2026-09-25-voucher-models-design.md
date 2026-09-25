@@ -18,11 +18,24 @@ engine already has. A voucher with a model is ranked by it and labelled
 is staged so each step's effect on the rankings can be read on its own:
 
 1. Director's Cut, Retcon, Seed Money, Money Tree, Blank — **done**.
-2. Hands, discards and hand size: Grabber, Nacho Tong, Wasteful, Recyclomancy,
-   Paint Brush, Palette, Hieroglyph, Petroglyph.
+2. Hands: Grabber, Nacho Tong — **done**. The other six planned here turned
+   out to need something the engine does not have; see below.
 3. Shop economy and slots: Clearance Sale, Liquidation, Reroll Surplus,
    Reroll Glut, Overstock, Overstock Plus, Crystal Ball, Antimatter.
 4. The rest keep a rating, on a curve with a zero point.
+
+## Reach: the measure shared by every model that touches a blind
+
+Reach is how far a round of the reference hand gets toward a blind: its score
+times the hands the round allows, over the target, capped at 1. An ante's
+reach is the average over its three blinds, where the boss is the average over
+every boss the ante can draw. A voucher that changes a blind is valued by the
+ratio of the ante's reach with it and without — the one axis the engine ranks
+on, a multiplier on hand score, read as "this much more score would have made
+the ante as easy".
+
+The cap is the point: a blind the board clears anyway is not made easier by
+another hand or a gentler boss.
 
 ## Stage 1 decisions
 
@@ -32,8 +45,11 @@ boss's target, capped at 1. The cap is the point: a boss the board clears
 anyway is not worth ten dollars to avoid. Director's Cut rerolls whenever the
 boss is below the pool's average, and a fresh draw is worth the average;
 Retcon rerolls until the boss is at least average and is judged by what it
-adds to Director's Cut, which it requires. The gain applies to the boss round,
-one round in three, so it is spread over the ante. Each reroll's $10 is
+adds to Director's Cut, which it requires. Stage 1 spread the boss round's gain over
+the ante as a third of it; stage 2 replaced that with the ante's reach, so a
+reroll and an extra hand are measured the same way. Where the small and big
+blind are already safe, that makes a reroll worth less — Director's Cut went
+from about +4% to +2% on the ante-3 board. Each reroll's $10 is
 charged over the horizon.
 
 This turns a survival question into the engine's one axis, a multiplier on
@@ -66,3 +82,36 @@ Money Tree (Director's Cut, Retcon and Blank do not appear in the baseline).
 No top pick changed. The voucher's own score fell in 24 and rose in 4 — the
 four where the bankroll already sits above the cap, which is where an
 interest voucher genuinely pays.
+
+## Stage 2 decisions
+
+**An extra hand is the ante's reach with five hands instead of four.** A board
+that cannot yet clear the blinds gets up to a quarter more of the way; one
+that clears them anyway gets nothing on that axis, and instead the dollar the
+unused hand pays at the end of every round, which the money projection
+already counts. Voucher effects on hands, discards, slots and the ante moved
+from the store into `applyVoucher` in the engine, so the valuation and the
+booking read one table.
+
+**Six vouchers stayed on their rating, because the engine has nothing to
+value them with.**
+
+- *Hieroglyph and Petroglyph* go back an ante. Measured as reach, that looked
+  like +89% and +151%: ante 2's targets against ante 3's. But ante 8 still has
+  to be beaten. What they buy is an extra ante of time to build the board, and
+  the engine has no notion of how a board grows over time.
+- *Wasteful, Recyclomancy, Paint Brush and Palette* help find a hand: more
+  cards to see, more chances to throw bad ones away. The engine assumes the
+  reference hand is played every hand and never asks how likely it is to come
+  together. Modelling only their side effects — Banner on a discard, Baron on
+  a held card — would put them near zero on most boards, the opposite error.
+
+Both need a new concept rather than a new voucher model. The odds of
+assembling the reference hand from a hand size and a number of discards
+would also serve the jokers that change them (Four Fingers, Shortcut,
+Splash), so it is worth building as its own piece.
+
+**Effect.** 17 of the 300 baseline scenarios moved, all through Grabber. Two
+top picks changed, both on boards with no modelled joker: Grabber rose to the
+top where the board is far from the blinds, and fell just behind a $2 reroll
+where it is less so.

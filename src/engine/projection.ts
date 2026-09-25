@@ -210,6 +210,11 @@ export function interestVoucherIncome(run: RunState, voucherId: string, price: n
   return Math.max(0, perRound) * horizonRounds(run.ante);
 }
 
+/** Money one run ends the horizon with over another, compounding included. */
+export function incomeGap(withIt: RunState, without: RunState): number {
+  return moneyAtHorizon(withIt) - moneyAtHorizon(without);
+}
+
 /**
  * What owning a joker earns over the horizon, compounding included, measured
  * as the difference it makes to the bankroll at the end.

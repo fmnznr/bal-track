@@ -36,3 +36,41 @@ export function usedJokerSlots(run: Pick<RunState, 'jokers'>): number {
 export function hasFreeJokerSlot(run: Pick<RunState, 'jokers' | 'jokerSlots'>, edition: Edition): boolean {
   return edition === 'negative' || usedJokerSlots(run) < run.jokerSlots;
 }
+
+/** Hands and discards a voucher adds to every round from now on. */
+const RESOURCE_VOUCHERS: Record<string, { hands?: number; discards?: number }> = {
+  grabber: { hands: 1 },
+  'nacho-tong': { hands: 1 },
+  wasteful: { discards: 1 },
+  recyclomancy: { discards: 1 },
+  hieroglyph: { hands: -1 },
+  petroglyph: { discards: -1 },
+};
+
+/**
+ * The run as it stands once a voucher is redeemed, without the payment.
+ *
+ * One table for both sides: the store books a redeemed voucher with it, and
+ * the engine values a voucher on offer by comparing the run with and without.
+ * Hand size is not booked here because it is derived from the vouchers owned.
+ */
+export function applyVoucher(run: RunState, voucherId: string): RunState {
+  let { jokerSlots, consumableSlots, ante, boss } = run;
+  if (voucherId === 'antimatter') jokerSlots += 1;
+  if (voucherId === 'crystal-ball') consumableSlots += 1;
+  if (voucherId === 'hieroglyph' || voucherId === 'petroglyph') {
+    ante = Math.max(0, ante - 1);
+    boss = null;
+  }
+  const resource = RESOURCE_VOUCHERS[voucherId];
+  return {
+    ...run,
+    jokerSlots,
+    consumableSlots,
+    ante,
+    boss,
+    handsPerRound: Math.max(0, run.handsPerRound + (resource?.hands ?? 0)),
+    discardsPerRound: Math.max(0, run.discardsPerRound + (resource?.discards ?? 0)),
+    vouchers: [...run.vouchers, voucherId],
+  };
+}
