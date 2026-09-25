@@ -64,7 +64,9 @@ without a human nod.
 the repository; `scripts/build-card-hashes.mjs` turns them into fingerprints.
 281 cards come to 74 KB as one base64 blob — three times smaller than the same
 table written as JSON numbers, and about a fifth of the app's current bundle.
-A fingerprint cannot be turned back into a picture, so no game art ships. The
+No game art ships: the gradient hash cannot be inverted, and the colour
+signature is a 6x6 average per card, which is the whole of what any of this
+retains of the original drawing. The
 script loads the app's own fingerprint code rather than restating it: two
 implementations of one hash drift apart, and a drifted table matches nothing.
 
