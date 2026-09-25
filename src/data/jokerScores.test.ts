@@ -39,7 +39,7 @@ describe('joker score models', () => {
   it('leaves play-history, scaling and hand-shape jokers unmodeled', () => {
     for (const id of [
       'green-joker', 'ride-the-bus', 'business-card', 'obelisk', 'supernova',
-      'glass-joker', 'card-sharp', 'flower-pot', 'seeing-double', 'the-idol',
+      'glass-joker', 'card-sharp', 'flower-pot', 'seeing-double',
     ]) {
       expect(byId.get(id)?.score, id).toBeUndefined();
     }

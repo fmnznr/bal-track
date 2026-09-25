@@ -52,7 +52,12 @@ export type CardMatch =
   /** Every card. */
   | { kind: 'any' }
   /** One suit that changes every round (Ancient Joker): on average a quarter. */
-  | { kind: 'rotatingSuit' };
+  | { kind: 'rotatingSuit' }
+  /**
+   * One card of the deck, rank and suit, that changes every round (The Idol):
+   * on a standard deck one card in 52, more on a deck stacked with copies.
+   */
+  | { kind: 'rotatingCard' };
 
 /** A contribution that repeats, once per matching card or per counted thing. */
 export interface ScoreContribution {

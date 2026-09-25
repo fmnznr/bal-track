@@ -137,11 +137,45 @@ export function hasSuit(card: CardType, suit: Suit, rules: CardRules): boolean {
   return card.suit === suit || (rules.smeared && SMEARED_PARTNER[card.suit] === suit);
 }
 
+/** Where the round's card for The Idol lands: rank and suit shares among the
+    cards that have both, since the game picks it from the deck itself. */
+interface TargetShares {
+  rank: Map<Rank, number>;
+  suit: Map<Suit, number>;
+}
+
+const targetCache = new WeakMap<readonly CardType[], TargetShares>();
+
+function targetShares(types: readonly CardType[]): TargetShares {
+  const cached = targetCache.get(types);
+  if (cached) return cached;
+  const rank = new Map<Rank, number>();
+  const suit = new Map<Suit, number>();
+  let total = 0;
+  for (const t of types) {
+    if (!t.rank || !t.suit) continue;
+    rank.set(t.rank, (rank.get(t.rank) ?? 0) + t.p);
+    suit.set(t.suit, (suit.get(t.suit) ?? 0) + t.p);
+    total += t.p;
+  }
+  if (total > 0) {
+    for (const [k, v] of rank) rank.set(k, v / total);
+    for (const [k, v] of suit) suit.set(k, v / total);
+  }
+  const shares = { rank, suit };
+  targetCache.set(types, shares);
+  return shares;
+}
+
 /**
- * How much a card matches, from 0 to 1. Always 0 or 1 except for a rotating
- * suit, which is the chance the round's suit is one this card has.
+ * How much a card matches, from 0 to 1. Always 0 or 1 except for the rotating
+ * matches: for a suit, the chance the round's suit is one this card has; for a
+ * card, the chance the round's card has this rank and a suit this card counts
+ * as. The second needs the deck, because the game draws that card from it.
  */
-export function matchWeight(card: CardType, match: CardMatch, rules: CardRules): number {
+export function matchWeight(
+  card: CardType, match: CardMatch, rules: CardRules, deck: readonly CardType[],
+): number {
   switch (match.kind) {
     case 'any':
       return 1;
@@ -153,12 +187,19 @@ export function matchWeight(card: CardType, match: CardMatch, rules: CardRules):
       return card.rank && match.ranks.includes(card.rank) ? 1 : 0;
     case 'rotatingSuit':
       return SUITS.filter(s => hasSuit(card, s, rules)).length / SUITS.length;
+    case 'rotatingCard': {
+      if (!card.rank) return 0;
+      const target = targetShares(deck);
+      const suits = SUITS.filter(s => hasSuit(card, s, rules))
+        .reduce((sum, s) => sum + (target.suit.get(s) ?? 0), 0);
+      return (target.rank.get(card.rank) ?? 0) * suits;
+    }
   }
 }
 
 /** Probability a random card matches. */
 export function matchShare(types: CardType[], match: CardMatch, rules: CardRules): number {
-  return types.reduce((sum, c) => sum + c.p * matchWeight(c, match, rules), 0);
+  return types.reduce((sum, c) => sum + c.p * matchWeight(c, match, rules, types), 0);
 }
 
 /**

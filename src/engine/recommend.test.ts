@@ -453,3 +453,22 @@ describe('recommend — the boss this ante', () => {
     expect(recs.find(r => r.kind === 'buy-pack')?.action).toBe('Buy Arcana Pack ($3)');
   });
 });
+
+describe('a shop read from a real run', () => {
+  // Ante 3, a full board, and The Idol on offer. Rated but unmodelled, it came
+  // out as the top pick — "sell Walkie Talkie, buy The Idol" at +103% — when X2
+  // for one card in 52 is worth a few percent a hand.
+  const board = run({
+    ante: 3, money: 26,
+    jokers: owned('ice-cream', 'walkie-talkie', 'smiley-face', 'throwback', 'photograph'),
+  });
+  const offer = shop({ cards: [{ kind: 'joker', jokerId: 'the-idol', edition: 'base', price: 6 }] });
+
+  it('does not sell a working joker for The Idol', () => {
+    const recs = recommend(board, offer);
+    const skip = recs.find(r => r.kind === 'skip')!;
+    for (const r of recs.filter(rec => rec.action.includes('The Idol'))) {
+      expect(r.score, r.action).toBeLessThan(skip.score);
+    }
+  });
+});

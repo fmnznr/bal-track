@@ -285,7 +285,7 @@ function playedTriggers(card: CardType, ctx: Context): number {
   for (const a of ctx.abilities) {
     const r = activeScore(a, ctx)?.retrigger;
     if (!r || r.firstOnly) continue;
-    triggers += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules);
+    triggers += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules, ctx.types);
   }
   return triggers;
 }
@@ -297,7 +297,7 @@ function firstCardExtra(card: CardType, ctx: Context): number {
   for (const a of ctx.abilities) {
     const r = activeScore(a, ctx)?.retrigger;
     if (!r?.firstOnly) continue;
-    extra += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules);
+    extra += r.times * timingWeight(r, ctx) * matchWeight(card, r.match, ctx.rules, ctx.types);
   }
   return extra;
 }
@@ -343,7 +343,7 @@ function scoreCardSlot(tally: Tally, ctx: Context, triggers: number[]): void {
   for (const a of ctx.abilities) {
     const per = activeScore(a, ctx)?.perCard;
     if (!per || per.firstOnly) continue;
-    const count = ctx.types.reduce((sum, c, t) => sum + c.p * triggers[t] * matchWeight(c, per.match, ctx.rules), 0);
+    const count = ctx.types.reduce((sum, c, t) => sum + c.p * triggers[t] * matchWeight(c, per.match, ctx.rules, ctx.types), 0);
     applyRepeated(tally, per, count, timingWeight(per, ctx));
   }
 }
@@ -364,15 +364,15 @@ function scoreFirstMatches(tally: Tally, ctx: Context, scoring: number): void {
     const per = activeScore(a, ctx)?.perCard;
     if (!per?.firstOnly) continue;
     const share = ctx.types.reduce(
-      (sum, c) => sum + c.p * (debuffed(c, ctx) ? 0 : matchWeight(c, per.match, ctx.rules)), 0,
+      (sum, c) => sum + c.p * (debuffed(c, ctx) ? 0 : matchWeight(c, per.match, ctx.rules, ctx.types)), 0,
     );
     if (share <= 0) continue;
     const triggersIfMatching = ctx.types.reduce(
-      (sum, c, t) => sum + c.p * matchWeight(c, per.match, ctx.rules) * ctx.played[t], 0,
+      (sum, c, t) => sum + c.p * matchWeight(c, per.match, ctx.rules, ctx.types) * ctx.played[t], 0,
     ) / share;
     // Hanging Chad's extra triggers land on it only when it is also the first card.
     const chad = ctx.types.reduce(
-      (sum, c, t) => sum + c.p * matchWeight(c, per.match, ctx.rules) * ctx.firstExtra[t], 0,
+      (sum, c, t) => sum + c.p * matchWeight(c, per.match, ctx.rules, ctx.types) * ctx.firstExtra[t], 0,
     );
     const anyMatch = 1 - (1 - share) ** scoring;
     applyRepeated(tally, per, anyMatch * triggersIfMatching + chad, timingWeight(per, ctx));
@@ -388,7 +388,7 @@ function scoreHeldSlot(tally: Tally, ctx: Context): void {
   for (const a of ctx.abilities) {
     const per = activeScore(a, ctx)?.perHeld;
     if (!per) continue;
-    const count = ctx.types.reduce((sum, c, t) => sum + c.p * ctx.held[t] * matchWeight(c, per.match, ctx.rules), 0);
+    const count = ctx.types.reduce((sum, c, t) => sum + c.p * ctx.held[t] * matchWeight(c, per.match, ctx.rules, ctx.types), 0);
     applyRepeated(tally, per, count, 1);
   }
 }

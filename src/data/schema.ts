@@ -38,6 +38,7 @@ const cardMatch = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rank'), ranks: z.array(z.enum(RANKS)).min(1).max(13) }).strict(),
   z.object({ kind: z.literal('any') }).strict(),
   z.object({ kind: z.literal('rotatingSuit') }).strict(),
+  z.object({ kind: z.literal('rotatingCard') }).strict(),
 ]);
 
 const runCount = z.enum([

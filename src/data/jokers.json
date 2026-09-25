@@ -2382,7 +2382,15 @@
     "tags": [
       "xmult",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "perCard": {
+        "match": {
+          "kind": "rotatingCard"
+        },
+        "xmult": 2
+      }
+    }
   },
   {
     "id": "seeing-double",

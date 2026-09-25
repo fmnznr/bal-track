@@ -46,6 +46,18 @@ describe('the deck as card types', () => {
     expect(matchShare(stones, { kind: 'suit', suit: 'clubs' }, PLAIN_RULES)).toBe(0);
   });
 
+  it('finds The Idol\'s card once in a standard deck, and more often in a stacked one', () => {
+    // The game draws the round's card from the deck, so a deck of one suit
+    // leaves only the rank to match.
+    const idol = { kind: 'rotatingCard' } as const;
+    expect(matchShare(cardTypes(initialDeckProfile('Red')), idol, PLAIN_RULES)).toBeCloseTo(1 / 52);
+    const hearts = deck({ suits: { hearts: 52, diamonds: 0, spades: 0, clubs: 0 } });
+    expect(matchShare(cardTypes(hearts), idol, PLAIN_RULES)).toBeCloseTo(1 / 13);
+    // A Wild card is every suit, so it needs only the rank; a Stone card has neither.
+    expect(matchShare(cardTypes(enhanced({ wild: 52 })), idol, PLAIN_RULES)).toBeCloseTo(1 / 13);
+    expect(matchShare(cardTypes(enhanced({ stone: 52 })), idol, PLAIN_RULES)).toBe(0);
+  });
+
   it('prices the lowest held card from the rank spread', () => {
     const types = cardTypes(initialDeckProfile('Red'));
     // One card: the average rank value, (54 + 30 + 11) / 13.
@@ -225,6 +237,15 @@ describe('what a joker contributes', () => {
     const chips = estimateHandScore(run, 'Pair').chips;
     expect(ownedContribution(run, 'Pair', 0).score).toBe(chips * 12);
     expect(ownedContribution(run, 'Pair', 1).score).toBe(chips * 12);
+  });
+
+  it('values The Idol as the rare X2 it is, not as a rating', () => {
+    // One card in 52 per scoring slot: a Flush's five cards give X2 to the
+    // power of 5/52 — about +7%, where the rating alone had it near tripling.
+    const idol = candidateContribution(runWith(), 'Flush', asCandidate(getJoker('the-idol')!, 'base'));
+    const bare = estimateHandScore(runWith(), 'Flush');
+    expect(idol.modelled).toBe(true);
+    expect(1 + idol.score / bare.score).toBeCloseTo(2 ** (5 / 52), 2);
   });
 
   it('leaves a copy joker with nothing to copy to its rating', () => {
