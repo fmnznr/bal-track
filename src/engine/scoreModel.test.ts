@@ -3,7 +3,8 @@ import { getBoss, getJoker } from '../catalog/catalog';
 import { initialDeckProfile, newRunState } from '../run/runStore';
 import { cardTypes, expectedLowestRankValue, matchShare, PLAIN_RULES } from './cards';
 import {
-  asCandidate, bossTarget, candidateContribution, estimateHandScore, handSize, ownedContribution,
+  asCandidate, boardOf, bossTarget, candidateContribution, discardsFor, effectiveWithBoard, estimateHandScore, handSize,
+  ownedContribution,
 } from './score';
 import type { DeckProfile, RunState } from '../types';
 
@@ -223,29 +224,76 @@ describe('boss blinds', () => {
 });
 
 describe('what a joker contributes', () => {
+  // High Card below, because it always comes together, which keeps the
+  // arithmetic exact. Its base is 1 Mult.
   it('places a candidate where it does the most', () => {
     const run = runWith(['cavendish']);
-    // Left of Cavendish, +4 Mult is multiplied: (2 + 4) * 3 - 2 * 3 = 12 Mult more.
-    const joker = candidateContribution(run, 'Pair', asCandidate(getJoker('joker')!, 'base'));
-    const bare = estimateHandScore(run, 'Pair');
+    // Left of Cavendish, +4 Mult is multiplied: (1 + 4) x 3 - 1 x 3 = 12 Mult more.
+    const joker = candidateContribution(run, 'High Card', asCandidate(getJoker('joker')!, 'base'));
+    const bare = estimateHandScore(run, 'High Card');
     expect(joker.score).toBe(bare.chips * 12);
     expect(joker.modelled).toBe(true);
   });
 
   it('judges an owned joker by what removing it loses', () => {
     const run = runWith(['joker', 'cavendish']);
-    const chips = estimateHandScore(run, 'Pair').chips;
-    expect(ownedContribution(run, 'Pair', 0).score).toBe(chips * 12);
-    expect(ownedContribution(run, 'Pair', 1).score).toBe(chips * 12);
+    const chips = estimateHandScore(run, 'High Card').chips;
+    // Without Joker: 1 x 3 against (1 + 4) x 3, 12 Mult lost.
+    expect(ownedContribution(run, 'High Card', 0).score).toBe(chips * 12);
+    // Without Cavendish: 1 + 4 against (1 + 4) x 3, 10 Mult lost.
+    expect(ownedContribution(run, 'High Card', 1).score).toBe(chips * 10);
   });
 
   it('values The Idol as the rare X2 it is, not as a rating', () => {
     // One card in 52 per scoring slot: a Flush's five cards give X2 to the
     // power of 5/52 — about +7%, where the rating alone had it near tripling.
+    // A Flush that does not come together is played as a Pair, whose two
+    // cards give 2^(2/52), so the value sits between the two.
     const idol = candidateContribution(runWith(), 'Flush', asCandidate(getJoker('the-idol')!, 'base'));
-    const bare = estimateHandScore(runWith(), 'Flush');
+    const bare = effectiveWithBoard(runWith(), 'Flush', boardOf(runWith())).score;
     expect(idol.modelled).toBe(true);
-    expect(1 + idol.score / bare.score).toBeCloseTo(2 ** (5 / 52), 2);
+    expect(1 + idol.score / bare).toBeGreaterThan(2 ** (2 / 52));
+    expect(1 + idol.score / bare).toBeLessThan(2 ** (5 / 52));
+  });
+
+  it('counts a Flush joker only as often as the Flush comes together', () => {
+    // The Tribe is X2 on a Flush: the made hand gets all of it, the Pair played
+    // when the Flush misses none. The odds do not move with it — a stronger
+    // board is not credited with finding its own hand more often.
+    const run = runWith([], { primaryHand: 'Flush' });
+    const tribe = candidateContribution(run, 'Flush', asCandidate(getJoker('the-tribe')!, 'base'));
+    const e = effectiveWithBoard(run, 'Flush', boardOf(run));
+    expect(e.odds).toBeLessThan(1);
+    expect(tribe.score).toBeCloseTo(e.odds * e.made, 0);
+  });
+
+  it('values Four Fingers, Shortcut and Smeared Joker by the hands they help find', () => {
+    const flush = runWith([], { primaryHand: 'Flush' });
+    const straight = runWith([], { primaryHand: 'Straight' });
+    const gain = (run: RunState, hand: 'Flush' | 'Straight', id: string) =>
+      candidateContribution(run, hand, asCandidate(getJoker(id)!, 'base')).score;
+    expect(gain(flush, 'Flush', 'four-fingers')).toBeGreaterThan(0);
+    expect(gain(flush, 'Flush', 'smeared-joker')).toBeGreaterThan(0);
+    expect(gain(straight, 'Straight', 'shortcut')).toBeGreaterThan(0);
+    // Shortcut does nothing for a Flush.
+    expect(gain(flush, 'Flush', 'shortcut')).toBe(0);
+  });
+
+  it('counts a discard joker from the board the run already has', () => {
+    // The run's discards already include an owned Drunkard, so the board with
+    // it plays with the run's count and the board without it with one fewer.
+    const owned = runWith(['drunkard'], { discardsPerRound: 4 });
+    expect(discardsFor(owned, boardOf(owned))).toBe(4);
+    expect(discardsFor(owned, [])).toBe(3);
+    const bare = runWith([], { discardsPerRound: 3 });
+    expect(discardsFor(bare, [asCandidate(getJoker('drunkard')!, 'base')])).toBe(4);
+  });
+
+  it('trusts a declared stacked hand, which the deck profile cannot see', () => {
+    // Five of a Kind needs a deck built for it; the profile tracks suits and
+    // face cards, not copies of a rank, so its odds would read near zero.
+    const run = runWith([], { primaryHand: 'Five of a Kind' });
+    expect(effectiveWithBoard(run, 'Five of a Kind', boardOf(run)).odds).toBe(1);
   });
 
   it('leaves a copy joker with nothing to copy to its rating', () => {

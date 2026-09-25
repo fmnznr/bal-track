@@ -22,7 +22,10 @@ describe('engine baseline', () => {
       expect(current[i], `scenario ${i} — run 'npm run baseline:update' if intended`)
         .toEqual(recorded[i]);
     }
-  });
+    // Three hundred full recommendation passes, each now simulating how often
+    // its hand comes together: about five seconds alone, more beside the rest
+    // of the suite, so the default five-second limit is not a measure of it.
+  }, 30_000);
 
   it('generates the same scenarios on every machine', () => {
     // Guards the generator itself: if this drifts, every other diff is noise.

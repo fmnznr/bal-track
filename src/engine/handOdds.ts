@@ -19,12 +19,8 @@
  * a recommendation pass asks the same question many times.
  */
 import { RANKS, SUITS } from '../types';
-import type { HandType, RunState } from '../types';
-import { cardTypes } from './cards';
+import type { HandType } from '../types';
 import type { CardType } from './cards';
-import { handsPlayedPerRound } from './projection';
-import { boardOf, estimateHandScore, handSize, referenceHand } from './score';
-import type { ScoringJoker } from './score';
 
 export interface OddsRules {
   /** Smeared Joker: Hearts and Diamonds count as one suit, Spades and Clubs as another. */
@@ -273,7 +269,13 @@ function attempt(deck: Card[], handSize: number, discards: number, hand: HandTyp
   return false;
 }
 
-const cache = new Map<string, number>();
+/**
+ * Answers by deck, then by question. The card types of a deck profile are
+ * built once and kept (see cardTypes), so the array itself is the deck's key:
+ * no string built from four hundred card types on every call, and no two
+ * decks that merely look alike sharing an answer.
+ */
+const cache = new WeakMap<readonly CardType[], Map<string, number>>();
 
 /**
  * Chance of holding `hand` at some point while spending up to `discards`
@@ -296,11 +298,13 @@ function wholeOdds(
   hand: HandType, rules: OddsRules,
 ): number {
   const size = Math.max(1, Math.round(deckSize));
-  const key = [
-    types.map(t => `${t.rank}${t.suit}${t.enhancement}${t.p.toFixed(4)}`).join(','),
-    size, handSize, discards, hand, rules.smeared, rules.fourFingers, rules.shortcut,
-  ].join('|');
-  const cached = cache.get(key);
+  let forDeck = cache.get(types);
+  if (!forDeck) {
+    forDeck = new Map();
+    cache.set(types, forDeck);
+  }
+  const key = [size, handSize, discards, hand, rules.smeared, rules.fourFingers, rules.shortcut].join('|');
+  const cached = forDeck.get(key);
   if (cached !== undefined) return cached;
   const deck = buildDeck(types, size, rules);
   if (deck.length === 0 || handSize <= 0) return 0;
@@ -311,48 +315,6 @@ function wholeOdds(
     if (attempt(deck, Math.min(handSize, deck.length), discards, hand, rules)) hits += 1;
   }
   const odds = hits / TRIALS;
-  cache.set(key, odds);
+  forDeck.set(key, odds);
   return odds;
-}
-
-/** The board's jokers that change what counts as a hand. */
-export function oddsRules(board: readonly ScoringJoker[]): OddsRules {
-  const has = (id: string) => board.some(j => j.id === id);
-  return { smeared: has('smeared-joker'), fourFingers: has('four-fingers'), shortcut: has('shortcut') };
-}
-
-/** What a hand that misses is played as instead: a Pair almost always turns up. */
-function fallbackFor(hand: HandType): HandType {
-  return hand === 'Pair' ? 'High Card' : 'Pair';
-}
-
-export interface EffectiveScore {
-  /** The reference hand's score when it comes together. */
-  made: number;
-  /** Chance it does, with the discards a hand gets. */
-  odds: number;
-  /** The score averaged over hands that make it and hands that fall back. */
-  score: number;
-}
-
-/**
- * What a hand of the reference type scores on average, counting the ones that
- * do not come together.
- *
- * The round's discards are spread over the hands the board needs to clear a
- * blind: a board that wins in one hand can pour every discard into it, one
- * that needs all four gets a fraction each. A hand that misses is played as
- * a Pair, which with any discard at all nearly always turns up.
- */
-export function effectiveScore(run: RunState): EffectiveScore {
-  const hand = referenceHand(run);
-  const made = estimateHandScore(run, hand).score;
-  if (hand === 'High Card') return { made, odds: 1, score: made };
-  const board = boardOf(run);
-  const discards = run.discardsPerRound / Math.max(1, handsPlayedPerRound(run));
-  const odds = handOdds(
-    cardTypes(run.deckProfile), run.deckProfile.deckSize, handSize(run, board), discards, hand, oddsRules(board),
-  );
-  const miss = estimateHandScore(run, fallbackFor(hand)).score;
-  return { made, odds, score: odds * made + (1 - odds) * miss };
 }

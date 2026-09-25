@@ -17,8 +17,7 @@ import { interestCapFor, INTEREST_TIER_DOLLARS } from './economy';
 import { applyVoucher, baseRerollCost, shopCardSlots, usedJokerSlots } from './gameRules';
 import { discountPercent } from './prices';
 import { horizonRounds, incomeGap, interestVoucherIncome, steadySpend } from './projection';
-import { effectiveScore } from './handOdds';
-import { blindTargets, bossOutlook, referenceHand } from './score';
+import { blindTargets, bossOutlook, effectiveScore, referenceHand } from './score';
 import { TUNING } from './tuning';
 
 /** What a voucher's value can depend on beyond the run itself. */

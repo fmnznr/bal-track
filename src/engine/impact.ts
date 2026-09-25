@@ -22,8 +22,8 @@ import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
 import {
-  asCandidate, boardOf, bossOutlook, candidateContribution, handLevelMultiplier, marginalMultiplier, ownedContribution,
-  referenceHand, scoreTarget,
+  asCandidate, boardOf, bossOutlook, candidateContribution, changesHandOdds, effectiveWithBoard, handLevelMultiplier,
+  marginalMultiplier, ownedContribution, referenceHand, scoreTarget,
 } from './score';
 import { earnsIncome, horizonRounds, jokerIncome } from './projection';
 import { TUNING } from './tuning';
@@ -149,7 +149,10 @@ export function jokerImpact(
   // A copy joker is worth what it will copy over the run, which today's board
   // does not show, so its rating decides. What it copies now is still stated.
   const copies = def.score?.copies !== undefined;
-  const modelled = def.score ? contribution(true) : null;
+  // A joker that makes hands easier to find is modelled through the odds, with
+  // no score block of its own.
+  const odds = changesHandOdds(def.id);
+  const modelled = def.score || odds ? contribution(true) : null;
   // What an income joker earns is counted in dollars, so its rating — which
   // mostly stands for that income — does not count it a second time.
   const income = earnsIncome(def) ? jokerIncome(run, def, ownedIndex) : 0;
@@ -172,6 +175,7 @@ export function jokerImpact(
         `Modelled at about ${Math.round(modelled.score).toLocaleString('en-US')} score on your ${hand},`
         + ` weighed against its ${rating}/10 rating over a full run`,
       );
+      if (odds) reasons.push(oddsReason(run, hand, def, edition, ownedIndex));
     } else {
       reasons.push(`Adds nothing to your ${hand} as your deck and board stand`);
     }
@@ -220,6 +224,15 @@ export function jokerImpact(
   reasons.push(...sticker.reasons);
 
   return { multiplier, incomeDollars: income, evidence, reasons };
+}
+
+/** How often the reference hand comes together with this joker and without it. */
+function oddsReason(run: RunState, hand: HandType, def: JokerDef, edition: Edition, ownedIndex?: number): string {
+  const board = boardOf(run);
+  const withIt = ownedIndex !== undefined ? board : [...board, asCandidate(def, edition)];
+  const without = ownedIndex !== undefined ? board.filter((_, i) => i !== ownedIndex) : board;
+  const pct = (b: typeof board) => Math.round(effectiveWithBoard(run, hand, b).odds * 100);
+  return `Your ${hand} comes together about ${pct(without)}% of the time without it, ${pct(withIt)}% with it`;
 }
 
 /** Jokers that switch the current boss off, for good or for one sale. */

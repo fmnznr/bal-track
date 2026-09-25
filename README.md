@@ -67,7 +67,10 @@ exists only for when a run drifts from what was recorded.
   left of that round instead. See
   [`docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md`](docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md).
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Score contribution is modeled for 65 of the 150 Jokers: flat effects,
+- Score contribution is modeled for 65 of the 150 Jokers, and seven more are
+  valued by how much more often they make your hand come together (Four
+  Fingers, Shortcut, Smeared Joker, Juggler, Turtle Bean, Drunkard, Merry
+  Andy): flat effects,
   per-card and held-card effects, retriggers, copies, listed chances and
   effects that scale with something the run tracks. Ranks are assumed evenly
   spread within the face and non-face cards, since only the face count is
@@ -92,8 +95,12 @@ exists only for when a run drifts from what was recorded.
   how a board grows over time, which the engine does not have yet.
 - How likely a hand is to come together is simulated from the deck, the hand
   size and the discards (`src/engine/handOdds.ts`), with a plain
-  keep-and-discard strategy, so the odds are a floor. It feeds the voucher
-  models only; the score estimate still assumes the reference hand every hand.
+  keep-and-discard strategy, so the odds are a floor. Card values use it: a
+  joker that only fires on your Flush counts as often as a Flush turns up.
+  Hands that need several copies of a rank (Four and Five of a Kind, Flush
+  House, Flush Five) are taken to come together, since the deck profile does
+  not track rank copies. The score shown on the run screen is still the made
+  hand's.
   See
   [`docs/superpowers/specs/2026-09-25-hand-odds-design.md`](docs/superpowers/specs/2026-09-25-hand-odds-design.md). See
   [`docs/superpowers/specs/2026-09-25-voucher-models-design.md`](docs/superpowers/specs/2026-09-25-voucher-models-design.md).

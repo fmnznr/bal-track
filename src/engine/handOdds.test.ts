@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile, newRunState } from '../run/runStore';
 import { cardTypes } from './cards';
-import { effectiveScore, handOdds, PLAIN_ODDS } from './handOdds';
+import { handOdds, PLAIN_ODDS } from './handOdds';
+import { effectiveScore } from './score';
 
 const standard = cardTypes(initialDeckProfile('Red'));
 const odds = (handSize: number, discards: number, hand: Parameters<typeof handOdds>[4], rules = PLAIN_ODDS) =>

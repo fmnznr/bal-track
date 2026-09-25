@@ -10,6 +10,8 @@ import {
   cardTypes, expectedLowestRankValue, hasSuit, isFace, matchWeight, rankChips,
 } from './cards';
 import type { CardRules, CardType } from './cards';
+import { handOdds } from './handOdds';
+import type { OddsRules } from './handOdds';
 import { sellValue } from './economy';
 import { stakeHas } from './gameRules';
 import { TUNING } from './tuning';
@@ -155,6 +157,17 @@ export interface ScoringJoker {
   edition: Edition;
   rarity: Rarity;
   sellValue: number;
+  /**
+   * False for a joker counted for its edition only. Its score block is gone
+   * then, and so is everything else its ability does: a rule, a hand size, a
+   * discard.
+   */
+  ability?: false;
+}
+
+/** The jokers whose abilities are in play. */
+function active(board: readonly ScoringJoker[]): ScoringJoker[] {
+  return board.filter(j => j.ability !== false);
 }
 
 function toScoring(def: JokerDef, edition: Edition, stickers?: { rental?: boolean }): ScoringJoker {
@@ -181,8 +194,24 @@ export function boardOf(run: RunState): ScoringJoker[] {
 export function handSize(run: RunState, board: ScoringJoker[] = boardOf(run), boss?: BossDef | null): number {
   let size = BASE_HAND_SIZE + (HAND_SIZE_DECKS[run.deck] ?? 0) + (boss?.handSize ?? 0);
   for (const v of run.vouchers) size += HAND_SIZE_VOUCHERS[v] ?? 0;
-  for (const j of board) size += HAND_SIZE_JOKERS[j.id] ?? 0;
+  for (const j of active(board)) size += HAND_SIZE_JOKERS[j.id] ?? 0;
   return Math.max(1, size);
+}
+
+/** Discards a joker adds to every round. */
+const DISCARD_JOKERS: Record<string, number> = { drunkard: 1, 'merry-andy': 3 };
+
+/**
+ * Discards a round allows with this board.
+ *
+ * The run's own count already includes what its jokers add — a screenshot
+ * reads it off the game, Drunkard and all — so another board differs from it
+ * only by the jokers it has that the run's board does not, and the other way
+ * round. Counting from zero would give Drunkard's discard twice.
+ */
+export function discardsFor(run: RunState, board: readonly ScoringJoker[]): number {
+  const extra = (b: readonly ScoringJoker[]) => active(b).reduce((sum, j) => sum + (DISCARD_JOKERS[j.id] ?? 0), 0);
+  return Math.max(0, run.discardsPerRound + extra(board) - extra(boardOf(run)));
 }
 
 /** What a joker slot actually does once Blueprint and Brainstorm are resolved. */
@@ -222,11 +251,11 @@ interface Context {
 }
 
 function contextFor(run: RunState, hand: HandType, board: ScoringJoker[], options: EstimateOptions): Context {
-  const ids = new Set(board.map(j => j.id));
+  const ids = new Set(active(board).map(j => j.id));
   const boss = options.boss && !ids.has('chicot') ? options.boss : null;
   const def = byHand.get(hand);
   const playedCards = Math.max(def?.scoringCards ?? 1, boss?.playCards ?? 0);
-  const oops = board.filter(j => j.id === 'oops-all-6s').length;
+  const oops = active(board).filter(j => j.id === 'oops-all-6s').length;
   const ctx: Context = {
     run,
     hand,
@@ -236,7 +265,7 @@ function contextFor(run: RunState, hand: HandType, board: ScoringJoker[], option
     rules: { allFace: ids.has('pareidolia'), smeared: ids.has('smeared-joker') },
     boss,
     hands: Math.max(1, boss?.hands ?? run.handsPerRound),
-    discards: boss?.discards ?? run.discardsPerRound,
+    discards: boss?.discards ?? discardsFor(run, board),
     playedCards,
     heldCards: Math.max(0, handSize(run, board, boss) - playedCards),
     chanceFactor: 2 ** oops,
@@ -554,6 +583,102 @@ export function scoreCeiling(run: RunState): number {
   return blindTargets(TUNING.economy.antesPerRun, run.deck, run.stake).boss;
 }
 
+/** How many hands a round takes to clear, against the ante's average blind, at this score. */
+export function handsNeeded(run: RunState, score: number): number {
+  const hands = Math.max(1, run.handsPerRound);
+  if (score <= 0) return hands;
+  const t = blindTargets(run.ante, run.deck, run.stake);
+  const average = (t.small + t.big + t.boss) / 3;
+  return Math.min(hands, Math.max(1, Math.ceil(average / score)));
+}
+
+/** Jokers whose worth is in making hands easier to find, not in scoring them. */
+const ODDS_JOKERS = new Set(['four-fingers', 'shortcut', 'smeared-joker', 'juggler', 'drunkard', 'merry-andy', 'turtle-bean']);
+
+/** Whether a joker's ability works by changing how often a hand comes together. */
+export function changesHandOdds(jokerId: string): boolean {
+  return ODDS_JOKERS.has(jokerId);
+}
+
+/** The board's jokers that change what counts as a hand. */
+export function oddsRules(board: readonly ScoringJoker[]): OddsRules {
+  const ids = new Set(active(board).map(j => j.id));
+  return { smeared: ids.has('smeared-joker'), fourFingers: ids.has('four-fingers'), shortcut: ids.has('shortcut') };
+}
+
+/**
+ * Hands that need several copies of one rank. Only a deck stacked for them
+ * makes them — a standard deck has four of each rank, so a Five of a Kind
+ * cannot happen at all — and the deck profile tracks suits and face cards, not
+ * how many copies of a rank there are. The odds would come out near zero for
+ * exactly the players building these hands, so their declaration is trusted
+ * instead: the hand is taken to come together, as before odds existed.
+ */
+const STACKED_HANDS = new Set<HandType>(['Four of a Kind', 'Five of a Kind', 'Flush House', 'Flush Five']);
+
+/** What a hand that misses is played as instead: a Pair almost always turns up. */
+function fallbackFor(hand: HandType): HandType {
+  return hand === 'Pair' ? 'High Card' : 'Pair';
+}
+
+export interface EffectiveScore {
+  /** The hand's score when it comes together. */
+  made: number;
+  /** Chance it does, with the discards a hand gets. */
+  odds: number;
+  /** The score averaged over hands that make it and hands that fall back. */
+  score: number;
+}
+
+/**
+ * What a hand scores on average with this board, counting the hands where it
+ * does not come together.
+ *
+ * The score model alone assumes the hand every time, which is the right thing
+ * to score and the wrong thing to value by: a joker that only fires on a Flush
+ * is worth a Flush only as often as one turns up, and Four Fingers is worth
+ * exactly the Flushes it adds. The round's discards are spread over the hands
+ * the board needs to clear a blind. A hand that misses is played as a Pair,
+ * which with any discard at all nearly always turns up.
+ */
+export function effectiveWithBoard(run: RunState, hand: HandType, board: ScoringJoker[]): EffectiveScore {
+  const made = estimateWithBoard(run, hand, board).score;
+  if (hand === 'High Card' || STACKED_HANDS.has(hand)) return { made, odds: 1, score: made };
+  // Spread over the hands the run's own board needs, whichever board is being
+  // valued. Measured on the board itself, a joker that doubles the score would
+  // halve the hands needed, double every hand's discards and so make its own
+  // hand more reliable too — counted on top of the doubling, and jumping at
+  // each whole hand.
+  const discards = discardsFor(run, board) / handsNeeded(run, ownMade(run, hand));
+  const odds = handOdds(
+    cardTypes(run.deckProfile), run.deckProfile.deckSize, handSize(run, board), discards, hand, oddsRules(board),
+  );
+  const miss = estimateWithBoard(run, fallbackFor(hand), board).score;
+  return { made, odds, score: odds * made + (1 - odds) * miss };
+}
+
+const ownMadeCache = new WeakMap<RunState, Map<HandType, number>>();
+
+/** The hand's made score on the run's own board; asked many times per pass, so kept. */
+function ownMade(run: RunState, hand: HandType): number {
+  let byHand = ownMadeCache.get(run);
+  if (!byHand) {
+    byHand = new Map();
+    ownMadeCache.set(run, byHand);
+  }
+  let made = byHand.get(hand);
+  if (made === undefined) {
+    made = estimateWithBoard(run, hand, boardOf(run)).score;
+    byHand.set(hand, made);
+  }
+  return made;
+}
+
+/** The run's reference hand, averaged over the times it does not come together. */
+export function effectiveScore(run: RunState): EffectiveScore {
+  return effectiveWithBoard(run, referenceHand(run), boardOf(run));
+}
+
 /**
  * The score a card's contribution is measured against.
  *
@@ -565,7 +690,7 @@ export function scoreCeiling(run: RunState): number {
  * *adds*, not what it multiplies a near-zero number by.
  */
 export function scoreBaseline(run: RunState, hand: HandType): number {
-  const current = Math.min(estimateHandScore(run, hand).score, scoreCeiling(run));
+  const current = Math.min(effectiveWithBoard(run, hand, boardOf(run)).score, scoreCeiling(run));
   return Math.max(current, scoreTarget(run) * TUNING.prior.minBaselineShare);
 }
 
@@ -623,13 +748,13 @@ export function candidateContribution(
   candidate: Pick<ScoringJoker, 'id' | 'name' | 'score' | 'rarity' | 'sellValue'> & { edition: Edition },
 ): Contribution {
   const board = boardOf(run);
-  const before = estimateWithBoard(run, hand, board).score;
+  const before = effectiveWithBoard(run, hand, board).score;
   let best: Contribution = { score: 0, modelled: false };
   let found = false;
   for (let at = board.length; at >= 0; at--) {
     const trial = [...board.slice(0, at), candidate, ...board.slice(at)];
     const modelled = isModelledAt(trial, at);
-    const gain = Math.max(0, estimateWithBoard(run, hand, trial).score - before);
+    const gain = Math.max(0, effectiveWithBoard(run, hand, trial).score - before);
     // A modelled placement beats an unmodelled one; among equals, the larger gain.
     if (!found || (modelled && !best.modelled) || (modelled === best.modelled && gain > best.score)) {
       best = { score: gain, modelled };
@@ -647,20 +772,22 @@ export function ownedContribution(run: RunState, hand: HandType, index: number, 
   const board = boardOf(run);
   const self = board[index];
   if (!self) return { score: 0, modelled: false };
-  const kept = withAbility ? board : board.map((j, i) => (i === index ? { ...j, score: undefined } : j));
+  const kept = withAbility ? board : board.map((j, i) => (i === index ? { ...j, score: undefined, ability: false as const } : j));
   const without = board.filter((_, i) => i !== index);
-  const gain = estimateWithBoard(run, hand, kept).score - estimateWithBoard(run, hand, without).score;
+  const gain = effectiveWithBoard(run, hand, kept).score - effectiveWithBoard(run, hand, without).score;
   return { score: Math.max(0, gain), modelled: isModelledAt(board, index) };
 }
 
 /** How much raising this hand's level moves the run along. Exact, not a guess. */
 export function handLevelMultiplier(run: RunState, hand: HandType, levels = 1): number {
-  const before = estimateHandScore(run, hand).score;
+  // A level is worth what it adds as often as the hand is actually played.
+  const board = boardOf(run);
+  const before = effectiveWithBoard(run, hand, board).score;
   const raised: RunState = {
     ...run,
     handLevels: { ...run.handLevels, [hand]: (run.handLevels[hand] ?? 1) + levels },
   };
-  const after = estimateHandScore(raised, hand).score;
+  const after = effectiveWithBoard(raised, hand, board).score;
   return marginalMultiplier(run, hand, after - before);
 }
 
@@ -674,7 +801,7 @@ export function estimateJokerDelta(run: RunState, hand: HandType, jokerId: strin
 /** A catalog joker as a candidate for the board. */
 export function asCandidate(def: JokerDef, edition: Edition, withAbility = true): ScoringJoker {
   const joker = toScoring(def, edition);
-  return withAbility ? joker : { ...joker, score: undefined };
+  return withAbility ? joker : { ...joker, score: undefined, ability: false };
 }
 
 export interface BossOutlook {

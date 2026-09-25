@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialDeckProfile, newRunState } from '../run/runStore';
 import {
-  blindTargets, estimateHandScore, estimateJokerDelta, handContains, marginalMultiplier,
+  blindTargets, boardOf, effectiveWithBoard, estimateHandScore, estimateJokerDelta, handContains, marginalMultiplier,
   referenceHand, scoreBaseline, scoreCeiling, scoreTarget,
 } from './score';
 import type { RunState } from '../types';
@@ -249,7 +249,10 @@ describe('the baseline a contribution is measured against', () => {
     };
     const score = estimateHandScore(strong, 'Flush').score;
     expect(score).toBeGreaterThan(scoreTarget(strong) * 0.25);
-    expect(scoreBaseline(strong, 'Flush')).toBe(score);
+    // The effective score: a Flush that does not come together is played as a Pair.
+    const effective = effectiveWithBoard(strong, 'Flush', boardOf(strong));
+    expect(effective.odds).toBeLessThan(1);
+    expect(scoreBaseline(strong, 'Flush')).toBe(effective.score);
   });
 
   it('saturates only at the final blind, not the next one', () => {
@@ -265,12 +268,14 @@ describe('the baseline a contribution is measured against', () => {
   it('reports no gain for a board that already clears the final blind', () => {
     const run: RunState = { ...newRunState('Red', 'White'), ante: 8 };
     const ceiling = scoreCeiling(run);
+    // High Card, because it always comes together: a Flush Five on a standard
+    // deck almost never does, so its board is nowhere near clearing anything.
     const maxed: RunState = {
       ...run,
-      handLevels: { ...run.handLevels, 'Flush Five': 200 },
+      handLevels: { ...run.handLevels, 'High Card': 5000 },
     };
-    expect(estimateHandScore(maxed, 'Flush Five').score).toBeGreaterThan(ceiling);
-    expect(marginalMultiplier(maxed, 'Flush Five', ceiling)).toBe(1);
+    expect(estimateHandScore(maxed, 'High Card').score).toBeGreaterThan(ceiling);
+    expect(marginalMultiplier(maxed, 'High Card', ceiling)).toBe(1);
   });
 
   it('never reports a contribution as a loss', () => {

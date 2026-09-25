@@ -19,7 +19,7 @@ import type { JokerDef, RunState } from '../types';
 import { cardTypes, isFace, hasSuit } from './cards';
 import { interestCapFor, INTEREST_TIER_DOLLARS } from './economy';
 import { earnsInterest, stakeHas } from './gameRules';
-import { blindTargets, boardOf, estimateHandScore, handSize, referenceHand, scoringCards } from './score';
+import { boardOf, estimateHandScore, handSize, handsNeeded, referenceHand, scoringCards } from './score';
 import { TUNING } from './tuning';
 
 /**
@@ -51,12 +51,7 @@ function blindReward(run: RunState): number {
 
 /** How many hands a round takes to clear, against the ante's average blind. */
 export function handsPlayedPerRound(run: RunState): number {
-  const hands = Math.max(1, run.handsPerRound);
-  const score = estimateHandScore(run, referenceHand(run)).score;
-  if (score <= 0) return hands;
-  const t = blindTargets(run.ante, run.deck, run.stake);
-  const average = (t.small + t.big + t.boss) / 3;
-  return Math.min(hands, Math.max(1, Math.ceil(average / score)));
+  return handsNeeded(run, estimateHandScore(run, referenceHand(run)).score);
 }
 
 interface Round {

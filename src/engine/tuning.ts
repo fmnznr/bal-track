@@ -91,13 +91,13 @@ export const TUNING = {
     /** The rating of a voucher that does nothing (Blank): worth zero. */
     zeroRating: 1,
     /**
-     * Fitted: 0.213 over 4052 valuations of the fourteen modelled vouchers,
-     * which halves the log error against the joker scale of 0.8 (0.050
-     * against 0.105). Every modelled voucher sits within x0.73 to x1.20 of the
-     * curve. The first fit, on ten, gave 0.209; the four discard and hand-size
-     * vouchers modelled since landed within x0.95 to x1.01 of it.
+     * Fitted: 0.194 over 4052 valuations of the fourteen modelled vouchers,
+     * against the effective baseline (hand odds included), which more than halves
+     * the log error against the joker scale of 0.8 (0.044 against 0.112). The
+     * fits before it — 0.209 on ten vouchers, 0.213 on fourteen against the
+     * made score — show the scale is stable to about a tenth.
      */
-    topShareOfTarget: 0.21,
+    topShareOfTarget: 0.19,
   },
 
   /** Owned jokers sharing a dominant tag with the card being judged. */

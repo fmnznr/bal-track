@@ -55,17 +55,48 @@ Two simplifications, both stated so they can be revisited:
 
 ## Where it is used
 
-Only in the voucher models, for now: reach — score times hands over the
-target — uses the effective score, so every voucher valued by reach sees the
-same, more honest board. Wasteful, Recyclomancy, Paint Brush and Palette are
-modelled with it; their reasons name the odds before and after ("Your Flush
-comes together about 55% of the time, 65% with it") and are marked `partial`,
+In the voucher models first: reach — score times hands over the target — uses
+the effective score, so every voucher valued by reach sees the same, more
+honest board. Wasteful, Recyclomancy, Paint Brush and Palette are modelled
+with it; their reasons name the odds before and after ("Your Flush comes
+together about 55% of the time, 65% with it") and are marked `partial`,
 because the odds come from a plain strategy.
 
-The score estimate itself, and so every joker's value, still assumes the
-reference hand. Folding the odds in there is the next step and a much larger
-one: it would move every recommendation. Four Fingers, Shortcut and Smeared
-Joker can then be valued by the effective score they add.
+Then in what every card is worth. A joker's contribution, a planet's level
+and the baseline contributions are measured against all use the effective
+score, so a joker that only fires on a Flush is worth a Flush as often as one
+turns up, and one that helps every hand is worth it on the Pair played when
+the Flush misses too. The score shown on the run screen is still the made
+hand's: it answers "what does my Flush score", not "what do I average".
+
+Seven jokers with no score of their own are modelled through the odds they
+change: Four Fingers, Shortcut and Smeared Joker through what counts as a
+hand, Juggler and Turtle Bean through hand size, Drunkard and Merry Andy
+through discards. Their reasons give the odds with and without them. On a
+Flush board at ante 3, Smeared Joker is worth about +68% (55% to 99%) and
+Four Fingers +47%; Shortcut nothing. On a Straight board Shortcut is +45%.
+On a Pair board none of them matter. Burglar and Troubadour change how many
+hands a round has, which a per-hand score cannot show — the same reason
+Grabber is valued by reach — so they stay on their rating.
+
+Three decisions came out of measuring rather than assuming:
+
+- **The discards are spread over the hands the run's own board needs**,
+  whichever board is being valued. Measured on the board itself, a joker that
+  doubles the score halved the hands needed, doubled each hand's discards and
+  so made its own hand more reliable too: The Tribe came out worth more than
+  doubling every hand would be, with jumps wherever the hands needed crossed
+  a whole number.
+- **Hands that need several copies of a rank are trusted as declared.** Four
+  of a Kind, Five of a Kind, Flush House and Flush Five only come together
+  in a deck stacked for them, and the deck profile tracks suits and face
+  cards, not copies of a rank. Their odds would read near zero for exactly
+  the players building them — 46 of the first run's 102 changed top picks were
+  these — so they are taken to come together, as before odds existed.
+- **A discard joker is counted from the run's own count.** The run's discards
+  come off the game's own display, which already includes an owned
+  Drunkard's; another board differs from it only by the discard jokers it adds
+  or drops.
 
 ## Effect
 
@@ -84,3 +115,16 @@ on an empty board building Straights, Grabber fell behind a $3 reroll, since a
 fifth hand now also spreads the discards thinner; on a board building a Flush
 House, which rarely comes together, it rose to the top, since that board is
 weaker than its made score says and a hand more matters more.
+
+## Effect of folding the odds into card values
+
+153 of the 300 baseline scenarios moved in value; the recommended action
+changed in nine. Four of the nine build Straight Flushes and one a Flush with
+no discards at all: hands that seldom come together, so the board is weaker
+than its made score said, and a pack or a rated card that adds a fixed amount
+now counts for more against it. The voucher curve was refitted against the
+effective baseline: 0.194, from 0.213.
+
+A full recommendation pass takes about 8 ms warm where it took 7, and the
+baseline suite's 300 passes about five seconds, so its test has an explicit
+time limit.
