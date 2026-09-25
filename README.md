@@ -88,11 +88,13 @@ exists only for when a run drifts from what was recorded.
   Glut, Overstock and Overstock Plus from how often you reroll, counted from
   the reroll price on your shop screenshots once five shops are in; Wasteful,
   Recyclomancy, Paint Brush and Palette from how much more often your declared
-  hand comes together; Blank at nothing. The other 14 are valued from their
-  rating on a curve that is zero for a voucher that does nothing and whose
-  scale is fitted to the modelled ones (`scripts/calibrate-voucher-prior.mjs`).
-  Hieroglyph, Petroglyph and Antimatter while slots are free need a notion of
-  how a board grows over time, which the engine does not have yet.
+  hand comes together; Hieroglyph and Petroglyph as three more rounds of pay
+  against the hand or discard they cost for the rest of the run; Blank at
+  nothing. Antimatter with slots free counts from when your own buying pace
+  fills the board. The other 12, mostly vouchers that change which cards
+  turn up, are valued from their rating on a curve that is zero for a voucher
+  that does nothing and whose scale is fitted to the modelled ones
+  (`scripts/calibrate-voucher-prior.mjs`).
 - How likely a hand is to come together is simulated from the deck, the hand
   size and the discards (`src/engine/handOdds.ts`), with a plain
   keep-and-discard strategy, so the odds are a floor. Card values use it: a

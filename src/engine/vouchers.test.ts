@@ -96,10 +96,18 @@ describe('vouchers valued by what they do', () => {
     expect(antimatter.impact).toBeGreaterThan(1);
   });
 
-  it('gives Antimatter nothing while slots are free', () => {
-    const roomy = board({ vouchers: ['blank'], jokers: [{ jokerId: 'joker', edition: 'base' }] });
-    const recs = recommend(roomy, offer('antimatter'));
-    expect(recs.find(r => r.kind === 'buy-voucher')!.impact).toBe(1);
+  it('counts a free-slot Antimatter from when this run\'s pace fills the board', () => {
+    const three = board().jokers.slice(0, 3);
+    // Three jokers by ante 3: a joker and a half an ante, so two free slots
+    // fill in about an ante and a third, and the extra slot pays after that.
+    const early = recommend(board({ vouchers: ['blank'], jokers: three }), offer('antimatter'))
+      .find(r => r.kind === 'buy-voucher')!;
+    expect(early.impact).toBeGreaterThan(1);
+    expect(early.reasons.join(' ')).toMatch(/fill in about 1\.3 antes/);
+    // The same board at ante 6 fills too slowly to use the slot before the end.
+    const late = recommend(board({ ante: 6, vouchers: ['blank'], jokers: three }), offer('antimatter'))
+      .find(r => r.kind === 'buy-voucher')!;
+    expect(late.impact).toBe(1);
   });
 
   describe('at the rate you reroll', () => {
@@ -144,10 +152,18 @@ describe('vouchers valued by what they do', () => {
     expect(voucherValue(board({ primaryHand: 'Straight' }), 'paint-brush', 10)!.multiplier).toBeGreaterThan(1);
   });
 
+  it('prices an ante back as three more rounds of pay, against the hand it costs', () => {
+    const hieroglyph = voucherValue(board({ primaryHand: 'Flush' }), 'hieroglyph', 10)!;
+    // The lost hand makes this ante's blinds harder...
+    expect(hieroglyph.multiplier).toBeLessThan(1);
+    // ...and the extra ante pays three rounds.
+    expect(hieroglyph.incomeDollars).toBeGreaterThan(0);
+    expect(hieroglyph.reasons.join(' ')).toMatch(/3 more rounds before the last blind/);
+  });
+
   it('leaves the vouchers the engine cannot yet judge to their rating', () => {
-    // Hieroglyph and Petroglyph buy time; Crystal Ball depends on consumables
-    // the run cannot foresee.
-    for (const id of ['hieroglyph', 'petroglyph', 'crystal-ball']) {
+    // Crystal Ball depends on consumables the run cannot foresee.
+    for (const id of ['crystal-ball']) {
       expect(voucherValue(board(), id, 10), id).toBeNull();
     }
   });

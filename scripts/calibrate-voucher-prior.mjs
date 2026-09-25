@@ -28,26 +28,38 @@ const MODELLED = [
   'wasteful', 'recyclomancy', 'paint-brush', 'palette', 'clearance-sale', 'liquidation', 'antimatter',
 ];
 
+/**
+ * Modelled, but not fitted to. Their value is three future rounds of pay
+ * turned into score at the exchange rate, the least certain step any voucher
+ * model takes, and they disagree with their ratings by x0.55 to x0.66 where the
+ * rest sit within x0.78 to x1.22: fitted to, they moved the scale by half and
+ * doubled the error for every other voucher. Shown for comparison.
+ */
+const COMPARED = ['hieroglyph', 'petroglyph'];
+
 // The model side does not depend on the scale, and it is the slow part: work
 // it out once.
 const pairs = [];
 for (let i = 0; i < SCENARIO_COUNT; i += 1) {
   const run = scenario(i).run;
-  for (const id of MODELLED) {
+  for (const id of [...MODELLED, ...COMPARED]) {
     const pair = voucherCalibrationPair(run, id);
-    if (pair) pairs.push({ id, ...pair });
+    if (pair) pairs.push({ id, fitted: MODELLED.includes(id), ...pair });
   }
 }
 
 const loss = topShare => {
   let total = 0;
+  let n = 0;
   const perVoucher = {};
-  for (const { id, model, rating } of pairs) {
+  for (const { id, fitted, model, rating } of pairs) {
     const gap = Math.log(rating(topShare)) - Math.log(model);
-    total += gap * gap;
     (perVoucher[id] ??= []).push(gap);
+    if (!fitted) continue;
+    total += gap * gap;
+    n += 1;
   }
-  return { loss: total / pairs.length, n: pairs.length, perVoucher };
+  return { loss: total / n, n, perVoucher };
 };
 
 // Golden-section search on the scale; the loss is a smooth bowl in it.
@@ -69,6 +81,7 @@ console.log(`mean squared log error:  ${fit.loss.toFixed(4)} fitted, ${joker.los
 console.log('\nper voucher, mean log gap (rating over model) at the fitted scale:');
 for (const [id, gaps] of Object.entries(fit.perVoucher)) {
   const mean = gaps.reduce((x, y) => x + y, 0) / gaps.length;
-  console.log(`  ${id.padEnd(15)} ${mean >= 0 ? '+' : ''}${mean.toFixed(3)}  (x${Math.exp(mean).toFixed(2)}, ${gaps.length} runs)`);
+  const note = COMPARED.includes(id) ? '  not fitted' : '';
+  console.log(`  ${id.padEnd(15)} ${mean >= 0 ? '+' : ''}${mean.toFixed(3)}  (x${Math.exp(mean).toFixed(2)}, ${gaps.length} runs)${note}`);
 }
 await server.close();

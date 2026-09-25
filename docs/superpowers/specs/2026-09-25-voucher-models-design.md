@@ -231,3 +231,45 @@ a joker, a pack or buying nothing leads there instead.
 Wasteful, Recyclomancy, Paint Brush and Palette are modelled since hand odds
 arrived; see `2026-09-25-hand-odds-design.md`. Reach now uses the effective
 score throughout, and the voucher curve was refitted to fourteen models.
+
+## Later: time — Hieroglyph, Petroglyph, and Antimatter with slots free
+
+These three were left on their rating because their value is time, and the
+engine has no notion of how a board grows. Rather than guess a growth curve,
+time is turned into things the engine already measures.
+
+**An ante back is three more rounds of pay.** Hieroglyph and Petroglyph put
+the run an ante back, so there are three more rounds before the last blind,
+each paying what a round pays now with the bankroll held steady, and each with
+a shop to spend it in. That pay is the gain. The cost is the lost hand or
+discard, measured without the reach cap: the gain is counted over the whole
+run, so the loss must be too. Measured only against today's blinds, a board
+that clears ante 1 with hands to spare lost "nothing" to Hieroglyph, and a
+board with a single hand was offered it — the generous direction, which is
+the dangerous one for a purchase. Uncapped, one hand of four is a quarter of
+what a round can score, a little less where the board needs every hand and
+the same discards now go further per hand.
+
+These two are modelled but **not fitted to** by the voucher curve. Their
+value rests on turning three rounds of pay into score at the exchange rate,
+the least certain step any voucher model takes, and they disagree with their
+ratings by x0.54 to x0.65 where every other model sits within x0.74 to x1.19.
+Fitted to, they moved the scale by half and doubled everyone else's error. So
+either the ratings undersell an extra ante or the model oversells it; the
+calibration script keeps printing the gap so it stays visible.
+
+**A free slot pays from when this run's pace fills the board.** Jokers held
+over antes played is the run's own buying pace; free slots over that pace is
+how long until the board is full, and Antimatter is worth the weakest joker
+for the share of the remaining antes after that. Three jokers by ante 3 fill
+two free slots in about an ante and a third, so the slot counts for 78% of
+the six antes left; the same board at ante 6 does not fill before the end,
+and the slot is worth nothing. A run that has bought no joker yet has no pace
+to judge, and its Antimatter keeps the rating.
+
+With free-slot Antimatter no longer worth zero, the curve refits to 0.226
+from 0.194, at the same low error (0.043).
+
+**Effect.** 76 of the 300 baseline scenarios moved; the recommended action
+changed in two, both now Hieroglyph: a board with five hands and $11 to $19 a
+round, where three more rounds of that pay outweigh a fifth of each round.

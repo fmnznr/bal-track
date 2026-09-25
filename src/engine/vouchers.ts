@@ -51,8 +51,10 @@ const REROLL_DOLLARS = 10;
  * another hand or a gentler boss; below it, the ratio reads as "this much more
  * score would have made the round as easy as that".
  */
-function reachOf(score: number, hands: number, target: number): number {
-  return target > 0 ? Math.min(1, (score * hands) / target) : 1;
+function reachOf(score: number, hands: number, target: number, capped = true): number {
+  if (target <= 0) return 1;
+  const reach = (score * hands) / target;
+  return capped ? Math.min(1, reach) : reach;
 }
 
 /** The ante's three blinds as reach: the small and big blind, and every boss it can draw. */
@@ -67,17 +69,21 @@ interface AnteReach {
  * averaged with the Pair it falls back to when it does not come together. A
  * boss's score is scaled by the same hit rate.
  */
-function anteReach(run: RunState): AnteReach {
+function anteReach(run: RunState, capped = true): AnteReach {
   const effective = effectiveScore(run);
   const hitRate = effective.made > 0 ? effective.score / effective.made : 1;
-  const hands = Math.max(1, run.handsPerRound);
+  // Uncapped is the long view of a permanent change: a board that clears this
+  // ante with hands to spare will need every one of them later. A round with
+  // no hands left scores nothing.
+  const hands = capped ? Math.max(1, run.handsPerRound) : Math.max(0, run.handsPerRound);
   const targets = blindTargets(run.ante, run.deck, run.stake);
   return {
-    small: reachOf(effective.score, hands, targets.small),
-    big: reachOf(effective.score, hands, targets.big),
+    small: reachOf(effective.score, hands, targets.small, capped),
+    big: reachOf(effective.score, hands, targets.big, capped),
     bosses: bossesForAnte(run.ante).map(boss => {
       const o = bossOutlook(run, boss);
-      return reachOf(o.score * hitRate, o.hands, o.target);
+      const bossHands = capped ? o.hands : Math.min(o.hands, hands);
+      return reachOf(o.score * hitRate, bossHands, o.target, capped);
     }),
   };
 }
@@ -263,25 +269,98 @@ function discount(voucherId: string) {
  * next joker worth buying displaces the weakest one; with room to spare, a
  * slot does nothing until the board fills.
  */
+/** Antes left before the last blind, this one included. */
+function antesLeft(run: RunState): number {
+  return Math.max(1, TUNING.economy.antesPerRun - Math.floor(run.ante) + 1);
+}
+
+/**
+ * How many antes until the board is full, at the pace this run has filled it
+ * so far: jokers held over antes played. Null when nothing has been bought
+ * yet, which says nothing about the pace.
+ */
+function antesToFill(run: RunState, free: number): number | null {
+  const held = usedJokerSlots(run);
+  if (held === 0) return null;
+  const played = Math.max(1, Math.floor(run.ante) - 1);
+  return free / (held / played);
+}
+
 function antimatter(run: RunState, _price: number, context?: VoucherContext): VoucherValue | null {
+  const weakest = context?.weakest();
+  // Nothing on the board can be sold (Eternal, Negative) or nothing is there
+  // yet: no joker to measure a slot by.
+  if (!weakest) return null;
   const free = run.jokerSlots - usedJokerSlots(run);
-  if (free > 0) {
+  const keeps = `Keeps ${weakest.name}, your weakest joker, when the next one arrives:`
+    + ` it is worth +${pct(weakest.multiplier)}${weakest.incomeDollars >= 1
+      ? ` and $${Math.round(weakest.incomeDollars)}` : ''}`;
+  if (free <= 0) {
     return {
-      multiplier: 1, incomeDollars: 0, evidence: 'modeled',
-      reasons: [`You have ${free} free joker slot${free === 1 ? '' : 's'} already;`
-        + ' another only pays once the board is full'],
+      multiplier: weakest.multiplier,
+      incomeDollars: weakest.incomeDollars,
+      evidence: weakest.modelled ? 'modeled' : 'partial',
+      reasons: [keeps],
     };
   }
-  const weakest = context?.weakest();
-  // Nothing on a full board can be sold (Eternal, Negative): no joker to measure the slot by.
-  if (!weakest) return null;
+  // A slot bought now pays from the day the board fills, at the pace this run
+  // has been filling it, for the rest of the run.
+  const fill = antesToFill(run, free);
+  const left = antesLeft(run);
+  const share = fill === null ? 0 : Math.max(0, Math.min(1, (left - fill) / left));
+  const pace = fill === null
+    ? 'You have not bought a joker yet, so there is no pace to judge when the board fills'
+    : `At the pace this run has filled the board, the ${free} free slot${free === 1 ? '' : 's'}`
+      + ` fill in about ${fill.toFixed(1)} ante${fill === 1 ? '' : 's'}; the extra one then pays for`
+      + ` ${Math.round(share * 100)}% of the ${left} antes left`;
   return {
-    multiplier: weakest.multiplier,
-    incomeDollars: weakest.incomeDollars,
-    evidence: weakest.modelled ? 'modeled' : 'partial',
-    reasons: [`Keeps ${weakest.name}, your weakest joker, when the next one arrives:`
-      + ` it is worth +${pct(weakest.multiplier)}${weakest.incomeDollars >= 1
-        ? ` and $${Math.round(weakest.incomeDollars)}` : ''}`],
+    multiplier: weakest.multiplier ** share,
+    incomeDollars: weakest.incomeDollars * share,
+    evidence: 'partial',
+    reasons: [pace, `${keeps}, counted for that share of the run`],
+  };
+}
+
+/**
+ * Hieroglyph and Petroglyph: an ante back, for a hand or a discard less.
+ *
+ * Measured against the ante's targets, going back an ante looked like a gain
+ * of half again or more — but the last blind still has to be beaten. What the
+ * ante back buys is time: three more rounds before that blind, each paying
+ * what a round pays and each with a shop to spend it in. So the gain is those
+ * three rounds' pay, and the cost is the lost hand or discard on the blinds
+ * the board is facing now.
+ */
+function anteBack(voucherId: string, lost: string) {
+  return (run: RunState, price: number): VoucherValue => {
+    const spent = { ...run, money: run.money - price };
+    // The resource loss alone, at the ante the board is on, and uncapped: the
+    // extra rounds are counted over the whole run, so the lost hand must be too,
+    // not only where today's board has hands to spare.
+    const after = { ...applyVoucher(spent, voucherId), ante: spent.ante, boss: spent.boss };
+    const beforeReach = anteReach(spent, false);
+    const afterReach = anteReach(after, false);
+    const before = overAnte(beforeReach, mean(beforeReach.bosses));
+    const withIt = overAnte(afterReach, mean(afterReach.bosses));
+    const multiplier = before > 0 ? withIt / before : 1;
+    const perRound = steadySpend(after);
+    const extraRounds = TUNING.economy.roundsPerAnte;
+    const gained = perRound * extraRounds;
+    const lostMoney = incomeGap(after, spent);
+    return {
+      multiplier,
+      incomeDollars: gained + lostMoney,
+      evidence: 'partial',
+      reasons: [
+        `An ante back is ${extraRounds} more rounds before the last blind:`
+        + ` about $${Math.round(gained)} at the $${Math.round(perRound)} a round pays now`,
+        multiplier <= 0
+          ? `${lost} leaves no hand to play`
+          : `${lost} takes about ${Math.round((1 - multiplier) * 100)}% off what a round can score,`
+            + ' for the rest of the run',
+        'Counts the extra rounds as their pay; what that money buys is the board growing',
+      ],
+    };
   };
 }
 
@@ -357,6 +436,8 @@ const MODELS: Record<string, Model> = {
   'overstock-plus': extraCard,
   grabber: resources('grabber', 'One more hand a round'),
   'nacho-tong': resources('nacho-tong', 'One more hand a round'),
+  hieroglyph: anteBack('hieroglyph', 'One hand fewer a round'),
+  petroglyph: anteBack('petroglyph', 'One discard fewer a round'),
   wasteful: resources('wasteful', 'One more discard a round', true),
   recyclomancy: resources('recyclomancy', 'One more discard a round', true),
   'paint-brush': resources('paint-brush', 'One more card in hand', true),

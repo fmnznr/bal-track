@@ -91,13 +91,15 @@ export const TUNING = {
     /** The rating of a voucher that does nothing (Blank): worth zero. */
     zeroRating: 1,
     /**
-     * Fitted: 0.194 over 4052 valuations of the fourteen modelled vouchers,
-     * against the effective baseline (hand odds included), which more than halves
-     * the log error against the joker scale of 0.8 (0.044 against 0.112). The
-     * fits before it — 0.209 on ten vouchers, 0.213 on fourteen against the
-     * made score — show the scale is stable to about a tenth.
+     * Fitted: 0.226 over 3995 valuations of fourteen modelled vouchers, against
+     * the effective baseline, which more than halves the log error against the
+     * joker scale of 0.8 (0.043 against 0.100). Every fitted voucher sits within
+     * x0.74 to x1.19 of the curve. Hieroglyph and Petroglyph are modelled but
+     * left out of the fit: their value rests on turning future rounds of pay
+     * into score, and they sit at x0.54 to x0.65 — fitted to, they moved the
+     * scale by half and doubled everyone else's error.
      */
-    topShareOfTarget: 0.19,
+    topShareOfTarget: 0.23,
   },
 
   /** Owned jokers sharing a dominant tag with the card being judged. */
