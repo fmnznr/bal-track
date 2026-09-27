@@ -83,7 +83,13 @@ vouchers and 15 pack sorts covered. Sixteen cells hold sprites that are not
 cards — the legendaries' soul faces, locked placeholders, a duplicated
 drawing — and they stay in the reference table without a name, so that
 matching one of them reports nothing rather than handing back the card whose
-fingerprint happened to be next closest.
+fingerprint happened to be next closest. A legendary is the exception to
+reading the cell alone: the game floats its face, a second cell, over the
+card, so the table lays that face on at the size the game draws it. The bare
+frames differed only in their name plates, and a Perkeo in a real shop
+scored 243 against its own, well past the threshold. Hologram's floating
+figure is left off: the game draws it through a shader that the plain sprite
+does not resemble, and laying it on made a Hologram read as Scary Face.
 
 **Position classifies the slot, the match classifies the card.** Cards are
 grouped into rows by vertical position: the top row is what the player owns, the

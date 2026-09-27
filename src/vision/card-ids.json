@@ -1,5 +1,5 @@
 {
-"note": "Which card sits in which atlas cell. Derived from the game's own definitions (the pos field of each entry in game.lua), not guessed from the artwork: a confident wrong name is the one failure mode the recogniser refuses. A cell carries more than one id where the game draws two cards from one sprite, and cells that hold no card at all (the legendaries' soul faces, locked placeholders) are simply absent.",
+"note": "Which card sits in which atlas cell. Derived from the game's own definitions (the pos field of each entry in game.lua), not guessed from the artwork: a confident wrong name is the one failure mode the recogniser refuses. A cell carries more than one id where the game draws two cards from one sprite, and cells that hold no card at all (locked placeholders) are simply absent. A legendary's face floats over its card in a second cell, its soul_pos, which the table lays on top as the game draws it.",
 "cards": [
 {
 "kind": "joker",
@@ -830,6 +830,10 @@
 ],
 "ids": [
 "canio"
+],
+"soul": [
+9,
+3
 ]
 },
 {
@@ -840,6 +844,10 @@
 ],
 "ids": [
 "triboulet"
+],
+"soul": [
+9,
+4
 ]
 },
 {
@@ -850,6 +858,10 @@
 ],
 "ids": [
 "yorick"
+],
+"soul": [
+9,
+5
 ]
 },
 {
@@ -860,6 +872,10 @@
 ],
 "ids": [
 "chicot"
+],
+"soul": [
+9,
+6
 ]
 },
 {
@@ -870,6 +886,10 @@
 ],
 "ids": [
 "perkeo"
+],
+"soul": [
+9,
+7
 ]
 },
 {

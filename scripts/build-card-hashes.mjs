@@ -55,6 +55,37 @@ function cellOnWhite(image, x0, y0, w, h) {
   return { data, width: cw, height: ch };
 }
 
+/** How much larger than its card the game draws a floating face: it bobs
+    between about 1.05 and 1.09 of the card's size, pinned at the centre. */
+const SOUL_SCALE = 1.07;
+
+/** A legendary's cell with its face laid over it, the way a card in play shows
+    both. Alone, the base cell is an empty frame the recogniser can barely tell
+    from any other legendary's, so a screenshot of one scored too far off to
+    trust. */
+function withSoul(image, x0, y0, sx0, sy0, w, h) {
+  const data = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const b = ((y0 + y) * image.width + x0 + x) * 4;
+      const fx = Math.floor((x - w / 2) / SOUL_SCALE + w / 2);
+      const fy = Math.floor((y - h / 2) / SOUL_SCALE + h / 2);
+      const inside = fx >= 0 && fx < w && fy >= 0 && fy < h;
+      const s = inside ? ((sy0 + fy) * image.width + sx0 + fx) * 4 : -1;
+      const fa = inside ? image.data[s + 3] / 255 : 0;
+      const ba = image.data[b + 3] / 255;
+      const a = fa + ba * (1 - fa);
+      const d = (y * w + x) * 4;
+      for (let c = 0; c < 3; c++) {
+        const f = inside ? image.data[s + c] : 0;
+        data[d + c] = a > 0 ? Math.round((f * fa + image.data[b + c] * ba * (1 - fa)) / a) : 0;
+      }
+      data[d + 3] = Math.round(a * 255);
+    }
+  }
+  return { data, width: w, height: h };
+}
+
 const folder = process.argv[2];
 if (!folder) {
   console.error('usage: node scripts/build-card-hashes.mjs <folder with the atlases>');
@@ -69,11 +100,11 @@ const { fingerprint } = await server.ssrLoadModule('/src/vision/fingerprint.ts')
 
 /** Which card sits in which cell — derived from the game's own definitions,
     never from the artwork. Cells the file does not mention hold no card: the
-    legendaries' soul faces, locked placeholders, a duplicated sprite. */
-const ids = new Map(
-  JSON.parse(readFileSync('src/vision/card-ids.json', 'utf8')).cards
-    .map(c => [`${c.kind} ${c.cell[0]} ${c.cell[1]}`, c.ids]),
-);
+    legendaries' soul faces, locked placeholders, a duplicated sprite. A face
+    is still drawn, over the card whose soul it is. */
+const known = JSON.parse(readFileSync('src/vision/card-ids.json', 'utf8')).cards;
+const ids = new Map(known.map(c => [`${c.kind} ${c.cell[0]} ${c.cell[1]}`, c.ids]));
+const souls = new Map(known.filter(c => c.soul).map(c => [`${c.kind} ${c.cell[0]} ${c.cell[1]}`, c.soul]));
 
 const cards = [];
 for (const { kind, file, cols } of ATLASES) {
@@ -87,7 +118,10 @@ for (const { kind, file, cols } of ATLASES) {
   let used = 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const art = cellOnWhite(image, c * cellW, r * cellH, cellW, cellH);
+      const soul = souls.get(`${kind} ${r} ${c}`);
+      const art = soul
+        ? cellOnWhite(withSoul(image, c * cellW, r * cellH, soul[1] * cellW, soul[0] * cellH, cellW, cellH), 0, 0, cellW, cellH)
+        : cellOnWhite(image, c * cellW, r * cellH, cellW, cellH);
       if (!art) continue;
       const print = fingerprint(art, { x0: 0, y0: 0, x1: art.width, y1: art.height });
       cards.push({ kind, cell: [r, c], ids: ids.get(`${kind} ${r} ${c}`) ?? [], print });
