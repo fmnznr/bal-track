@@ -248,6 +248,12 @@ export interface ShopState {
   voucherId: string | null;
   packIds: string[];
   rerollCost: number;
+  /**
+   * Voucher and pack prices as a screenshot read them off their tags, by
+   * catalog id. They beat the catalog: a discount the run has not recorded,
+   * or one the app does not model, is on the tag either way.
+   */
+  tagPrices?: Record<string, number>;
 }
 
 export type RecKind =

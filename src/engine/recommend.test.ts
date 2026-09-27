@@ -472,3 +472,13 @@ describe('a shop read from a real run', () => {
     }
   });
 });
+
+describe('recommend — prices from the tags', () => {
+  it('charges a pack what its tag says, not what the catalog says', () => {
+    // A shop under Clearance Sale the run does not record: the tag says $4.
+    const recs = recommend(run({ money: 17 }), shop({
+      packIds: ['celestial-jumbo'], tagPrices: { 'celestial-jumbo': 4 },
+    }));
+    expect(recs.find(r => r.kind === 'buy-pack')?.action).toBe('Buy Jumbo Celestial Pack ($4)');
+  });
+});

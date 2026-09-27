@@ -6,7 +6,7 @@ import { earnsInterest, hasFreeJokerSlot, rentalUpkeep } from './gameRules';
 import { cardImpact, contextFor, formatMultiplier, jokerImpact, priorContribution, voucherPriorContribution } from './impact';
 import type { Impact, JokerContext } from './impact';
 import { marginalMultiplier, referenceHand } from './score';
-import { packPrice, voucherPrice } from './prices';
+import { shopPackPrice, shopVoucherPrice, voucherPrice } from './prices';
 import { horizonRounds, interestCost, projectMoney, roundsRemaining } from './projection';
 import { adviseStrategy, getArchetype } from './strategy';
 import { TUNING } from './tuning';
@@ -205,11 +205,11 @@ function evalShopCard(run: RunState, slot: ShopCardSlot, ctx: JokerContext): Rec
 }
 
 function evalVoucher(
-  run: RunState, voucherId: string, ante: number, ctx: JokerContext, habits?: ShopHabits,
+  run: RunState, shop: ShopState, voucherId: string, ante: number, ctx: JokerContext, habits?: ShopHabits,
 ): Recommendation {
   const def = getVoucher(voucherId);
   if (!def) return unavailable('buy-voucher', 'Buy unknown voucher', 'Unknown catalog id');
-  const price = voucherPrice(run, def);
+  const price = shopVoucherPrice(run, shop, def);
   const action = `Buy ${def.name} ($${price})`;
   if (price > run.money) {
     return unavailable('buy-voucher', action, `Not affordable ($${price} > $${run.money})`, def.id);
@@ -280,10 +280,10 @@ export function voucherCalibrationPair(
   };
 }
 
-function evalPack(run: RunState, packId: string, phase: Phase): Recommendation {
+function evalPack(run: RunState, shop: ShopState, packId: string, phase: Phase): Recommendation {
   const def = getPack(packId);
   if (!def) return unavailable('buy-pack', 'Buy unknown pack', 'Unknown catalog id');
-  const price = packPrice(run, def);
+  const price = shopPackPrice(run, shop, def);
   const action = `Buy ${def.name} ($${price})`;
   if (price > run.money) {
     return unavailable('buy-pack', action, `Not affordable ($${price} > $${run.money})`, def.id);
@@ -370,8 +370,8 @@ export function recommend(run: RunState, shop: ShopState, habits?: ShopHabits): 
   const ctx = contextFor(run, phase, planFor(run));
   const recs: Recommendation[] = [];
   for (const slot of shop.cards) recs.push(evalShopCard(run, slot, ctx));
-  if (shop.voucherId) recs.push(evalVoucher(run, shop.voucherId, run.ante, ctx, habits));
-  for (const packId of shop.packIds) recs.push(evalPack(run, packId, phase));
+  if (shop.voucherId) recs.push(evalVoucher(run, shop, shop.voucherId, run.ante, ctx, habits));
+  for (const packId of shop.packIds) recs.push(evalPack(run, shop, packId, phase));
   recs.push(evalReroll(run, shop), evalSkip(run, ctx.plan));
   return finalize(recs);
 }

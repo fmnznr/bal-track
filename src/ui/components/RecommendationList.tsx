@@ -14,15 +14,27 @@ const EVIDENCE_KEY = {
  * The numbers are the point: an estimated score change you can sanity-check
  * against your own reading of the board, and what it costs to get it.
  */
-function meta(r: Recommendation, t: Translate): string {
-  if (r.score === 0) return t('notAvailable');
+function meta(r: Recommendation, t: Translate): string[] {
+  if (r.score === 0) return [t('notAvailable')];
   // Buying nothing is the scale's zero point, so a percentage says nothing.
-  if (r.kind === 'skip') return t('baselineNote');
+  if (r.kind === 'skip') return [t('baselineNote')];
   const parts = [`${formatMultiplier(r.impact)} ${t('scoreSuffix')}`];
   if (r.costDollars >= 0.5) parts.push(`${t('costs')} $${Math.round(r.costDollars)}`);
   else if (r.costDollars <= -0.5) parts.push(`${t('earnsNet')} $${Math.round(-r.costDollars)}`);
   parts.push(t(EVIDENCE_KEY[r.evidence]));
-  return parts.join(' · ');
+  return parts;
+}
+
+/** Figures that break only between one another: "kostet $2" never loses its $2. */
+function MetaParts({ parts }: { parts: string[] }) {
+  if (parts.length === 1) return <>{parts[0]}</>;
+  return (
+    <>
+      {parts.map((part, i) => (
+        <span key={i} className="nowrap">{part}{i < parts.length - 1 ? ' ·' : ''}</span>
+      )).flatMap((el, i) => (i === 0 ? [el] : [' ', el]))}
+    </>
+  );
 }
 
 export default function RecommendationList({ recs }: { recs: Recommendation[] }) {
@@ -36,7 +48,7 @@ export default function RecommendationList({ recs }: { recs: Recommendation[] })
         <li key={i} className={`rec rec-${r.priority}${i === 0 ? ' rec-top' : ''}`}>
           <div className="rec-head">
             <strong>{r.action}</strong>
-            <span className="rec-meta">{meta(r, t)}</span>
+            <span className="rec-meta"><MetaParts parts={meta(r, t)} /></span>
           </div>
           <ul>
             {r.reasons.map((why, j) => (

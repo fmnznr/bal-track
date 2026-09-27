@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { getConsumable, getJoker, getPack, getVoucher } from '../../catalog/catalog';
 import { hasFreeJokerSlot } from '../../engine/gameRules';
-import { consumablePrice, editionFromPrice, jokerPrice, packPrice, voucherPrice } from '../../engine/prices';
+import {
+  consumablePrice, discountFromTags, editionFromPrice, jokerPrice, shopPackPrice, shopVoucherPrice,
+} from '../../engine/prices';
 import { recommend } from '../../engine/recommend';
 import { useT } from '../../i18n/I18nContext';
 import { useRun } from '../../run/RunContext';
@@ -18,6 +20,9 @@ import type { Confirmed } from '../components/ScreenshotImport';
 const EDITIONS: Edition[] = ['base', 'foil', 'holographic', 'polychrome', 'negative'];
 const emptyShop: ShopState = { cards: [], voucherId: null, packIds: [], rerollCost: 5 };
 
+/** The voucher behind each shop discount. */
+const DISCOUNT_VOUCHER: Record<number, string> = { 25: 'clearance-sale', 50: 'liquidation' };
+
 interface Props {
   /** Buying a pack means opening it next, so the shell follows you there. */
   onPackBought: () => void;
@@ -27,6 +32,8 @@ export default function ShopScreen({ onPackBought }: Props) {
   const { store, dispatch } = useRun();
   /** Jokers a reading could not place because the board is full. */
   const [refused, setRefused] = useState(0);
+  /** A discount the price tags show and the run does not record, as a percentage. */
+  const [discountHint, setDiscountHint] = useState<number | null>(null);
   const t = useT();
   const run = store.current!;
   const shop = store.shopDraft ?? emptyShop;
@@ -37,7 +44,7 @@ export default function ShopScreen({ onPackBought }: Props) {
   const hasItems = shop.cards.length > 0 || shop.voucherId !== null || shop.packIds.length > 0;
   const recs = hasItems ? recommend(run, shop, shopHabits(store)) : [];
   const voucherDef = shop.voucherId ? getVoucher(shop.voucherId) : undefined;
-  const voucherCost = voucherDef ? voucherPrice(run, voucherDef) : 0;
+  const voucherCost = voucherDef ? shopVoucherPrice(run, shop, voucherDef) : 0;
   const voucherBlocked = Boolean(
     voucherDef
       && (voucherCost > run.money
@@ -75,8 +82,18 @@ export default function ShopScreen({ onPackBought }: Props) {
     }
     setRefused(free > 0 ? free : 0);
 
+    // Every tag in a shop is off by the same percentage, so the voucher and
+    // pack tags say which discount the shop has, recorded or not.
+    const tagged = cards.flatMap(({ kind, id, price, target }) => {
+      if (price === null || target === 'owned') return [];
+      const def = kind === 'voucher' ? getVoucher(id) : kind === 'pack' ? getPack(id) : undefined;
+      return def ? [{ cost: def.cost, price }] : [];
+    });
+    const discount = discountFromTags(run, tagged);
+    setDiscountHint(discount !== null && discount > 0 ? discount : null);
+
     setShop(s => {
-      const next = { ...s, cards: [...s.cards], packIds: [...s.packIds] };
+      const next = { ...s, cards: [...s.cards], packIds: [...s.packIds], tagPrices: { ...s.tagPrices } };
       if (reroll !== null) next.rerollCost = reroll;
       for (const { kind, id, price, target } of cards) {
         if (target === 'owned') continue;
@@ -93,8 +110,10 @@ export default function ShopScreen({ onPackBought }: Props) {
           next.cards.push({ kind: 'consumable', consumableId: id, price: price ?? defaultConsumablePrice(id) });
         } else if (kind === 'voucher') {
           next.voucherId = id;
+          if (price !== null) next.tagPrices[id] = price;
         } else {
           next.packIds.push(id);
+          if (price !== null) next.tagPrices[id] = price;
         }
       }
       return next;
@@ -128,6 +147,27 @@ export default function ShopScreen({ onPackBought }: Props) {
         onAdd={addFromScreenshot}
       />
       {refused > 0 && <p className="muted">{t('screenshotNoSlots', { count: String(refused) })}</p>}
+      {discountHint !== null && (() => {
+        const voucher = getVoucher(DISCOUNT_VOUCHER[discountHint])?.name ?? '';
+        return (
+          <p className="muted">
+            {t('discountHint', { percent: String(discountHint), voucher })}{' '}
+            <button
+              className="ghost"
+              onClick={() => {
+                // Liquidation needs Clearance Sale first. Both at no cost: they
+                // were bought in an earlier shop, not this one.
+                for (const id of ['clearance-sale', 'liquidation'].slice(0, discountHint === 50 ? 2 : 1)) {
+                  if (!run.vouchers.includes(id)) dispatch({ type: 'REDEEM_VOUCHER', voucherId: id, price: 0 });
+                }
+                setDiscountHint(null);
+              }}
+            >
+              {t('discountRecord', { voucher })}
+            </button>
+          </p>
+        );
+      })()}
 
       <h3>{t('cardsOnOffer')}</h3>
       <ul className="rows">
@@ -232,7 +272,7 @@ export default function ShopScreen({ onPackBought }: Props) {
         {shop.packIds.map((id, i) => {
           const def = getPack(id);
           if (!def) return null;
-          const cost = packPrice(run, def);
+          const cost = shopPackPrice(run, shop, def);
           return (
             <li key={i} className="row">
               <span className="grow">{def.name}</span>

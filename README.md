@@ -39,7 +39,9 @@ of the board — and disagree with.
 - Reading a screenshot of the shop or a pack: which cards are on offer, which
   jokers you already hold, the price on each tag, and the money, reroll cost,
   hands, discards, ante and round from the status column. Everything read is
-  shown for confirmation before any of it reaches the run.
+  shown for confirmation before any of it reaches the run. A pack or voucher
+  is priced by its tag, and tags that are all 25% or 50% off while the run
+  records no Clearance Sale or Liquidation prompt you to add it.
 - A local log of the advice against what you did, summarised on the History
   tab and exportable as JSON for calibrating the weights.
 - Local run history, persistent shop/pack drafts and complete transaction undo.

@@ -19,6 +19,7 @@ vi.mock('../../vision/client', () => ({
   }),
 }));
 import { STORAGE_KEY, newRunState } from '../../run/runStore';
+import { readScreenshot } from '../../vision/client';
 
 beforeEach(() => {
   localStorage.clear();
@@ -166,4 +167,34 @@ it('logs what you did against the advice and shows it in the history', async () 
   expect(screen.getByText('Advice log')).toBeInTheDocument();
   // Buying Cavendish, then leaving once the shop was empty: only the buy had a ranking.
   expect(screen.getByText(/^1 decisions · top pick taken/)).toBeInTheDocument();
+});
+
+it('prices a pack and voucher by their tags, and offers the discount the tags show', async () => {
+  // Clearance Sale in the game, not in the run: every tag is a quarter off.
+  vi.mocked(readScreenshot).mockResolvedValueOnce({
+    width: 2556,
+    height: 1179,
+    hud: { money: 17, rerollCost: 5, hands: 4, discards: 4, ante: 4, round: 8 },
+    cards: [
+      { kind: 'voucher', cell: [0, 0], ids: ['magic-trick'], box: { x0: 100, y0: 800, x1: 250, y1: 1040 }, score: 170, margin: 86, price: 7 },
+      { kind: 'pack', cell: [0, 1], ids: ['celestial-jumbo'], box: { x0: 400, y0: 780, x1: 580, y1: 1090 }, score: 150, margin: 34, price: 4 },
+    ],
+  });
+  render(<App />);
+  await userEvent.click(screen.getByRole('button', { name: 'Shop' }));
+  const input = document.querySelector('input[type=file]') as HTMLInputElement;
+  await userEvent.upload(input, new File(['x'], 'shop.png', { type: 'image/png' }));
+  await userEvent.click(await screen.findByRole('button', { name: 'Add ticked cards' }));
+
+  // The tags, not the catalog's $6 and $10.
+  expect(screen.getByRole('button', { name: 'Bought $4' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Redeemed $7' })).toBeInTheDocument();
+
+  expect(screen.getByText(/The tags are 25% off, which is Clearance Sale/)).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'Add Clearance Sale' }));
+  expect(screen.queryByText(/The tags are 25% off/)).not.toBeInTheDocument();
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+  expect(saved.current.vouchers).toContain('clearance-sale');
+  // Recorded at no cost: it was bought in an earlier shop.
+  expect(saved.current.money).toBe(17);
 });

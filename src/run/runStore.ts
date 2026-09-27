@@ -1,7 +1,7 @@
 import { getBoss, getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
 import { sellValue } from '../engine/economy';
 import { applyVoucher, baseRerollCost, hasFreeJokerSlot, stakeDiscardPenalty, usedJokerSlots } from '../engine/gameRules';
-import { packPrice, voucherPrice } from '../engine/prices';
+import { shopPackPrice, shopVoucherPrice } from '../engine/prices';
 import { recommend, recommendPackPick } from '../engine/recommend';
 import { appendDecision, makeDecision } from './decisionLog';
 import type { Decision } from './decisionLog';
@@ -450,7 +450,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const voucherId = shop?.voucherId;
       const def = voucherId ? getVoucher(voucherId) : undefined;
       if (!shop || !voucherId || !def) return state;
-      const next = redeemVoucher(run, voucherId, voucherPrice(run, def));
+      const next = redeemVoucher(run, voucherId, shopVoucherPrice(run, shop, def));
       if (!next) return state;
       const recs = recommend(run, shop, shopHabits(state));
       return push(next, {
@@ -462,8 +462,9 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const shop = state.shopDraft;
       const packId = shop?.packIds[action.index];
       const def = packId ? getPack(packId) : undefined;
-      const price = def ? packPrice(run, def) : 0;
-      if (!shop || !packId || !def || price > run.money) return state;
+      if (!shop || !packId || !def) return state;
+      const price = shopPackPrice(run, shop, def);
+      if (price > run.money) return state;
       const recs = recommend(run, shop, shopHabits(state));
       return push(
         { ...run, money: run.money - price },

@@ -711,3 +711,15 @@ describe('counting how you shop from screenshots', () => {
     expect(load()?.current?.shopVisits).toEqual([]);
   });
 });
+
+describe('buying at the tag price', () => {
+  it('pays for a pack what its tag said', () => {
+    let s = reduce(started(), { type: 'SET_MONEY', money: 17 });
+    s = reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [], voucherId: null, packIds: ['celestial-jumbo'], rerollCost: 5, tagPrices: { 'celestial-jumbo': 4 } },
+    });
+    s = reduce(s, { type: 'BUY_SHOP_PACK', index: 0 });
+    expect(s.current!.money).toBe(13);
+  });
+});

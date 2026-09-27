@@ -255,14 +255,19 @@ select {
 .rec-high { border-left-color: var(--good); }
 .rec-low { opacity: 0.7; }
 .rec-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-.rec-head strong { font-weight: 800; }
+.rec-head strong { font-weight: 800; flex: 1 1 auto; min-width: 0; }
+/* Wraps rather than running past the card: "+134% · costs $2" fits a line, but
+   the German note on buying nothing does not, and a phone is narrow. */
 .rec-meta {
   color: var(--muted);
   font-size: 0.75rem;
   font-weight: 700;
-  white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  flex: 0 1 55%;
+  min-width: 0;
+  text-align: right;
 }
+.nowrap { white-space: nowrap; }
 .rec ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); font-size: 0.9rem; }
 
 .muted { color: var(--muted); font-size: 0.9rem; }

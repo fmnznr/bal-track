@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { getConsumable, getJoker, getPack, getVoucher } from '../catalog/catalog';
-import { consumablePrice, discountPercent, editionFromPrice, jokerPrice, packPrice, voucherPrice } from './prices';
+import {
+  consumablePrice, discountFromTags, discountPercent, editionFromPrice, jokerPrice, packPrice, shopPackPrice,
+  shopVoucherPrice, voucherPrice,
+} from './prices';
 
 const plain = { vouchers: [], jokers: [] };
 const clearance = { vouchers: ['clearance-sale'], jokers: [] };
@@ -56,5 +59,35 @@ describe('the edition a price gives away', () => {
     const joker = getJoker('joker')!;
     expect(jokerPrice(liquidation, joker, 'foil')).toBe(jokerPrice(liquidation, joker, 'holographic'));
     expect(editionFromPrice(liquidation, joker, 2)).toBeNull();
+  });
+});
+
+describe('prices read off the tags', () => {
+  const jumbo = getPack('celestial-jumbo')!; // $6 in the catalog
+  const trick = getVoucher('magic-trick')!; // $10
+
+  it('beat the catalog for the voucher and packs they were read for', () => {
+    const shop = { tagPrices: { 'celestial-jumbo': 4, 'magic-trick': 7 } };
+    expect(shopPackPrice(plain, shop, jumbo)).toBe(4);
+    expect(shopVoucherPrice(plain, shop, trick)).toBe(7);
+    // Nothing read: the catalog, discounts included.
+    expect(shopPackPrice(clearance, {}, jumbo)).toBe(packPrice(clearance, jumbo));
+    expect(shopVoucherPrice(plain, {}, trick)).toBe(voucherPrice(plain, trick));
+  });
+
+  it('tell a discount the run has not recorded', () => {
+    // A $6 pack on a $4 tag and a $10 voucher on a $7 one: a quarter off.
+    const tags = [{ cost: 6, price: 4 }, { cost: 10, price: 7 }];
+    expect(discountFromTags(plain, tags)).toBe(25);
+    // Already recorded: nothing to say.
+    expect(discountFromTags(clearance, tags)).toBeNull();
+    expect(discountFromTags(plain, [{ cost: 6, price: 3 }, { cost: 10, price: 5 }])).toBe(50);
+  });
+
+  it('says nothing when the tags disagree or could be any discount', () => {
+    expect(discountFromTags(plain, [{ cost: 6, price: 4 }, { cost: 10, price: 10 }])).toBeNull();
+    // A $1 card is $1 at every discount.
+    expect(discountFromTags(plain, [{ cost: 1, price: 1 }])).toBeNull();
+    expect(discountFromTags(plain, [])).toBeNull();
   });
 });
