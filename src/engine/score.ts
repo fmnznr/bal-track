@@ -3,11 +3,11 @@ import blindsJson from '../data/blinds.json';
 import { getJoker } from '../catalog/catalog';
 import { HAND_TYPES } from '../types';
 import type {
-  BossDef, Edition, HandType, HandValueDef, JokerDef, JokerScore, Rarity, RunCount, RunState,
-  ScoreContribution, ScoreTiming, Suit,
+  BossDef, Edition, HandType, HandValueDef, JokerDef, JokerGrowth, JokerScore, OwnedJoker, Rarity, RunCount,
+  RunState, ScoreContribution, ScoreTiming, Suit,
 } from '../types';
 import {
-  cardTypes, expectedLowestRankValue, hasSuit, isFace, matchWeight, rankChips,
+  cardTypes, expectedLowestRankValue, hasSuit, isFace, matchShare, matchWeight, PLAIN_RULES, rankChips,
 } from './cards';
 import type { CardRules, CardType } from './cards';
 import { handOdds } from './handOdds';
@@ -170,28 +170,51 @@ function active(board: readonly ScoringJoker[]): ScoringJoker[] {
   return board.filter(j => j.ability !== false);
 }
 
-function toScoring(def: JokerDef, edition: Edition, stickers?: { rental?: boolean }): ScoringJoker {
+/**
+ * A growing joker's score block with what it has grown to written in, as a
+ * plain +Chips or +Mult. Without an amount it contributes nothing.
+ */
+function withGrowth(score: JokerScore | undefined, amount = 0): JokerScore | undefined {
+  if (!score?.grows) return score;
+  const { grows, ...rest } = score;
+  if (amount <= 0) return rest;
+  return grows.chips !== undefined
+    ? { ...rest, chips: (rest.chips ?? 0) + amount }
+    : { ...rest, mult: (rest.mult ?? 0) + amount };
+}
+
+function toScoring(def: JokerDef, edition: Edition, stickers?: { rental?: boolean }, grown?: number): ScoringJoker {
   return {
     id: def.id,
     name: def.name,
-    score: def.score,
+    score: withGrowth(def.score, grown),
     edition,
     rarity: def.rarity,
     sellValue: sellValue(def.cost, edition, stickers),
   };
 }
 
-export function boardOf(run: RunState): ScoringJoker[] {
+/**
+ * Where a growing joker is counted: at nothing, where it stands now, or where
+ * it will stand by the target every card is measured against. Valuing a card
+ * takes the last; showing the board's score today takes the second.
+ */
+export type GrowthPoint = 'none' | 'now' | 'target';
+
+export function boardOf(run: RunState, at: GrowthPoint = 'target'): ScoringJoker[] {
   const board: ScoringJoker[] = [];
   for (const owned of run.jokers) {
     const joker = getJoker(owned.jokerId);
-    if (joker) board.push(toScoring(joker, owned.edition, owned.stickers));
+    if (!joker) continue;
+    const growth = at === 'none' ? null : growthOf(run, joker, owned);
+    const grown = growth ? (at === 'now' ? growth.now : growth.atTarget) : undefined;
+    board.push(toScoring(joker, owned.edition, owned.stickers, grown));
   }
   return board;
 }
 
 /** Hand size with the deck, vouchers and jokers that change it. */
-export function handSize(run: RunState, board: ScoringJoker[] = boardOf(run), boss?: BossDef | null): number {
+export function handSize(run: RunState, board: ScoringJoker[] = boardOf(run, 'none'), boss?: BossDef | null): number {
   let size = BASE_HAND_SIZE + (HAND_SIZE_DECKS[run.deck] ?? 0) + (boss?.handSize ?? 0);
   for (const v of run.vouchers) size += HAND_SIZE_VOUCHERS[v] ?? 0;
   for (const j of active(board)) size += HAND_SIZE_JOKERS[j.id] ?? 0;
@@ -211,7 +234,7 @@ const DISCARD_JOKERS: Record<string, number> = { drunkard: 1, 'merry-andy': 3 };
  */
 export function discardsFor(run: RunState, board: readonly ScoringJoker[]): number {
   const extra = (b: readonly ScoringJoker[]) => active(b).reduce((sum, j) => sum + (DISCARD_JOKERS[j.id] ?? 0), 0);
-  return Math.max(0, run.discardsPerRound + extra(board) - extra(boardOf(run)));
+  return Math.max(0, run.discardsPerRound + extra(board) - extra(boardOf(run, 'none')));
 }
 
 /** What a joker slot actually does once Blueprint and Brainstorm are resolved. */
@@ -553,8 +576,9 @@ export function estimateWithBoard(
   return { ...rounded, score, modeled, inactive, unmodeled };
 }
 
+/** What the hand scores today, growing jokers at what they have grown to so far. */
 export function estimateHandScore(run: RunState, hand: HandType, options: EstimateOptions = {}): ScoreEstimate {
-  return estimateWithBoard(run, hand, boardOf(run), options);
+  return estimateWithBoard(run, hand, boardOf(run, 'now'), options);
 }
 
 /**
@@ -795,12 +819,15 @@ export function handLevelMultiplier(run: RunState, hand: HandType, levels = 1): 
 export function estimateJokerDelta(run: RunState, hand: HandType, jokerId: string, edition: Edition): number {
   const joker = getJoker(jokerId);
   if (!joker?.score) return 0;
-  return candidateContribution(run, hand, { ...toScoring(joker, edition), edition }).score;
+  return candidateContribution(run, hand, asCandidate(run, joker, edition)).score;
 }
 
-/** A catalog joker as a candidate for the board. */
-export function asCandidate(def: JokerDef, edition: Edition, withAbility = true): ScoringJoker {
-  const joker = toScoring(def, edition);
+/**
+ * A catalog joker as a candidate for the board. A growing one starts at
+ * nothing, so it is counted at what it gains by the target.
+ */
+export function asCandidate(run: RunState, def: JokerDef, edition: Edition, withAbility = true): ScoringJoker {
+  const joker = toScoring(def, edition, undefined, growthOf(run, def)?.atTarget);
   return withAbility ? joker : { ...joker, score: undefined, ability: false };
 }
 
@@ -822,7 +849,7 @@ export interface BossOutlook {
  * How the board stands against a specific boss. Disabling a boss also undoes
  * its size, as the game does for The Wall and Violet Vessel.
  */
-export function bossOutlook(run: RunState, boss: BossDef, board: ScoringJoker[] = boardOf(run)): BossOutlook {
+export function bossOutlook(run: RunState, boss: BossDef, board: ScoringJoker[] = boardOf(run, 'now')): BossOutlook {
   const disabled = board.some(j => j.id === 'chicot');
   const hand = referenceHand(run);
   const score = estimateWithBoard(run, hand, board, { boss }).score;
@@ -836,5 +863,105 @@ export function bossOutlook(run: RunState, boss: BossDef, board: ScoringJoker[] 
     hands,
     handsNeeded: score > 0 ? Math.ceil(target / score) : null,
     disabled,
+  };
+}
+
+/** How the run plays a round, which is what a growing joker grows from. */
+interface RoundPlay {
+  hand: HandType;
+  /** Hands a round takes. */
+  hands: number;
+  /** Chance a hand comes together; the rest are played as its fallback. */
+  odds: number;
+  discards: number;
+  types: CardType[];
+}
+
+const roundPlayCache = new WeakMap<RunState, RoundPlay>();
+
+/**
+ * Measured with every growing joker left at nothing: what they gain depends on
+ * the hands a round takes, so that cannot depend on what they gain. A board
+ * leaning on one is credited a hand more than it will need now and then, on
+ * the generous side.
+ */
+function roundPlay(run: RunState): RoundPlay {
+  const cached = roundPlayCache.get(run);
+  if (cached) return cached;
+  const board = boardOf(run, 'none');
+  const hand = referenceHand(run);
+  const hands = handsNeeded(run, estimateWithBoard(run, hand, board).score);
+  const discards = discardsFor(run, board);
+  const types = cardTypes(run.deckProfile);
+  const odds = hand === 'High Card' || STACKED_HANDS.has(hand)
+    ? 1
+    : handOdds(types, run.deckProfile.deckSize, handSize(run, board), discards / hands, hand, oddsRules(board));
+  const play = { hand, hands, odds, discards, types };
+  roundPlayCache.set(run, play);
+  return play;
+}
+
+/** Chips or Mult a growing joker gains in a round, as the run plays. */
+function growthPerRound(g: JokerGrowth, play: RoundPlay): number {
+  // Over the hands a round takes: those that come together and those that fall back.
+  const overHands = (per: (hand: HandType) => number) => play.hands * (
+    play.odds * per(play.hand) + (1 - play.odds) * per(fallbackFor(play.hand))
+  );
+  let events: number;
+  switch (g.per) {
+    case 'hand':
+      events = overHands(hand => (
+        (!g.requiresHand || handContains(hand, g.requiresHand))
+        // Fewer scoring cards can be made up to the count with kickers; more cannot be cut.
+        && (g.cards === undefined || scoringCards(hand) <= g.cards) ? 1 : 0
+      ));
+      events -= (g.lossPerDiscard ?? 0) * play.discards * TUNING.growth.discardsSpentWithLoss;
+      break;
+    case 'discardedCard':
+      events = play.discards * TUNING.growth.cardsPerDiscard * matchShare(play.types, g.match!, PLAIN_RULES);
+      break;
+    case 'scoredCard':
+      events = overHands(scoringCards) * matchShare(play.types, g.match!, PLAIN_RULES);
+      break;
+  }
+  return Math.max(0, events) * (g.chips ?? g.mult ?? 0);
+}
+
+export interface Growth {
+  unit: 'Chips' | 'Mult';
+  /** Gained in a round, as the run plays. */
+  perRound: number;
+  /** Where it stands: nothing for one in the shop. */
+  now: number;
+  /** Where it will stand by the target, the value it is judged at. */
+  atTarget: number;
+  /** Bought in the shop, counted from a record, or assumed for want of one. */
+  source: 'shop' | 'recorded' | 'assumed';
+}
+
+/**
+ * What a growing joker is worth, for one in the shop or one you own. An owned
+ * one grows on from what the run recorded of it: its purchase, or the value
+ * you entered. Without either it is assumed to have grown for one ante.
+ */
+export function growthOf(run: RunState, def: JokerDef, owned?: OwnedJoker): Growth | null {
+  const g = def.score?.grows;
+  if (!g) return null;
+  const perRound = growthPerRound(g, roundPlay(run));
+  let now = 0;
+  let source: Growth['source'] = 'shop';
+  if (owned?.growth) {
+    now = owned.growth.value + perRound * Math.max(0, run.round - owned.growth.round);
+    source = 'recorded';
+  } else if (owned) {
+    now = perRound * TUNING.growth.unknownRoundsHeld;
+    source = 'assumed';
+  }
+  return {
+    unit: g.chips !== undefined ? 'Chips' : 'Mult',
+    perRound,
+    now,
+    atTarget: now + perRound * TUNING.growth.roundsAhead,
+    source,
   };
 }

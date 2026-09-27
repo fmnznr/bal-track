@@ -158,7 +158,7 @@ describe('copy jokers', () => {
   });
 
   it('names a copy of an unmodelled joker as unmodelled', () => {
-    expect(estimateHandScore(runWith(['blueprint', 'green-joker']), 'Pair').unmodeled).toContain('Blueprint');
+    expect(estimateHandScore(runWith(['blueprint', 'business-card']), 'Pair').unmodeled).toContain('Blueprint');
   });
 });
 
@@ -229,7 +229,7 @@ describe('what a joker contributes', () => {
   it('places a candidate where it does the most', () => {
     const run = runWith(['cavendish']);
     // Left of Cavendish, +4 Mult is multiplied: (1 + 4) x 3 - 1 x 3 = 12 Mult more.
-    const joker = candidateContribution(run, 'High Card', asCandidate(getJoker('joker')!, 'base'));
+    const joker = candidateContribution(run, 'High Card', asCandidate(run, getJoker('joker')!, 'base'));
     const bare = estimateHandScore(run, 'High Card');
     expect(joker.score).toBe(bare.chips * 12);
     expect(joker.modelled).toBe(true);
@@ -249,7 +249,7 @@ describe('what a joker contributes', () => {
     // power of 5/52 — about +7%, where the rating alone had it near tripling.
     // A Flush that does not come together is played as a Pair, whose two
     // cards give 2^(2/52), so the value sits between the two.
-    const idol = candidateContribution(runWith(), 'Flush', asCandidate(getJoker('the-idol')!, 'base'));
+    const idol = candidateContribution(runWith(), 'Flush', asCandidate(runWith(), getJoker('the-idol')!, 'base'));
     const bare = effectiveWithBoard(runWith(), 'Flush', boardOf(runWith())).score;
     expect(idol.modelled).toBe(true);
     expect(1 + idol.score / bare).toBeGreaterThan(2 ** (2 / 52));
@@ -261,7 +261,7 @@ describe('what a joker contributes', () => {
     // when the Flush misses none. The odds do not move with it — a stronger
     // board is not credited with finding its own hand more often.
     const run = runWith([], { primaryHand: 'Flush' });
-    const tribe = candidateContribution(run, 'Flush', asCandidate(getJoker('the-tribe')!, 'base'));
+    const tribe = candidateContribution(run, 'Flush', asCandidate(run, getJoker('the-tribe')!, 'base'));
     const e = effectiveWithBoard(run, 'Flush', boardOf(run));
     expect(e.odds).toBeLessThan(1);
     expect(tribe.score).toBeCloseTo(e.odds * e.made, 0);
@@ -271,7 +271,7 @@ describe('what a joker contributes', () => {
     const flush = runWith([], { primaryHand: 'Flush' });
     const straight = runWith([], { primaryHand: 'Straight' });
     const gain = (run: RunState, hand: 'Flush' | 'Straight', id: string) =>
-      candidateContribution(run, hand, asCandidate(getJoker(id)!, 'base')).score;
+      candidateContribution(run, hand, asCandidate(run, getJoker(id)!, 'base')).score;
     expect(gain(flush, 'Flush', 'four-fingers')).toBeGreaterThan(0);
     expect(gain(flush, 'Flush', 'smeared-joker')).toBeGreaterThan(0);
     expect(gain(straight, 'Straight', 'shortcut')).toBeGreaterThan(0);
@@ -286,7 +286,7 @@ describe('what a joker contributes', () => {
     expect(discardsFor(owned, boardOf(owned))).toBe(4);
     expect(discardsFor(owned, [])).toBe(3);
     const bare = runWith([], { discardsPerRound: 3 });
-    expect(discardsFor(bare, [asCandidate(getJoker('drunkard')!, 'base')])).toBe(4);
+    expect(discardsFor(bare, [asCandidate(bare, getJoker('drunkard')!, 'base')])).toBe(4);
   });
 
   it('trusts a declared stacked hand, which the deck profile cannot see', () => {
@@ -297,9 +297,9 @@ describe('what a joker contributes', () => {
   });
 
   it('leaves a copy joker with nothing to copy to its rating', () => {
-    const bp = candidateContribution(runWith(), 'Pair', asCandidate(getJoker('blueprint')!, 'base'));
+    const bp = candidateContribution(runWith(), 'Pair', asCandidate(runWith(), getJoker('blueprint')!, 'base'));
     expect(bp.modelled).toBe(false);
-    const withTarget = candidateContribution(runWith(['cavendish']), 'Pair', asCandidate(getJoker('blueprint')!, 'base'));
+    const withTarget = candidateContribution(runWith(['cavendish']), 'Pair', asCandidate(runWith(['cavendish']), getJoker('blueprint')!, 'base'));
     expect(withTarget.modelled).toBe(true);
     expect(withTarget.score).toBeGreaterThan(0);
   });

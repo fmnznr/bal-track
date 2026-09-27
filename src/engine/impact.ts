@@ -22,9 +22,10 @@ import type { ArchetypeProfile } from './archetype';
 import { deckMultiplierForJoker } from './deckSignals';
 import { playMultiplierForJoker } from './playSignals';
 import {
-  asCandidate, boardOf, bossOutlook, candidateContribution, changesHandOdds, effectiveWithBoard, handLevelMultiplier,
-  marginalMultiplier, ownedContribution, referenceHand, scoreTarget,
+  asCandidate, boardOf, bossOutlook, candidateContribution, changesHandOdds, effectiveWithBoard, growthOf,
+  handLevelMultiplier, marginalMultiplier, ownedContribution, referenceHand, scoreTarget,
 } from './score';
+import type { Growth } from './score';
 import { earnsIncome, horizonRounds, jokerIncome } from './projection';
 import { TUNING } from './tuning';
 
@@ -141,7 +142,7 @@ export function jokerImpact(
 
   const contribution = (withAbility: boolean) => (ownedIndex !== undefined
     ? ownedContribution(run, hand, ownedIndex, withAbility)
-    : candidateContribution(run, hand, asCandidate(def, edition, withAbility)));
+    : candidateContribution(run, hand, asCandidate(run, def, edition, withAbility)));
   // The edition is a flat effect on the card, so it is always computed outright.
   const editionScore = contribution(false).score;
   const rating = def.rating[ctx.phase];
@@ -170,6 +171,8 @@ export function jokerImpact(
     const blended = modelled.score ** w * rated ** (1 - w);
     multiplier = marginalMultiplier(run, hand, blended);
     evidence = 'partial';
+    const growth = growthOf(run, def, ownedIndex !== undefined ? run.jokers[ownedIndex] : undefined);
+    if (growth) reasons.push(growthReason(growth, hand));
     if (modelled.score > editionScore) {
       reasons.push(
         `Modelled at about ${Math.round(modelled.score).toLocaleString('en-US')} score on your ${hand},`
@@ -226,10 +229,26 @@ export function jokerImpact(
   return { multiplier, incomeDollars: income, evidence, reasons };
 }
 
+/** Where a growing joker stands and where it is counted. */
+function growthReason(g: Growth, hand: HandType): string {
+  const n = (v: number) => Math.round(v).toLocaleString('en-US');
+  if (g.perRound < 0.5 && g.now < 0.5) return `Does not grow as you play your ${hand}`;
+  const rate = `grows about +${n(g.perRound)} ${g.unit} a round as you play your ${hand}`;
+  switch (g.source) {
+    case 'shop':
+      return `Starts at nothing and ${rate}: counted at +${n(g.atTarget)}, where it will be by the next ante`;
+    case 'recorded':
+      return `At about +${n(g.now)} ${g.unit} now and ${rate}: counted at +${n(g.atTarget)} by the next ante`;
+    case 'assumed':
+      return `Its ${g.unit} are not recorded, so one ante of growth is assumed: +${n(g.now)} now, `
+        + `+${n(g.atTarget)} by the next ante. Enter what the game shows on the Run tab`;
+  }
+}
+
 /** How often the reference hand comes together with this joker and without it. */
 function oddsReason(run: RunState, hand: HandType, def: JokerDef, edition: Edition, ownedIndex?: number): string {
   const board = boardOf(run);
-  const withIt = ownedIndex !== undefined ? board : [...board, asCandidate(def, edition)];
+  const withIt = ownedIndex !== undefined ? board : [...board, asCandidate(run, def, edition)];
   const without = ownedIndex !== undefined ? board.filter((_, i) => i !== ownedIndex) : board;
   const pct = (b: typeof board) => Math.round(effectiveWithBoard(run, hand, b).odds * 100);
   return `Your ${hand} comes together about ${pct(without)}% of the time without it, ${pct(withIt)}% with it`;
@@ -250,10 +269,10 @@ function bossReasons(run: RunState, def: JokerDef): string[] {
   const verb = BOSS_DISABLERS[def.id];
   const boss = run.boss ? getBoss(run.boss) : undefined;
   if (!verb || !boss) return [];
-  const board = boardOf(run);
+  const board = boardOf(run, 'now');
   if (board.some(j => j.id === 'chicot')) return [];
   const now = bossOutlook(run, boss, board);
-  const without = bossOutlook(run, boss, [...board, asCandidate(getJoker('chicot')!, 'base')]);
+  const without = bossOutlook(run, boss, [...board, asCandidate(run, getJoker('chicot')!, 'base')]);
   const fmt = (n: number) => n.toLocaleString('en-US');
   return [
     `${verb} ${boss.name} (${boss.effect}): your hand scores ~${fmt(without.score)} against`

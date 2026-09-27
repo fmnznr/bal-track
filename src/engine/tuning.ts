@@ -78,6 +78,33 @@ export const TUNING = {
   },
 
   /**
+   * Jokers that start at nothing and grow as the run plays (Castle, Green
+   * Joker, Runner). What they gain a round is counted from the run; these are
+   * the assumptions around it.
+   */
+  growth: {
+    /**
+     * Rounds of growth a joker is valued at beyond where it stands now: about
+     * where it will be by the boss an ante ahead, the bar every card is
+     * measured against (`prior.lookaheadAntes`).
+     */
+    roundsAhead: 3,
+    /**
+     * Rounds an owned joker is assumed to have grown when the run has no
+     * record of it: one ante. A joker bought through the app is counted from
+     * its purchase instead, and a value entered on the Run tab beats both.
+     */
+    unknownRoundsHeld: 3,
+    /** Cards thrown away per discard, for the jokers that count them. */
+    cardsPerDiscard: 3,
+    /**
+     * Share of a round's discards spent by a player holding Green Joker, which
+     * loses a Mult for each. It pays to discard less with it, not never.
+     */
+    discardsSpentWithLoss: 0.25,
+  },
+
+  /**
    * The rating curve for vouchers that have no model of their own yet.
    *
    * Vouchers used the joker curve, which has no zero point and credits every

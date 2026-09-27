@@ -57,10 +57,10 @@ describe('estimateHandScore', () => {
   });
 
   it('adds modeled jokers and names the unmodeled ones', () => {
-    const estimate = estimateHandScore(runWith(['joker', 'green-joker']), 'Pair');
+    const estimate = estimateHandScore(runWith(['joker', 'business-card']), 'Pair');
     expect(estimate.mult).toBe(6); // 2 base + 4
     expect(estimate.modeled).toContain('Joker');
-    expect(estimate.unmodeled).toContain('Green Joker');
+    expect(estimate.unmodeled).toContain('Business Card');
   });
 
   it('applies jokers in board order, the way the game does', () => {
@@ -95,7 +95,7 @@ describe('estimateJokerDelta', () => {
     expect(estimateJokerDelta(run, 'Pair', 'joker', 'base')).toBeGreaterThan(0);
   });
   it('is zero for unmodeled jokers', () => {
-    expect(estimateJokerDelta(runWith(), 'Pair', 'green-joker', 'base')).toBe(0);
+    expect(estimateJokerDelta(runWith(), 'Pair', 'business-card', 'base')).toBe(0);
   });
 });
 
@@ -120,10 +120,10 @@ describe('score — review fixes', () => {
   });
 
   it('names jokers that this hand does not trigger instead of hiding them', () => {
-    const estimate = estimateHandScore(runWith(['jolly-joker', 'green-joker']), 'Flush');
+    const estimate = estimateHandScore(runWith(['jolly-joker', 'business-card']), 'Flush');
     expect(estimate.modeled).toEqual([]);
     expect(estimate.inactive).toEqual(['Jolly Joker']);
-    expect(estimate.unmodeled).toEqual(['Green Joker']);
+    expect(estimate.unmodeled).toEqual(['Business Card']);
   });
 
   it('doubles the blind targets on the Plasma deck', () => {
@@ -227,9 +227,9 @@ describe('per-card and per-count score models', () => {
   });
 
   it('counts a modelled joker as modeled, not unmodeled', () => {
-    const estimate = estimateHandScore(withJokers(['scary-face', 'green-joker']), 'Pair');
+    const estimate = estimateHandScore(withJokers(['scary-face', 'business-card']), 'Pair');
     expect(estimate.modeled).toContain('Scary Face');
-    expect(estimate.unmodeled).toContain('Green Joker');
+    expect(estimate.unmodeled).toContain('Business Card');
   });
 });
 

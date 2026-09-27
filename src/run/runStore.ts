@@ -69,6 +69,7 @@ export type RunAction =
   | { type: 'ADD_JOKER'; jokerId: string; edition: Edition; stickers?: JokerStickers; price?: number }
   | { type: 'SET_JOKER_EDITION'; index: number; edition: Edition }
   | { type: 'SET_JOKER_STICKERS'; index: number; stickers: JokerStickers }
+  | { type: 'SET_JOKER_GROWTH'; index: number; value: number }
   | { type: 'SELL_JOKER'; index: number }
   | { type: 'REDEEM_VOUCHER'; voucherId: string; price?: number }
   | { type: 'ADD_CONSUMABLE'; consumableId: string; price?: number }
@@ -160,13 +161,18 @@ function addJoker(
   edition: Edition,
   stickers: JokerStickers | undefined,
   price = 0,
+  fresh = false,
 ): RunState | null {
-  if (!getJoker(jokerId) || price < 0 || price > run.money) return null;
+  const def = getJoker(jokerId);
+  if (!def || price < 0 || price > run.money) return null;
   if (!hasFreeJokerSlot(run, edition)) return null;
+  // Straight out of the shop or a pack, a growing joker is known to stand at
+  // nothing. One added by hand may have been growing for a while.
+  const growth = fresh && def.score?.grows ? { value: 0, round: run.round } : undefined;
   return {
     ...run,
     money: run.money - price,
-    jokers: [...run.jokers, { jokerId, edition, stickers }],
+    jokers: [...run.jokers, { jokerId, edition, stickers, ...(growth && { growth }) }],
   };
 }
 
@@ -332,6 +338,12 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
         ...run,
         jokers: run.jokers.map((j, i) => (i === action.index ? { ...j, stickers: action.stickers } : j)),
       });
+    case 'SET_JOKER_GROWTH': {
+      const owned = run.jokers[action.index];
+      if (!owned || !getJoker(owned.jokerId)?.score?.grows || !(action.value >= 0)) return state;
+      const growth = { value: action.value, round: run.round };
+      return push({ ...run, jokers: run.jokers.map((j, i) => (i === action.index ? { ...j, growth } : j)) });
+    }
     case 'SELL_JOKER': {
       const owned = run.jokers[action.index];
       if (!owned || owned.stickers?.eternal) return state;
@@ -435,7 +447,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const slot = shop?.cards[action.index];
       if (!shop || !slot) return state;
       const next = slot.kind === 'joker'
-        ? addJoker(run, slot.jokerId, slot.edition, slot.stickers, slot.price)
+        ? addJoker(run, slot.jokerId, slot.edition, slot.stickers, slot.price, true)
         : addConsumable(run, slot.consumableId, slot.price);
       if (!next) return state;
       const id = slot.kind === 'joker' ? slot.jokerId : slot.consumableId;
@@ -506,7 +518,7 @@ export function reduce(state: StoreState, action: RunAction): StoreState {
       const joker = getJoker(action.id);
       const consumable = getConsumable(action.id);
       if (joker) {
-        next = addJoker(run, action.id, 'base', undefined);
+        next = addJoker(run, action.id, 'base', undefined, 0, true);
       } else if (consumable?.kind === 'planet' && consumable.hand) {
         next = { ...run, handLevels: { ...run.handLevels, [consumable.hand]: run.handLevels[consumable.hand] + 1 } };
       } else if (consumable && hasProfileEffect(action.id)) {
@@ -583,6 +595,11 @@ function derivePrimaryHand(plays: Partial<Record<HandType, number>> | undefined)
   return best;
 }
 
+function isGrowth(value: unknown): value is { value: number; round: number } {
+  const g = value as { value?: unknown; round?: unknown } | undefined;
+  return typeof g?.value === 'number' && typeof g.round === 'number';
+}
+
 export const STORAGE_KEY = 'bal-track:v3';
 const LEGACY_STORAGE_KEYS = ['bal-track:v2', 'bal-track:v1'];
 
@@ -628,7 +645,10 @@ export function load(): StoreState | null {
         primaryHand: primaryHand ?? derivePrimaryHand(handPlays),
         // v2 tracked when each joker was acquired to scale Green Joker and Ice
         // Cream; those signals are gone, so the counters go with them.
-        jokers: r.jokers.map(({ jokerId, edition, stickers }) => ({ jokerId, edition, stickers })),
+        // A growing joker's record is kept, when it is one.
+        jokers: r.jokers.map(({ jokerId, edition, stickers, growth }) => ({
+          jokerId, edition, stickers, ...(isGrowth(growth) && { growth }),
+        })),
         boss: r.boss ?? null,
         // One id for the run in progress when the log arrived, so its decisions
         // and its result still meet.

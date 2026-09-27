@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { bossesForAnte, getBoss, getConsumable, getJoker, getVoucher } from '../../catalog/catalog';
 import { sellValue } from '../../engine/economy';
+import { growthOf } from '../../engine/score';
 import { hasFreeJokerSlot, usedJokerSlots } from '../../engine/gameRules';
 import { CONVERSION_TARGETS } from '../../run/profileEffects';
 import { useT } from '../../i18n/I18nContext';
@@ -86,6 +87,7 @@ export default function RunOverview() {
         {run.jokers.map((owned, i) => {
           const def = getJoker(owned.jokerId);
           if (!def) return null;
+          const growth = growthOf(run, def, owned);
           return (
             <li key={i} className="row">
               <span className="pos">{i + 1}</span>
@@ -121,6 +123,16 @@ export default function RunOverview() {
                 stickers={owned.stickers}
                 onChange={stickers => dispatch({ type: 'SET_JOKER_STICKERS', index: i, stickers })}
               />
+              {growth && (
+                <>
+                  <NumberField
+                    label={t('growthNow', { name: def.name, unit: growth.unit })}
+                    value={Math.round(growth.now)}
+                    onChange={value => dispatch({ type: 'SET_JOKER_GROWTH', index: i, value })}
+                  />
+                  {growth.source === 'assumed' && <span className="muted">{t('growthAssumed')}</span>}
+                </>
+              )}
               <button
                 disabled={owned.stickers?.eternal}
                 title={owned.stickers?.eternal ? t('eternalCannotBeSold') : undefined}

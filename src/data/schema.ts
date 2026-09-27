@@ -39,6 +39,7 @@ const cardMatch = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('any') }).strict(),
   z.object({ kind: z.literal('rotatingSuit') }).strict(),
   z.object({ kind: z.literal('rotatingCard') }).strict(),
+  z.object({ kind: z.literal('deckSuit') }).strict(),
 ]);
 
 const runCount = z.enum([
@@ -73,11 +74,23 @@ const jokerScore = z.object({
   }).strict().optional(),
   retriggerHeld: z.number().int().positive().optional(),
   copies: z.enum(['right', 'leftmost']).optional(),
+  grows: z.object({
+    chips: z.number().positive().optional(),
+    mult: z.number().positive().optional(),
+    per: z.enum(['hand', 'discardedCard', 'scoredCard']),
+    requiresHand: handType.optional(),
+    cards: z.number().int().min(1).max(5).optional(),
+    match: cardMatch.optional(),
+    lossPerDiscard: z.number().positive().optional(),
+  }).strict()
+    .refine(g => (g.chips === undefined) !== (g.mult === undefined), 'a joker grows either Chips or Mult')
+    .refine(g => (g.per === 'hand') === (g.match === undefined), 'a card event names its card, a hand event none')
+    .optional(),
 }).strict().refine(
   s => s.chips !== undefined || s.mult !== undefined || s.xmult !== undefined
     || s.perCard !== undefined || s.perCount !== undefined || s.perHeld !== undefined
     || s.lowestHeldMult !== undefined || s.retrigger !== undefined
-    || s.retriggerHeld !== undefined || s.copies !== undefined,
+    || s.retriggerHeld !== undefined || s.copies !== undefined || s.grows !== undefined,
   'a score model that contributes nothing should be left off entirely',
 );
 

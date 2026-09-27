@@ -993,7 +993,14 @@
     "tags": [
       "chips",
       "straight-support"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "chips": 15,
+        "per": "hand",
+        "requiresHand": "Straight"
+      }
+    }
   },
   {
     "id": "ice-cream",
@@ -1142,7 +1149,14 @@
     "tags": [
       "plus-mult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "mult": 1,
+        "per": "hand",
+        "lossPerDiscard": 1
+      }
+    }
   },
   {
     "id": "superposition",
@@ -1256,7 +1270,14 @@
     "tags": [
       "chips",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "chips": 4,
+        "per": "hand",
+        "cards": 4
+      }
+    }
   },
   {
     "id": "seance",
@@ -1827,7 +1848,14 @@
       "plus-mult",
       "pair-support",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "mult": 2,
+        "per": "hand",
+        "requiresHand": "Two Pair"
+      }
+    }
   },
   {
     "id": "ancient-joker",
@@ -1935,7 +1963,16 @@
     "tags": [
       "chips",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "chips": 3,
+        "per": "discardedCard",
+        "match": {
+          "kind": "deckSuit"
+        }
+      }
+    }
   },
   {
     "id": "smiley-face",
@@ -2334,7 +2371,19 @@
     "tags": [
       "chips",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "chips": 8,
+        "per": "scoredCard",
+        "match": {
+          "kind": "rank",
+          "ranks": [
+            "2"
+          ]
+        }
+      }
+    }
   },
   {
     "id": "merry-andy",

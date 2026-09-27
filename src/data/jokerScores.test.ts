@@ -24,6 +24,13 @@ describe('joker score models', () => {
       .toEqual({ perCard: { match: { kind: 'rank', ranks: ['10', '4'] }, chips: 10, mult: 4 } });
   });
 
+  it('models the jokers that grow steadily from nothing', () => {
+    expect(byId.get('castle')?.score)
+      .toEqual({ grows: { chips: 3, per: 'discardedCard', match: { kind: 'deckSuit' } } });
+    expect(byId.get('green-joker')?.score).toEqual({ grows: { mult: 1, per: 'hand', lossPerDiscard: 1 } });
+    expect(byId.get('runner')?.score?.grows?.requiresHand).toBe('Straight');
+  });
+
   it('models counts the run already tracks exactly', () => {
     expect(byId.get('bull')?.score).toEqual({ perCount: { of: 'money', chips: 2 } });
     expect(byId.get('steel-joker')?.score).toEqual({ perCount: { of: 'steelCards', xmult: 0.2 } });
@@ -36,9 +43,9 @@ describe('joker score models', () => {
     expect(byId.get('bloodstone')?.score?.perCard?.chance).toBe(0.5);
   });
 
-  it('leaves play-history, scaling and hand-shape jokers unmodeled', () => {
+  it('leaves play-history, resetting and hand-shape jokers unmodeled', () => {
     for (const id of [
-      'green-joker', 'ride-the-bus', 'business-card', 'obelisk', 'supernova',
+      'ride-the-bus', 'business-card', 'obelisk', 'supernova',
       'glass-joker', 'card-sharp', 'flower-pot', 'seeing-double',
     ]) {
       expect(byId.get(id)?.score, id).toBeUndefined();
@@ -47,11 +54,12 @@ describe('joker score models', () => {
 
   it('models a reasonable share without inventing numbers', () => {
     // Flat effects, per-card and held-card effects, retriggers, copies, listed
-    // chances and counts the run tracks. Anything that scales over time or
-    // depends on what was played before is still out. The floor guards against losing them
-    // wholesale, the ceiling against modelling by guesswork.
+    // chances, counts the run tracks, and jokers that grow steadily with what
+    // a round plays. Anything that resets, or depends on what was played
+    // before, is still out. The floor guards against losing them wholesale,
+    // the ceiling against modelling by guesswork.
     expect(modeled.length).toBeGreaterThanOrEqual(35);
-    expect(modeled.length).toBeLessThanOrEqual(70);
+    expect(modeled.length).toBeLessThanOrEqual(80);
   });
 
   it('only ever uses the known keys, with positive values on the numeric ones', () => {
@@ -68,8 +76,13 @@ describe('joker score models', () => {
       const timing = ['chance', 'every', 'finalHand'];
       check(score, j.id, [
         ...numeric, ...timing, 'requiresHand', 'maxCards', 'minEnhanced', 'heldAllSuits', 'perCard',
-        'perHeld', 'lowestHeldMult', 'perCount', 'retrigger', 'retriggerHeld', 'copies',
+        'perHeld', 'lowestHeldMult', 'perCount', 'retrigger', 'retriggerHeld', 'copies', 'grows',
       ]);
+      if (j.score.grows) {
+        check(j.score.grows as unknown as Record<string, unknown>, j.id, [
+          'chips', 'mult', 'per', 'requiresHand', 'cards', 'match', 'lossPerDiscard',
+        ]);
+      }
       if (j.score.perCard) {
         check(j.score.perCard as unknown as Record<string, unknown>, j.id, [...numeric, ...timing, 'match', 'firstOnly']);
       }

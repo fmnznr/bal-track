@@ -137,8 +137,9 @@ export function hasSuit(card: CardType, suit: Suit, rules: CardRules): boolean {
   return card.suit === suit || (rules.smeared && SMEARED_PARTNER[card.suit] === suit);
 }
 
-/** Where the round's card for The Idol lands: rank and suit shares among the
-    cards that have both, since the game picks it from the deck itself. */
+/** Where the round's card for The Idol, or suit for Castle, lands: rank and
+    suit shares among the cards that have both, since the game picks it from
+    the deck itself. */
 interface TargetShares {
   rank: Map<Rank, number>;
   suit: Map<Suit, number>;
@@ -193,6 +194,10 @@ export function matchWeight(
       const suits = SUITS.filter(s => hasSuit(card, s, rules))
         .reduce((sum, s) => sum + (target.suit.get(s) ?? 0), 0);
       return (target.rank.get(card.rank) ?? 0) * suits;
+    }
+    case 'deckSuit': {
+      const target = targetShares(deck);
+      return SUITS.filter(s => hasSuit(card, s, rules)).reduce((sum, s) => sum + (target.suit.get(s) ?? 0), 0);
     }
   }
 }

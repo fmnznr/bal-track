@@ -176,3 +176,18 @@ it('shows where the bankroll is heading if nothing is bought', () => {
   expect(panel).toHaveTextContent('Golden Joker $4');
   expect(panel).toHaveTextContent(/Banking everything: \$20 next shop, \$\d+ in 6 rounds/);
 });
+
+it('takes the value a growing joker shows in the game', async () => {
+  // Nothing recorded, so the app estimates it and says so, until you enter it.
+  const run = { ...newRunState('Red', 'White'), jokers: [{ jokerId: 'castle', edition: 'base' }] };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: run, past: [], finished: [] }));
+  render(<App />);
+  const field = screen.getByLabelText('Castle: Chips now');
+  expect(screen.getByText(/estimated/)).toBeInTheDocument();
+  await userEvent.clear(field);
+  await userEvent.type(field, '45{Enter}');
+  expect(field).toHaveDisplayValue('45');
+  expect(screen.queryByText(/estimated/)).not.toBeInTheDocument();
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+  expect(saved.current.jokers[0].growth).toEqual({ value: 45, round: 1 });
+});

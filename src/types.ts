@@ -57,7 +57,12 @@ export type CardMatch =
    * One card of the deck, rank and suit, that changes every round (The Idol):
    * on a standard deck one card in 52, more on a deck stacked with copies.
    */
-  | { kind: 'rotatingCard' };
+  | { kind: 'rotatingCard' }
+  /**
+   * One suit that changes every round, taken from a card of the deck (Castle):
+   * a quarter on a standard deck, nearly always the suit a one-suit deck has.
+   */
+  | { kind: 'deckSuit' };
 
 /** A contribution that repeats, once per matching card or per counted thing. */
 export interface ScoreContribution {
@@ -143,6 +148,29 @@ export interface JokerScore extends ScoreContribution, ScoreTiming {
   retriggerHeld?: number;
   /** Copies another joker's ability: the one to its right, or the leftmost. */
   copies?: 'right' | 'leftmost';
+  /** Starts at nothing and gains this much with every event (Castle, Green Joker). */
+  grows?: JokerGrowth;
+}
+
+/**
+ * What a growing joker gains, and from what. The events are counted per round
+ * from how the run plays: the hands a blind takes, its discards, its deck.
+ */
+export interface JokerGrowth {
+  chips?: number;
+  mult?: number;
+  /**
+   * `hand`: every hand played. `discardedCard`: every discarded card that
+   * matches. `scoredCard`: every scoring card that matches.
+   */
+  per: 'hand' | 'discardedCard' | 'scoredCard';
+  /** Only hands that contain this (Runner: a Straight). */
+  requiresHand?: HandType;
+  /** Only hands of exactly this many cards (Square Joker). */
+  cards?: number;
+  match?: CardMatch;
+  /** Lost again with every discard used (Green Joker). */
+  lossPerDiscard?: number;
 }
 
 export interface JokerDef {
@@ -190,6 +218,12 @@ export interface OwnedJoker {
   jokerId: string;
   edition: Edition;
   stickers?: JokerStickers;
+  /**
+   * Where a growing joker stood, and in which round: nothing when it was
+   * bought, or the value the game shows when you enter it. It keeps growing
+   * from there. Absent when neither is known.
+   */
+  growth?: { value: number; round: number };
 }
 
 export interface RunState {

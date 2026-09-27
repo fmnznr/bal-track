@@ -723,3 +723,35 @@ describe('buying at the tag price', () => {
     expect(s.current!.money).toBe(13);
   });
 });
+
+describe('a growing joker\'s record', () => {
+  const withCastle = () => {
+    let s = reduce(started(), { type: 'SET_MONEY', money: 20 });
+    s = reduce(s, { type: 'SET_ROUND', round: 5 });
+    return reduce(s, {
+      type: 'SET_SHOP_DRAFT',
+      draft: { cards: [{ kind: 'joker', jokerId: 'castle', edition: 'base', price: 6 }], voucherId: null, packIds: [], rerollCost: 5 },
+    });
+  };
+
+  it('starts at nothing when bought, in the round it was bought', () => {
+    const s = reduce(withCastle(), { type: 'BUY_SHOP_CARD', index: 0 });
+    expect(s.current!.jokers[0].growth).toEqual({ value: 0, round: 5 });
+  });
+
+  it('is left unknown for a joker added by hand, and for one that does not grow', () => {
+    let s = reduce(started(), { type: 'ADD_JOKER', jokerId: 'castle', edition: 'base' });
+    s = reduce(s, { type: 'ADD_JOKER', jokerId: 'joker', edition: 'base' });
+    expect(s.current!.jokers[0].growth).toBeUndefined();
+    expect(reduce(s, { type: 'SET_JOKER_GROWTH', index: 1, value: 4 })).toBe(s);
+  });
+
+  it('takes the value the game shows, in the current round, and survives a reload', () => {
+    let s = reduce(withCastle(), { type: 'BUY_SHOP_CARD', index: 0 });
+    s = reduce(s, { type: 'SET_ROUND', round: 9 });
+    s = reduce(s, { type: 'SET_JOKER_GROWTH', index: 0, value: 42 });
+    expect(s.current!.jokers[0].growth).toEqual({ value: 42, round: 9 });
+    save(s);
+    expect(load()!.current!.jokers[0].growth).toEqual({ value: 42, round: 9 });
+  });
+});
