@@ -23,11 +23,9 @@ describe('playMultiplierForJoker', () => {
     }
   });
 
-  it('rewards Supernova once a hand is declared', () => {
-    const signal = playMultiplierForJoker(supernova, runWith('Flush'));
-    expect(signal.multiplier).toBe(TUNING.play.consistentHand);
-    expect(signal.multiplier).toBeGreaterThan(1);
-    expect(signal.reasons.join(' ')).toMatch(/Flush/);
+  it('leaves Supernova to the growth model rather than signalling it twice', () => {
+    // It grows with the times the declared hand is played over the run.
+    expect(playMultiplierForJoker(supernova, runWith('Flush'))).toEqual({ multiplier: 1, reasons: [] });
   });
 
   it('warns that Obelisk wants variety in a declared build', () => {

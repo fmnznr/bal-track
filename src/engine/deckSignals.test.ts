@@ -42,19 +42,13 @@ describe('deckMultiplierForJoker', () => {
       .toBe(TUNING.deck.face.abundant);
   });
 
-  it('scores enhanced specialists from real counts', () => {
-    const p = initialDeckProfile('Red');
-    expect(deckMultiplierForJoker(glassJoker, p).multiplier).toBe(TUNING.deck.enhanced.noneYet);
-    const four = deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 4 } });
-    expect(four.multiplier).toBeCloseTo(TUNING.deck.enhanced.perMatchingCard ** 4);
-    expect(four.multiplier).toBeGreaterThan(1);
-  });
-
-  it("leaves Steel Joker and Driver's License to the score model rather than signalling them twice", () => {
+  it("leaves Steel Joker, Driver's License and Glass Joker to the score model rather than signalling them twice", () => {
     const p = initialDeckProfile('Red');
     expect(deckMultiplierForJoker(steelJoker, { ...p, enhanced: { ...p.enhanced, steel: 6 } }))
       .toEqual({ multiplier: 1, reasons: [] });
     expect(deckMultiplierForJoker(driversLicense, p)).toEqual({ multiplier: 1, reasons: [] });
+    expect(deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 4 } }))
+      .toEqual({ multiplier: 1, reasons: [] });
   });
 });
 
@@ -89,11 +83,5 @@ describe('deckMultiplierForJoker — review fixes', () => {
     const sig = deckMultiplierForJoker(getJoker('greedy-joker')!, p);
     expect(sig.multiplier).toBe(1);
     expect(sig.reasons).toEqual([]);
-  });
-
-  it('uses singular wording for one glass card', () => {
-    const p = initialDeckProfile('Red');
-    const sig = deckMultiplierForJoker(glassJoker, { ...p, enhanced: { ...p.enhanced, glass: 1 } });
-    expect(sig.reasons.join(' ')).toMatch(/1 glass card in your deck/);
   });
 });

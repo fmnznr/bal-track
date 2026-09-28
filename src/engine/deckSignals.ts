@@ -34,23 +34,12 @@ export interface DeckSignal {
   reasons: string[];
 }
 
-const { enhanced: ENHANCED, suit: SUIT, face: FACE } = TUNING.deck;
+const { suit: SUIT, face: FACE } = TUNING.deck;
 
-/** Scales a joker with the matching enhanced cards the deck actually holds. */
-function scaleWithEnhanced(count: number, label: string): DeckSignal {
-  if (count === 0) return { multiplier: ENHANCED.noneYet, reasons: [`No ${label} cards in your deck yet`] };
-  return {
-    multiplier: Math.min(ENHANCED.cap, ENHANCED.perMatchingCard ** count),
-    reasons: [`${count} ${label} card${count === 1 ? '' : 's'} in your deck`],
-  };
-}
-
-const ENHANCED_HOOKS: Record<string, (p: DeckProfile) => DeckSignal> = {
-  // Steel Joker and Driver's License used to be here too. They are now modelled
-  // outright from the enhanced counts, so a signal on top of that would charge
-  // the same fact twice.
-  'glass-joker': p => scaleWithEnhanced(p.enhanced.glass, 'glass'),
-};
+// Steel Joker, Driver's License and Glass Joker used to be scaled here by the
+// enhanced cards the deck holds. The first two are modelled outright from those
+// counts and Glass Joker grows from the Glass cards that shatter, so a signal
+// on top would charge the same fact twice.
 
 const FACE_ENABLERS = new Set(['pareidolia']);
 
@@ -90,13 +79,6 @@ export function deckMultiplierForJoker(def: JokerDef, profile: DeckProfile): Dec
       multiplier *= FACE.abundant;
       reasons.push(`Face-heavy deck (${Math.round(share * 100)}%)`);
     }
-  }
-
-  const hook = ENHANCED_HOOKS[def.id];
-  if (hook) {
-    const result = hook(profile);
-    multiplier *= result.multiplier;
-    reasons.push(...result.reasons);
   }
 
   return { multiplier, reasons };

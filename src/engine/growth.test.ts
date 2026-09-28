@@ -80,7 +80,8 @@ describe('a growing joker you own', () => {
     });
     expect(boardOf(r, 'now')[0].score).toEqual({ chips: 60 });
     expect(boardOf(r)[0].score?.chips).toBeCloseTo(87);
-    expect(boardOf(r, 'none')[0].score).toEqual({});
+    // Left out entirely, so the hands a round takes do not depend on the growth.
+    expect(boardOf(r, 'none')[0].score).toBeUndefined();
     // Pair at level 1: 10 Chips, 2 Mult, and the cards' own chips.
     const bare = estimateHandScore({ ...r, jokers: [] }, 'Pair');
     expect(estimateHandScore(r, 'Pair').chips).toBe(bare.chips + 60);
@@ -107,5 +108,80 @@ describe('the shop that put Castle on top', () => {
     expect(castle.length).toBeGreaterThan(0);
     for (const x of castle) expect(x.score).toBeLessThan(1);
     expect(recs[0].action).not.toMatch(/Castle/);
+  });
+});
+
+describe('growing jokers that reset, count the run, or use up their cards', () => {
+  const noFaces = { ...initialDeckProfile('Red'), faceCards: 0 };
+  const enhanced = (over: Partial<RunState['deckProfile']['enhanced']>) => {
+    const base = initialDeckProfile('Red');
+    return { ...base, enhanced: { ...base.enhanced, ...over } };
+  };
+
+  it('lets Ride the Bus grow freely only in a deck without face cards', () => {
+    const free = grown(run({ primaryHand: 'Pair', deckProfile: noFaces }), 'ride-the-bus');
+    expect(free.atTarget).toBeCloseTo(free.perRound * 3);
+    // With a face card in about one scoring card in four, a Pair's streak
+    // settles around p / (1 - p) hands, however long the joker is held.
+    const standard = grown(run({ primaryHand: 'Pair' }), 'ride-the-bus');
+    const p = (1 - 12 / 52) ** 2;
+    expect(standard.atTarget).toBeCloseTo(p / (1 - p), 1);
+    expect(standard.atTarget).toBeLessThan(free.atTarget);
+  });
+
+  it('counts Supernova over the whole run, whenever it was bought', () => {
+    const late = grown(run({ primaryHand: 'Pair', round: 10 }), 'supernova');
+    expect(late.source).toBe('run');
+    expect(late.now).toBeCloseTo(late.perRound * 10);
+    // A round counter below the ante was never kept: the ante's rounds stand in.
+    const stale = grown(run({ primaryHand: 'Pair', round: 1 }), 'supernova');
+    expect(stale.now).toBeCloseTo(stale.perRound * 10);
+  });
+
+  it('grows Lucky Cat only from Lucky cards that trigger', () => {
+    expect(grown(run(), 'lucky-cat').perRound).toBe(0);
+    const lucky = grown(run({ primaryHand: 'Flush', deckProfile: enhanced({ lucky: 8 }) }), 'lucky-cat');
+    expect(lucky.unit).toBe('XMult');
+    expect(lucky.perRound).toBeGreaterThan(0);
+  });
+
+  it('stops Vampire when the deck runs out of enhanced cards to strip', () => {
+    const few = grown(run({ primaryHand: 'Flush', deckProfile: enhanced({ mult: 2 }) }), 'vampire');
+    // Two cards to strip, X0.1 each, however many rounds it is held.
+    expect(few.atTarget).toBeLessThanOrEqual(0.2 + 1e-9);
+    const many = grown(run({ primaryHand: 'Flush', deckProfile: enhanced({ mult: 20 }) }), 'vampire');
+    expect(many.atTarget).toBeGreaterThan(few.atTarget);
+  });
+
+  it('resets Hit the Road every round, and needs Jacks to discard', () => {
+    const road = grown(run(), 'hit-the-road');
+    expect(road.source).toBe('round');
+    expect(road.atTarget).toBe(road.now);
+    expect(road.now).toBeCloseTo(road.perRound / 2);
+    expect(grown(run({ deckProfile: noFaces }), 'hit-the-road').perRound).toBe(0);
+  });
+
+  it('gains Yorick X1 for every 23 cards discarded', () => {
+    // Four discards of three cards a round.
+    expect(grown(run(), 'yorick').perRound).toBeCloseTo(12 / 23);
+  });
+
+  it('grows Flash Card from the rerolls the screenshots counted, and leaves it to its rating before', () => {
+    expect(growthOf(run(), getJoker('flash-card')!)).toBeNull();
+    const visits = [{ round: 6, rerolls: 1 }, { round: 7, rerolls: 3 }, { round: 8, rerolls: 2 }];
+    expect(grown(run({ shopVisits: visits }), 'flash-card').perRound).toBeCloseTo(4);
+    const recs = recommend(run({ money: 20 }), {
+      rerollCost: 5, voucherId: null, packIds: [],
+      cards: [{ kind: 'joker', jokerId: 'flash-card', edition: 'base', price: 6 }],
+    });
+    expect(recs.find(r => r.action.includes('Flash Card'))?.evidence).toBe('heuristic');
+  });
+
+  it('writes X Mult growth in as one X(1 + gained)', () => {
+    const r = run({
+      primaryHand: 'Flush',
+      jokers: [{ jokerId: 'lucky-cat', edition: 'base', growth: { value: 1.5, round: 8 } }],
+    });
+    expect(boardOf(r, 'now')[0].score).toEqual({ xmult: 2.5 });
   });
 });

@@ -153,7 +153,11 @@ export function jokerImpact(
   // A joker that makes hands easier to find is modelled through the odds, with
   // no score block of its own.
   const odds = changesHandOdds(def.id);
-  const modelled = def.score || odds ? contribution(true) : null;
+  // A growing joker the run cannot count yet (Flash Card before any shop was
+  // read) is left to its rating, like one with no model.
+  const growth = growthOf(run, def, ownedIndex !== undefined ? run.jokers[ownedIndex] : undefined);
+  const uncounted = def.score?.grows !== undefined && growth === null;
+  const modelled = (def.score && !uncounted) || odds ? contribution(true) : null;
   // What an income joker earns is counted in dollars, so its rating — which
   // mostly stands for that income — does not count it a second time.
   const income = earnsIncome(def) ? jokerIncome(run, def, ownedIndex) : 0;
@@ -171,7 +175,6 @@ export function jokerImpact(
     const blended = modelled.score ** w * rated ** (1 - w);
     multiplier = marginalMultiplier(run, hand, blended);
     evidence = 'partial';
-    const growth = growthOf(run, def, ownedIndex !== undefined ? run.jokers[ownedIndex] : undefined);
     if (growth) reasons.push(growthReason(growth, hand));
     if (modelled.score > editionScore) {
       reasons.push(
@@ -231,17 +234,27 @@ export function jokerImpact(
 
 /** Where a growing joker stands and where it is counted. */
 function growthReason(g: Growth, hand: HandType): string {
-  const n = (v: number) => Math.round(v).toLocaleString('en-US');
-  if (g.perRound < 0.5 && g.now < 0.5) return `Does not grow as you play your ${hand}`;
-  const rate = `grows about +${n(g.perRound)} ${g.unit} a round as you play your ${hand}`;
+  const x = g.unit === 'XMult';
+  // X Mult is shown the way the game shows it, gained on top of X1.
+  const value = (v: number) => (x
+    ? `X${(1 + v).toFixed(2).replace(/\.?0+$/, '')}`
+    : `+${Math.round(v).toLocaleString('en-US')} ${g.unit}`);
+  const gain = x ? `+X${g.perRound.toFixed(2).replace(/\.?0+$/, '')}` : value(g.perRound);
+  if (g.perRound < (x ? 0.01 : 0.5) && g.now < (x ? 0.01 : 0.5)) return `Does not grow as you play your ${hand}`;
+  const rate = `grows about ${gain} a round as you play your ${hand}`;
   switch (g.source) {
     case 'shop':
-      return `Starts at nothing and ${rate}: counted at +${n(g.atTarget)}, where it will be by the next ante`;
+      return `Starts at ${x ? 'X1' : 'nothing'} and ${rate}: counted at ${value(g.atTarget)},`
+        + ' where it will be by the next ante';
     case 'recorded':
-      return `At about +${n(g.now)} ${g.unit} now and ${rate}: counted at +${n(g.atTarget)} by the next ante`;
+      return `At about ${value(g.now)} now and ${rate}: counted at ${value(g.atTarget)} by the next ante`;
     case 'assumed':
-      return `Its ${g.unit} are not recorded, so one ante of growth is assumed: +${n(g.now)} now, `
-        + `+${n(g.atTarget)} by the next ante. Enter what the game shows on the Run tab`;
+      return `Not recorded, so one ante of growth is assumed: ${value(g.now)} now, `
+        + `${value(g.atTarget)} by the next ante. Enter what the game shows on the Run tab`;
+    case 'round':
+      return `Builds up over a round and resets at its end: about ${value(g.now)} on an average hand`;
+    case 'run':
+      return `Counts the whole run: about ${value(g.now)} now and ${value(g.atTarget)} by the next ante`;
   }
 }
 

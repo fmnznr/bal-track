@@ -24,14 +24,9 @@ export function playMultiplierForJoker(def: JokerDef, run: RunState): PlaySignal
   const primary = run.primaryHand;
 
   switch (def.id) {
-    // Scales with repeat plays of one hand, so a declared plan is what makes it good.
-    case 'supernova':
-      if (!primary) return NEUTRAL;
-      return {
-        multiplier: TUNING.play.consistentHand,
-        reasons: [`You build around ${primary}, so Supernova keeps climbing`],
-      };
-    // Wants the opposite: it rewards never repeating a hand.
+    // Supernova used to be here too. It now grows with the times your hand is
+    // played over the run, so a nudge for declaring one would count it twice.
+    // Obelisk wants the opposite: it rewards never repeating a hand.
     case 'obelisk':
       if (!primary) return NEUTRAL;
       return {

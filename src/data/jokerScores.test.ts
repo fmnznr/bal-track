@@ -43,10 +43,10 @@ describe('joker score models', () => {
     expect(byId.get('bloodstone')?.score?.perCard?.chance).toBe(0.5);
   });
 
-  it('leaves play-history, resetting and hand-shape jokers unmodeled', () => {
+  it('leaves play-history, hand-shape and uncounted growing jokers unmodeled', () => {
     for (const id of [
-      'ride-the-bus', 'business-card', 'obelisk', 'supernova',
-      'glass-joker', 'card-sharp', 'flower-pot', 'seeing-double',
+      'business-card', 'obelisk', 'campfire', 'red-card', 'constellation',
+      'card-sharp', 'flower-pot', 'seeing-double',
     ]) {
       expect(byId.get(id)?.score, id).toBeUndefined();
     }
@@ -54,10 +54,10 @@ describe('joker score models', () => {
 
   it('models a reasonable share without inventing numbers', () => {
     // Flat effects, per-card and held-card effects, retriggers, copies, listed
-    // chances, counts the run tracks, and jokers that grow steadily with what
-    // a round plays. Anything that resets, or depends on what was played
-    // before, is still out. The floor guards against losing them wholesale,
-    // the ceiling against modelling by guesswork.
+    // chances, counts the run tracks, and jokers that grow with what a round
+    // plays. Anything that grows from what the run does not count, or depends
+    // on what was played before, is still out. The floor guards against losing
+    // them wholesale, the ceiling against modelling by guesswork.
     expect(modeled.length).toBeGreaterThanOrEqual(35);
     expect(modeled.length).toBeLessThanOrEqual(80);
   });
@@ -80,7 +80,8 @@ describe('joker score models', () => {
       ]);
       if (j.score.grows) {
         check(j.score.grows as unknown as Record<string, unknown>, j.id, [
-          'chips', 'mult', 'per', 'requiresHand', 'cards', 'match', 'lossPerDiscard',
+          'chips', 'mult', 'xmult', 'per', 'requiresHand', 'cards', 'match', 'chance', 'every',
+          'lossPerDiscard', 'resets', 'since', 'consumes',
         ]);
       }
       if (j.score.perCard) {

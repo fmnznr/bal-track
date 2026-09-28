@@ -191,3 +191,19 @@ it('takes the value a growing joker shows in the game', async () => {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
   expect(saved.current.jokers[0].growth).toEqual({ value: 45, round: 1 });
 });
+
+it('takes X Mult the way the game shows it, and asks nothing of a joker that resets each round', async () => {
+  const run = {
+    ...newRunState('Red', 'White'),
+    jokers: [{ jokerId: 'lucky-cat', edition: 'base' }, { jokerId: 'hit-the-road', edition: 'base' }],
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ current: run, past: [], finished: [] }));
+  render(<App />);
+  const field = screen.getByLabelText('Lucky Cat: X Mult now');
+  await userEvent.clear(field);
+  await userEvent.type(field, '2.5{Enter}');
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!);
+  // X2.5 is X1 and 1.5 gained.
+  expect(saved.current.jokers[0].growth).toEqual({ value: 1.5, round: 1 });
+  expect(screen.queryByLabelText(/Hit the Road:/)).not.toBeInTheDocument();
+});

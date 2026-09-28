@@ -7,7 +7,7 @@ import type {
   RunState, ScoreContribution, ScoreTiming, Suit,
 } from '../types';
 import {
-  cardTypes, expectedLowestRankValue, hasSuit, isFace, matchShare, matchWeight, PLAIN_RULES, rankChips,
+  cardTypes, expectedLowestRankValue, hasSuit, isFace, matchShare, matchWeight, rankChips,
 } from './cards';
 import type { CardRules, CardType } from './cards';
 import { handOdds } from './handOdds';
@@ -172,15 +172,17 @@ function active(board: readonly ScoringJoker[]): ScoringJoker[] {
 
 /**
  * A growing joker's score block with what it has grown to written in, as a
- * plain +Chips or +Mult. Without an amount it contributes nothing.
+ * plain +Chips, +Mult or X Mult. Without an amount it is not modelled at all.
  */
-function withGrowth(score: JokerScore | undefined, amount = 0): JokerScore | undefined {
+function withGrowth(score: JokerScore | undefined, amount?: number): JokerScore | undefined {
   if (!score?.grows) return score;
+  // Growth the run cannot count is left to the rating, as an unmodelled joker.
+  if (amount === undefined) return undefined;
   const { grows, ...rest } = score;
   if (amount <= 0) return rest;
-  return grows.chips !== undefined
-    ? { ...rest, chips: (rest.chips ?? 0) + amount }
-    : { ...rest, mult: (rest.mult ?? 0) + amount };
+  if (grows.chips !== undefined) return { ...rest, chips: (rest.chips ?? 0) + amount };
+  if (grows.mult !== undefined) return { ...rest, mult: (rest.mult ?? 0) + amount };
+  return { ...rest, xmult: (rest.xmult ?? 1) * (1 + amount) };
 }
 
 function toScoring(def: JokerDef, edition: Edition, stickers?: { rental?: boolean }, grown?: number): ScoringJoker {
@@ -875,6 +877,8 @@ interface RoundPlay {
   odds: number;
   discards: number;
   types: CardType[];
+  /** What the board makes a card count as: Pareidolia, Smeared Joker. */
+  rules: CardRules;
 }
 
 const roundPlayCache = new WeakMap<RunState, RoundPlay>();
@@ -896,58 +900,115 @@ function roundPlay(run: RunState): RoundPlay {
   const odds = hand === 'High Card' || STACKED_HANDS.has(hand)
     ? 1
     : handOdds(types, run.deckProfile.deckSize, handSize(run, board), discards / hands, hand, oddsRules(board));
-  const play = { hand, hands, odds, discards, types };
+  const ids = new Set(active(board).map(j => j.id));
+  const rules = { allFace: ids.has('pareidolia'), smeared: ids.has('smeared-joker') };
+  const play = { hand, hands, odds, discards, types, rules };
   roundPlayCache.set(run, play);
   return play;
 }
 
-/** Chips or Mult a growing joker gains in a round, as the run plays. */
-function growthPerRound(g: JokerGrowth, play: RoundPlay): number {
-  // Over the hands a round takes: those that come together and those that fall back.
-  const overHands = (per: (hand: HandType) => number) => play.hands * (
-    play.odds * per(play.hand) + (1 - play.odds) * per(fallbackFor(play.hand))
-  );
+/** Over the hands a round takes: those that come together and those that fall back. */
+function overHands(play: RoundPlay, per: (hand: HandType) => number): number {
+  return play.hands * (play.odds * per(play.hand) + (1 - play.odds) * per(fallbackFor(play.hand)));
+}
+
+/** Share of hands without a scoring face card, taking the scoring cards as they come. */
+function faceFreeShare(play: RoundPlay): number {
+  const face = matchShare(play.types, { kind: 'face' }, play.rules);
+  return overHands(play, hand => (1 - face) ** scoringCards(hand)) / play.hands;
+}
+
+/**
+ * Times a growing joker gains in a round, as the run plays; null when the run
+ * cannot say, which leaves the joker to its rating.
+ */
+function eventsPerRound(g: JokerGrowth, play: RoundPlay, run: RunState): number | null {
   let events: number;
   switch (g.per) {
     case 'hand':
-      events = overHands(hand => (
+      events = overHands(play, hand => (
         (!g.requiresHand || handContains(hand, g.requiresHand))
         // Fewer scoring cards can be made up to the count with kickers; more cannot be cut.
         && (g.cards === undefined || scoringCards(hand) <= g.cards) ? 1 : 0
       ));
+      if (g.resets === 'face') events *= faceFreeShare(play);
       events -= (g.lossPerDiscard ?? 0) * play.discards * TUNING.growth.discardsSpentWithLoss;
       break;
+    case 'sameHand':
+      // A miss is played as another hand, which adds to that hand's count instead.
+      events = play.hands * play.odds;
+      break;
     case 'discardedCard':
-      events = play.discards * TUNING.growth.cardsPerDiscard * matchShare(play.types, g.match!, PLAIN_RULES);
+      events = play.discards * TUNING.growth.cardsPerDiscard * matchShare(play.types, g.match!, play.rules);
       break;
     case 'scoredCard':
-      events = overHands(scoringCards) * matchShare(play.types, g.match!, PLAIN_RULES);
+      events = overHands(play, scoringCards) * matchShare(play.types, g.match!, play.rules);
       break;
+    case 'reroll': {
+      // One shop a round, rerolled as often as the screenshots show you do.
+      const visits = run.shopVisits;
+      if (visits.length < TUNING.growth.minShopsForRerolls) return null;
+      events = visits.reduce((sum, v) => sum + v.rerolls, 0) / visits.length;
+      break;
+    }
   }
-  return Math.max(0, events) * (g.chips ?? g.mult ?? 0);
+  return (Math.max(0, events) * (g.chance ?? 1)) / (g.every ?? 1);
+}
+
+/**
+ * Rounds the run has played. The round counter comes from screenshots; one
+ * below the ante cannot be right, since every ante ends in a boss, so it was
+ * never kept and the ante's rounds stand in for it.
+ */
+function roundsPlayed(run: RunState): number {
+  if (run.round >= run.ante) return run.round;
+  return Math.max(0, (Math.floor(run.ante) - 1) * TUNING.economy.roundsPerAnte + 1);
 }
 
 export interface Growth {
-  unit: 'Chips' | 'Mult';
+  /** X Mult amounts are what was gained on top of X1. */
+  unit: 'Chips' | 'Mult' | 'XMult';
   /** Gained in a round, as the run plays. */
   perRound: number;
   /** Where it stands: nothing for one in the shop. */
   now: number;
   /** Where it will stand by the target, the value it is judged at. */
   atTarget: number;
-  /** Bought in the shop, counted from a record, or assumed for want of one. */
-  source: 'shop' | 'recorded' | 'assumed';
+  /**
+   * Bought in the shop, counted from a record, or assumed for want of one. A
+   * joker that resets every round, or counts the whole run, needs no record.
+   */
+  source: 'shop' | 'recorded' | 'assumed' | 'round' | 'run';
 }
 
 /**
  * What a growing joker is worth, for one in the shop or one you own. An owned
  * one grows on from what the run recorded of it: its purchase, or the value
- * you entered. Without either it is assumed to have grown for one ante.
+ * you entered. Without either it is assumed to have grown for one ante. Null
+ * when the run cannot say how it grows.
  */
 export function growthOf(run: RunState, def: JokerDef, owned?: OwnedJoker): Growth | null {
   const g = def.score?.grows;
   if (!g) return null;
-  const perRound = growthPerRound(g, roundPlay(run));
+  const play = roundPlay(run);
+  const events = eventsPerRound(g, play, run);
+  if (events === null) return null;
+  const step = g.chips ?? g.mult ?? g.xmult ?? 0;
+  const unit = g.chips !== undefined ? 'Chips' : g.mult !== undefined ? 'Mult' : 'XMult';
+  const perRound = events * step;
+  const ahead = perRound * TUNING.growth.roundsAhead;
+
+  if (g.resets === 'round') {
+    // Built up over a round and gone at its end: a hand sees on average what
+    // half the round's discards brought.
+    return { unit, perRound, now: perRound / 2, atTarget: perRound / 2, source: 'round' };
+  }
+  if (g.since === 'run') {
+    // Counted from the start of the run, whoever held it, one round at a time.
+    const now = perRound * roundsPlayed(run);
+    return { unit, perRound, now, atTarget: now + ahead, source: 'run' };
+  }
+
   let now = 0;
   let source: Growth['source'] = 'shop';
   if (owned?.growth) {
@@ -957,11 +1018,22 @@ export function growthOf(run: RunState, def: JokerDef, owned?: OwnedJoker): Grow
     now = perRound * TUNING.growth.unknownRoundsHeld;
     source = 'assumed';
   }
-  return {
-    unit: g.chips !== undefined ? 'Chips' : 'Mult',
-    perRound,
-    now,
-    atTarget: now + perRound * TUNING.growth.roundsAhead,
-    source,
-  };
+  let atTarget = now + ahead;
+  if (g.consumes && g.match) {
+    // What is left to strip or shatter is what the deck profile still holds.
+    const left = run.deckProfile.deckSize * matchShare(play.types, g.match, play.rules);
+    atTarget = now + Math.min(ahead, left * step);
+  }
+  if (g.resets === 'face') {
+    // A streak that a face card ends settles where such a streak usually
+    // stands: p / (1 - p) hands for a share p of hands without one. One well
+    // past that is likely to be reset by the time it counts.
+    const p = faceFreeShare(play);
+    if (p < 1) {
+      const settled = (step * p) / (1 - p);
+      if (source !== 'recorded') now = Math.min(now, settled);
+      atTarget = Math.min(now + ahead, settled);
+    }
+  }
+  return { unit, perRound, now, atTarget, source };
 }

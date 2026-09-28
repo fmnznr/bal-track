@@ -123,12 +123,18 @@ export default function RunOverview() {
                 stickers={owned.stickers}
                 onChange={stickers => dispatch({ type: 'SET_JOKER_STICKERS', index: i, stickers })}
               />
-              {growth && (
+              {growth && (growth.source === 'recorded' || growth.source === 'assumed') && (
                 <>
                   <NumberField
-                    label={t('growthNow', { name: def.name, unit: growth.unit })}
-                    value={Math.round(growth.now)}
-                    onChange={value => dispatch({ type: 'SET_JOKER_GROWTH', index: i, value })}
+                    label={t('growthNow', { name: def.name, unit: growth.unit === 'XMult' ? 'X Mult' : growth.unit })}
+                    value={growth.unit === 'XMult' ? Math.round((1 + growth.now) * 100) / 100 : Math.round(growth.now)}
+                    min={growth.unit === 'XMult' ? 1 : 0}
+                    onChange={value => dispatch({
+                      type: 'SET_JOKER_GROWTH',
+                      index: i,
+                      // X Mult is entered as the game shows it; what grows is the part above X1.
+                      value: growth.unit === 'XMult' ? value - 1 : value,
+                    })}
                   />
                   {growth.source === 'assumed' && <span className="muted">{t('growthAssumed')}</span>}
                 </>

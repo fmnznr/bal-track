@@ -889,7 +889,14 @@
     "tags": [
       "plus-mult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "mult": 1,
+        "per": "sameHand",
+        "since": "run"
+      }
+    }
   },
   {
     "id": "ride-the-bus",
@@ -905,7 +912,14 @@
     "tags": [
       "plus-mult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "mult": 1,
+        "per": "hand",
+        "resets": "face"
+      }
+    }
   },
   {
     "id": "space-joker",
@@ -1326,7 +1340,17 @@
       "xmult",
       "scaling",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "xmult": 0.1,
+        "per": "scoredCard",
+        "match": {
+          "kind": "enhanced"
+        },
+        "consumes": true
+      }
+    }
   },
   {
     "id": "shortcut",
@@ -1723,7 +1747,18 @@
       "xmult",
       "scaling",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "xmult": 0.25,
+        "per": "scoredCard",
+        "match": {
+          "kind": "enhanced",
+          "enhancement": "lucky"
+        },
+        "chance": 0.2533
+      }
+    }
   },
   {
     "id": "baseball-card",
@@ -1815,7 +1850,13 @@
     "tags": [
       "plus-mult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "mult": 2,
+        "per": "reroll"
+      }
+    }
   },
   {
     "id": "popcorn",
@@ -2307,7 +2348,19 @@
       "xmult",
       "scaling",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "xmult": 0.75,
+        "per": "scoredCard",
+        "match": {
+          "kind": "enhanced",
+          "enhancement": "glass"
+        },
+        "chance": 0.25,
+        "consumes": true
+      }
+    }
   },
   {
     "id": "showman",
@@ -2487,7 +2540,20 @@
       "xmult",
       "scaling",
       "high-risk"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "xmult": 0.5,
+        "per": "discardedCard",
+        "match": {
+          "kind": "rank",
+          "ranks": [
+            "J"
+          ]
+        },
+        "resets": "round"
+      }
+    }
   },
   {
     "id": "the-duo",
@@ -2835,7 +2901,17 @@
     "tags": [
       "xmult",
       "scaling"
-    ]
+    ],
+    "score": {
+      "grows": {
+        "xmult": 1,
+        "per": "discardedCard",
+        "match": {
+          "kind": "any"
+        },
+        "every": 23
+      }
+    }
   },
   {
     "id": "chicot",

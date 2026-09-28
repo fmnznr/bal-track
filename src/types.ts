@@ -62,7 +62,9 @@ export type CardMatch =
    * One suit that changes every round, taken from a card of the deck (Castle):
    * a quarter on a standard deck, nearly always the suit a one-suit deck has.
    */
-  | { kind: 'deckSuit' };
+  | { kind: 'deckSuit' }
+  /** An enhanced card: of the kind named, or of any kind. */
+  | { kind: 'enhanced'; enhancement?: EnhancementType };
 
 /** A contribution that repeats, once per matching card or per counted thing. */
 export interface ScoreContribution {
@@ -159,18 +161,37 @@ export interface JokerScore extends ScoreContribution, ScoreTiming {
 export interface JokerGrowth {
   chips?: number;
   mult?: number;
+  /** Gained as X Mult: it starts at X1 and builds one X(1 + gained). */
+  xmult?: number;
   /**
-   * `hand`: every hand played. `discardedCard`: every discarded card that
-   * matches. `scoredCard`: every scoring card that matches.
+   * `hand`: every hand played. `sameHand`: every time the hand being scored is
+   * played (Supernova). `discardedCard`: every discarded card that matches.
+   * `scoredCard`: every scoring card that matches. `reroll`: every shop reroll.
    */
-  per: 'hand' | 'discardedCard' | 'scoredCard';
+  per: 'hand' | 'sameHand' | 'discardedCard' | 'scoredCard' | 'reroll';
   /** Only hands that contain this (Runner: a Straight). */
   requiresHand?: HandType;
   /** Only hands of exactly this many cards (Square Joker). */
   cards?: number;
   match?: CardMatch;
+  /** Only this share of events counts (Lucky Cat: a Lucky card that triggers). */
+  chance?: number;
+  /** One gain per this many events (Yorick: every 23 cards discarded). */
+  every?: number;
   /** Lost again with every discard used (Green Joker). */
   lossPerDiscard?: number;
+  /**
+   * Back to nothing at the end of every round (Hit the Road), or whenever a
+   * scoring face card is played (Ride the Bus).
+   */
+  resets?: 'round' | 'face';
+  /** Counts the whole run, whenever the joker was bought (Supernova). */
+  since?: 'run';
+  /**
+   * Each matching card counts once: the joker strips it (Vampire) or it
+   * shatters (Glass Joker), so growth stops when the deck runs out of them.
+   */
+  consumes?: boolean;
 }
 
 export interface JokerDef {

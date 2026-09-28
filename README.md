@@ -69,19 +69,21 @@ exists only for when a run drifts from what was recorded.
   left of that round instead. See
   [`docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md`](docs/superpowers/specs/2026-09-21-screenshot-recognition-design.md).
 - Ratings and synergy tags are curated heuristics, not win-rate-trained values.
-- Score contribution is modeled for 71 of the 150 Jokers, and seven more are
+- Score contribution is modeled for 79 of the 150 Jokers, and seven more are
   valued by how much more often they make your hand come together (Four
   Fingers, Shortcut, Smeared Joker, Juggler, Turtle Bean, Drunkard, Merry
   Andy): flat effects,
   per-card and held-card effects, retriggers, copies, listed chances and
-  effects that scale with something the run tracks. Six jokers that grow
-  steadily from nothing (Castle, Green Joker, Runner, Square Joker, Spare
-  Trousers, Wee Joker) are counted at what they gain a round as the run plays,
-  valued where they will stand by the next ante. Ranks are assumed evenly
+  effects that scale with something the run tracks. Fourteen jokers that grow
+  as the run plays (Castle, Green Joker, Runner, Square Joker, Spare Trousers,
+  Wee Joker, Ride the Bus, Supernova, Lucky Cat, Glass Joker, Vampire, Hit the
+  Road, Flash Card, Yorick) are counted at what they gain a round, valued
+  where they will stand by the next ante. Ranks are assumed evenly
   spread within the face and non-face cards, since only the face count is
-  tracked, and the estimate assumes you play only the scoring cards. Other
-  jokers that scale over time, reset, or depend on what was played before are
-  named but excluded.
+  tracked, and the estimate assumes you play only the scoring cards. Jokers
+  that grow from what the run does not count (Constellation, Hologram, Red
+  Card, Campfire and the like) or depend on what was played before are named
+  but excluded.
   Copy jokers are ranked on their rating, since what they will copy over a run
   is not on today's board.
 - Income is counted for nine jokers (Golden Joker, To the Moon, Rocket and
@@ -128,9 +130,12 @@ exists only for when a run drifts from what was recorded.
 - A growing joker you own is counted from its purchase through the app, or
   from the value you enter on the Run tab; one added any other way is assumed
   to have grown for one ante until you enter what the game shows. Ride the
-  Bus, Flash Card, Constellation, Hologram and the other growing jokers are
-  still rated on their rating alone. Supernova and Obelisk are nudged
-  by whether you declared a hand, not by how often you played it.
+  Bus takes its scoring cards as they come, so a player who steers around
+  face cards keeps a longer streak than it counts. Vampire and Glass Joker
+  stop at the enhanced cards the deck profile holds, which you keep up to
+  date. Flash Card waits for three shops read from screenshots before it
+  grows from your rerolls. Obelisk is nudged by whether you declared a hand,
+  not by how often you played it.
 - Unusual card-price modifiers (Couponed tags and the like) may require
   correcting the displayed card price manually.
 

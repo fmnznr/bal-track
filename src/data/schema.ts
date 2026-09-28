@@ -40,6 +40,7 @@ const cardMatch = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('rotatingSuit') }).strict(),
   z.object({ kind: z.literal('rotatingCard') }).strict(),
   z.object({ kind: z.literal('deckSuit') }).strict(),
+  z.object({ kind: z.literal('enhanced'), enhancement: z.enum(ENHANCEMENT_TYPES).optional() }).strict(),
 ]);
 
 const runCount = z.enum([
@@ -77,14 +78,26 @@ const jokerScore = z.object({
   grows: z.object({
     chips: z.number().positive().optional(),
     mult: z.number().positive().optional(),
-    per: z.enum(['hand', 'discardedCard', 'scoredCard']),
+    xmult: z.number().positive().optional(),
+    per: z.enum(['hand', 'sameHand', 'discardedCard', 'scoredCard', 'reroll']),
     requiresHand: handType.optional(),
     cards: z.number().int().min(1).max(5).optional(),
     match: cardMatch.optional(),
+    chance: z.number().positive().max(1).optional(),
+    every: z.number().int().min(2).optional(),
     lossPerDiscard: z.number().positive().optional(),
+    resets: z.enum(['round', 'face']).optional(),
+    since: z.literal('run').optional(),
+    consumes: z.literal(true).optional(),
   }).strict()
-    .refine(g => (g.chips === undefined) !== (g.mult === undefined), 'a joker grows either Chips or Mult')
-    .refine(g => (g.per === 'hand') === (g.match === undefined), 'a card event names its card, a hand event none')
+    .refine(
+      g => [g.chips, g.mult, g.xmult].filter(v => v !== undefined).length === 1,
+      'a joker grows one of Chips, Mult or X Mult',
+    )
+    .refine(
+      g => (g.per === 'discardedCard' || g.per === 'scoredCard') === (g.match !== undefined),
+      'a card event names its card, any other event none',
+    )
     .optional(),
 }).strict().refine(
   s => s.chips !== undefined || s.mult !== undefined || s.xmult !== undefined

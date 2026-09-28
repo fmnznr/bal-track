@@ -199,6 +199,9 @@ export function matchWeight(
       const target = targetShares(deck);
       return SUITS.filter(s => hasSuit(card, s, rules)).reduce((sum, s) => sum + (target.suit.get(s) ?? 0), 0);
     }
+    case 'enhanced':
+      if (card.enhancement === 'none') return 0;
+      return match.enhancement === undefined || card.enhancement === match.enhancement ? 1 : 0;
   }
 }
 

@@ -102,6 +102,11 @@ export const TUNING = {
      * loses a Mult for each. It pays to discard less with it, not never.
      */
     discardsSpentWithLoss: 0.25,
+    /**
+     * Shops of this run the screenshots must have counted before Flash Card is
+     * grown from how often you reroll. Below it, its rating stands in.
+     */
+    minShopsForRerolls: 3,
   },
 
   /**
@@ -187,12 +192,8 @@ export const TUNING = {
       abundantAbove: 0.3,
       abundant: 1.15,
     },
-    enhanced: {
-      /** Glass Joker scales with the Glass cards it could shatter. */
-      perMatchingCard: 1.08,
-      cap: 1.6,
-      noneYet: 0.7,
-    },
+    // `enhanced` used to scale Glass Joker with the deck's Glass cards. It now
+    // grows from the Glass cards that shatter, so this would count them twice.
   },
 
   /**
@@ -201,8 +202,6 @@ export const TUNING = {
    * docs/superpowers/specs/2026-09-17-primary-hand-design.md.
    */
   play: {
-    /** Supernova scales with repeat plays of one hand. */
-    consistentHand: 1.12,
     /** Obelisk wants the opposite and is hurt by a committed build. */
     varietyJoker: 0.85,
     /** Baseline discards per round that Banner and friends are judged against. */
